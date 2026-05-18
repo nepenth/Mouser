@@ -18,6 +18,10 @@ Current primary focus devices:
 
 This project is especially useful for KVM users who want consistent behavior across machines without installing Logitech bloatware.
 
+> **Development Status & Plan**  
+> See [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) for the current state, what has been delivered, and the active roadmap.  
+> The detailed architecture lives in [docs/LOGITECH_DEVICE_COMPANION_DESIGN.md](docs/LOGITECH_DEVICE_COMPANION_DESIGN.md).
+
 ---
 
 ## Contents
