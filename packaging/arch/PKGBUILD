@@ -1,0 +1,105 @@
+# Maintainer: Your Name <you@example.com>
+# Contributor: Based on work by the Mouser project
+
+pkgname=mouser
+pkgver=0.1.0  # Update on each release; use git describe or tag in real releases
+pkgrel=1
+pkgdesc="Lightweight, open-source Logitech HID++ mouse remapper (native Arch package)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/TomBadash/Mouser"
+license=('MIT')
+depends=(
+  'python'
+  'pyside6'
+  'python-hidapi'
+  'python-evdev'
+  'python-pillow'
+  'qt6-declarative'   # for QML
+  'qt6-svg'
+  'qt6-quickcontrols2'
+)
+makedepends=('git' 'python-setuptools' 'python-build' 'python-installer' 'python-wheel')
+optdepends=(
+  'kdialog: for some KDE-native dialogs (optional)'
+)
+provides=('mouser')
+conflicts=('mouser-git' 'mouser-bin')
+install=mouser.install
+
+source=(
+  "git+https://github.com/TomBadash/Mouser.git#branch=master"
+  "69-mouser-logitech.rules"
+)
+sha256sums=('SKIP'
+            'SKIP')  # In real release, pin a tag and proper sums
+
+pkgver() {
+  cd "$srcdir/Mouser"
+  # Use git describe if tags exist; fallback to date-based for dev
+  git describe --long --tags 2>/dev/null | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g' \
+    || printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+  cd "$srcdir/Mouser"
+  # Nothing heavy needed; the source is ready
+}
+
+build() {
+  cd "$srcdir/Mouser"
+  # We install the source tree directly (simple and reliable for this app).
+  # A future version could use proper packaging with entry points.
+  :
+}
+
+package() {
+  cd "$srcdir/Mouser"
+
+  # Install the application tree
+  install -dm755 "$pkgdir/usr/lib/mouser"
+  cp -r core ui images main_qml.py requirements.txt LICENSE README.md \
+        CONTRIBUTING_DEVICES.md DEVELOPMENT.md "$pkgdir/usr/lib/mouser/"
+
+  # Install the udev rule (will be activated by the .install script)
+  install -Dm644 "$srcdir/69-mouser-logitech.rules" \
+    "$pkgdir/usr/lib/udev/rules.d/69-mouser-logitech.rules"
+
+  # Desktop file (processed from the template)
+  install -Dm644 packaging/linux/io.github.tombadash.mouser.desktop.in \
+    "$pkgdir/usr/share/applications/io.github.tombadash.mouser.desktop"
+
+  # Fix up the desktop file for native install
+  sed -i \
+    -e 's|@APP_NAME@|Mouser|g' \
+    -e 's|@EXEC@|/usr/bin/mouser|g' \
+    -e 's|@TRY_EXEC@|mouser|g' \
+    -e 's|@ICON@|mouser|g' \
+    -e 's|@WORKDIR@||g' \
+    -e 's|@SOURCE_PATH@||g' \
+    -e '/@AUTOSTART_LINES@/d' \
+    "$pkgdir/usr/share/applications/io.github.tombadash.mouser.desktop"
+
+  # Icon (use the existing logo)
+  install -Dm644 images/logo.png \
+    "$pkgdir/usr/share/icons/hicolor/256x256/apps/mouser.png"
+  install -Dm644 images/logo_icon.png \
+    "$pkgdir/usr/share/icons/hicolor/128x128/apps/mouser.png"
+
+  # Launcher script (native feel, uses system Python + PySide6)
+  install -Dm755 /dev/stdin "$pkgdir/usr/bin/mouser" << 'EOF'
+#!/bin/bash
+# Native launcher for Mouser on Arch / CachyOS KDE
+# Runs the application using the system Python stack for best KDE/Wayland integration
+MUSER_LIB="/usr/lib/mouser"
+export PYTHONPATH="${MUSER_LIB}:${PYTHONPATH}"
+cd "${MUSER_LIB}"
+exec python main_qml.py "$@"
+EOF
+
+  # Install the permission helper (user can run it manually or via the package post-install message)
+  install -Dm755 packaging/linux/install-linux-permissions.sh \
+    "$pkgdir/usr/share/mouser/install-linux-permissions.sh"
+
+  # License
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

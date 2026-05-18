@@ -1,4 +1,4 @@
-# Mouser — Logitech Mouse Remapper
+# Mouser — Local Logitech Device Companion
 
 <p align="center">
   <img src="images/logo_icon.png" width="128" alt="Mouser logo" />
@@ -6,12 +6,17 @@
 
 English | [中文文档](README_CN.md)
 
-A lightweight, open-source, fully local alternative to **Logitech Options+** for
-remapping Logitech HID++ mice. The current best experience is on the **MX Master**
-and **MX Anywhere** families, with detection and fallback UI support for additional
-Logitech models.
+**Mouser** is a lightweight, open-source, fully local companion for Logitech HID++ devices.
+
+It started as a mouse remapper (excellent support for MX Master / MX Anywhere families) and is actively evolving into a broader **local Logitech device companion** — with strong emphasis on **onboard profiles as the source of truth** plus light, consistent host-side enhancements.
+
+Current primary focus devices:
+- **G502 X Lightspeed** (mouse) — excellent DPI, onboard awareness, wheel ratchet, multi-receiver hygiene.
+- **MX Mechanical Mini** (keyboard) — backlight, FN inversion, safe selective diversion, proper keyboard vs mouse classification.
 
 **No telemetry. No cloud. No Logitech account required.**
+
+This project is especially useful for KVM users who want consistent behavior across machines without installing Logitech bloatware.
 
 ---
 
@@ -152,6 +157,7 @@ That's it. The app opens, drops a tray / menu-bar icon, and starts remapping imm
 | MX Master 4 / 3S / 3 / 2S / MX Master | Yes | Dedicated interactive per-model layouts |
 | MX Anywhere 3S / 3 / 2S | Yes | Dedicated interactive per-model layouts |
 | MX Vertical | Yes | Generic fallback card (with DPI switch button support) |
+| G502 X Lightspeed / Plus / Wired | Partial (DPI, battery, wheel tilt, standard side/middle via OS events; extra G-buttons via onboard profiles) | Generic fallback card |
 | Unknown Logitech HID++ mice | Best effort by PID/name | Generic fallback card |
 
 > MX Master and MX Anywhere devices have dedicated visual overlays. Other devices are still detected, show their model name, and can opt into an experimental layout override — button positions just may not line up until a real overlay lands. See [CONTRIBUTING_DEVICES.md](CONTRIBUTING_DEVICES.md) to add yours.
@@ -302,6 +308,49 @@ That Linux autostart entry includes a short GNOME startup delay so Mouser does n
 
 `xdotool` enables per-app profile switching on X11; `kdotool` adds KDE Wayland support. Other Wayland compositors fall back to the default profile.
 
+</details>
+
+<details>
+<summary><strong>Native Arch Linux / CachyOS package (recommended for KDE Plasma + Wayland)</strong></summary>
+
+For the best integration on Arch-based distributions (CachyOS, EndeavourOS, etc.) running KDE Plasma / Wayland, build a proper system package instead of the portable PyInstaller zip. This uses the system PySide6 / Qt6 stack for perfect theming, scaling, and Wayland support.
+
+```bash
+cd packaging/arch
+
+# Build and install the native package (pulls current git)
+makepkg -si
+```
+
+After installation you get:
+- `/usr/bin/mouser` launcher (uses your system Python + PySide6)
+- Proper menu entry + icons
+- udev rule installed to the correct location
+- Clean post-install messages about permissions
+
+Run with:
+
+```bash
+mouser
+mouser --start-hidden
+```
+
+To uninstall:
+
+```bash
+sudo pacman -R mouser
+```
+
+**Rebuild after pulling new commits:**
+
+```bash
+cd packaging/arch
+makepkg -si --clean
+```
+
+The package is intentionally simple and uses the live git tree so you always get the latest device support (including G502 X Lightspeed, onboard profile awareness, ratchet control, etc.).
+
+See `packaging/arch/PKGBUILD` and `packaging/arch/mouser.install` for details.
 </details>
 
 > **Automated releases:** pushing a `v*` tag triggers [`.github/workflows/release.yml`](.github/workflows/release.yml), which builds Windows, macOS (Apple Silicon + Intel), and Linux artifacts in CI and uploads them to the GitHub Release.

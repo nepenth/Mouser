@@ -1,0 +1,27 @@
+post_install() {
+  echo ">>> Mouser installed as a native Arch package."
+  echo ">>> To enable access to your Logitech mouse (required on Linux):"
+  echo "    sudo udevadm control --reload-rules && sudo udevadm trigger"
+  echo "    Then reconnect your receiver/mouse."
+  echo ""
+  echo ">>> For full functionality (DPI, battery, wheel ratchet on G502 X etc.):"
+  echo "    Run:  mouser"
+  echo "    The first launch will create the config and you can enable Start at login."
+  echo ""
+  echo ">>> If you use the mouse primarily with onboard profiles (recommended for KVM):"
+  echo "    Mouser will now correctly detect G502 X Lightspeed and other gaming mice,"
+  echo "    allow DPI control and (soon) ratchet toggling without interfering with"
+  echo "    your onboard button mappings."
+  echo ""
+  echo ">>> See /usr/share/doc/mouser/README.md or run 'mouser --help' for options."
+}
+
+post_upgrade() {
+  post_install
+}
+
+post_remove() {
+  echo ">>> Mouser removed."
+  echo ">>> You may want to reload udev rules if you no longer need the Logitech udev rule:"
+  echo "    sudo udevadm control --reload-rules && sudo udevadm trigger"
+}

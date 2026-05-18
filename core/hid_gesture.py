@@ -614,6 +614,12 @@ FEAT_HIRES_WHEEL_ENHANCED = 0x2121
 FEAT_LOWRES_WHEEL         = 0x2130
 FEAT_THUMB_WHEEL          = 0x2150
 FEAT_UNIFIED_BATT   = 0x1004      # Unified Battery (preferred)
+FEAT_ONBOARD_PROFILES = 0x8100    # Gaming mice (G502 X etc.) - onboard memory + profiles
+FEAT_REPORT_RATE    = 0x8060      # Report rate control (gaming mice)
+
+# Keyboard / general device features (MX Mechanical Mini, etc.)
+FEAT_BACKLIGHT2           = 0x1982   # Backlight control (V2 on MX Mechanical Mini)
+FEAT_K375S_FN_INVERSION   = 0x40A3   # FN / Fx swap (common on MX Mechanical family)
 FEAT_DEVICE_NAME    = 0x0005      # Device Name & Type
 FEAT_BATTERY_STATUS = 0x1000      # Battery Status (fallback)
 DEFAULT_GESTURE_CID = DEFAULT_GESTURE_CIDS[0]
@@ -662,6 +668,49 @@ MAPPING_FLAG_BITS = (
     (0x0100, "analytics_reporting"),
     (0x0400, "raw_wheel"),
 )
+
+
+def classify_device_kind(
+    pid: int,
+    product_name: str | None = None,
+    hidpp_name: str | None = None,
+    discovered_feature_ids: set[int] | None = None,
+) -> str:
+    """
+    Early, cheap device kind classification: 'mouse' | 'keyboard' | 'other' | 'unknown'.
+
+    Used in Phase 0 to short-circuit mouse-only logic (gesture diversion, RawXY, etc.)
+    on keyboards such as the MX Mechanical Mini while still allowing useful HID++
+    features (battery, backlight, FN inversion) on all device types.
+
+    Heuristics (in priority order):
+    - Strong name / PID signals from catalog + known devices
+    - Feature presence (BACKLIGHT2 + heavy fn keys → keyboard; DPI/ONBOARD/HIRES_WHEEL → mouse)
+    """
+    name = ((hidpp_name or product_name) or "").lower()
+    feats = discovered_feature_ids or set()
+
+    # Fast name-based signals
+    if any(x in name for x in ("g502", "mx master", "mx anywhere", "mx vertical")):
+        return "mouse"
+    if any(x in name for x in ("mechanical mini", "mechanical", "mx keys", "keyboard")):
+        return "keyboard"
+    if pid in (0x409F, 0xC547, 0xC098, 0xB020):
+        return "mouse"
+
+    # Feature-driven classification (available after a light probe or full discovery)
+    has_dpi       = FEAT_ADJ_DPI in feats or 0x2201 in feats
+    has_onboard   = FEAT_ONBOARD_PROFILES in feats or 0x8100 in feats
+    has_hires     = FEAT_HIRES_WHEEL_ENHANCED in feats or 0x2121 in feats
+    has_backlight = FEAT_BACKLIGHT2 in feats or 0x1982 in feats
+
+    if has_backlight and not (has_dpi or has_onboard):
+        return "keyboard"
+    if has_dpi or has_onboard or has_hires:
+        return "mouse"
+    if has_backlight:
+        return "keyboard"
+    return "unknown"
 
 
 # ── Helpers ───────────────────────────────────────────────────────
@@ -738,6 +787,10 @@ class HidGestureListener:
         self._smart_shift_idx = None      # feature index of SMART_SHIFT / SMART_SHIFT_ENHANCED
         self._smart_shift_enhanced = False  # True → use fn 1/2; False → fn 0/1
         self._wheel_feature_indexes = {}
+        self._onboard_profiles_idx = None   # 0x8100 - for gaming mice with onboard memory
+        self._report_rate_idx = None        # 0x8060 - report rate control
+        self._backlight2_idx = None         # 0x1982 - BACKLIGHT2 (MX Mechanical Mini etc.)
+        self._fn_inversion_idx = None       # 0x40A3 - K375S FN inversion
         self._pending_smart_shift = None
         self._smart_shift_result = None
         self._smart_shift_call_lock = threading.Lock()
@@ -747,6 +800,11 @@ class HidGestureListener:
         self._pending_battery = None
         self._battery_result = None
         self._last_logged_battery = None
+
+        self._pending_backlight = None
+        self._backlight_result = None
+        self._pending_fn = None
+        self._fn_result = None
         self._connected_device_info = None
         self._last_controls = []   # REPROG_V4 controls from last connection
         self._consecutive_request_timeouts = 0
@@ -832,6 +890,14 @@ class HidGestureListener:
             })
         for feature_id, index in sorted(self._wheel_feature_indexes.items()):
             features.append({"feature_id": feature_id, "index": index})
+        if self._onboard_profiles_idx is not None:
+            features.append({"feature_id": FEAT_ONBOARD_PROFILES, "index": self._onboard_profiles_idx})
+        if self._report_rate_idx is not None:
+            features.append({"feature_id": FEAT_REPORT_RATE, "index": self._report_rate_idx})
+        if self._backlight2_idx is not None:
+            features.append({"feature_id": FEAT_BACKLIGHT2, "index": self._backlight2_idx})
+        if self._fn_inversion_idx is not None:
+            features.append({"feature_id": FEAT_K375S_FN_INVERSION, "index": self._fn_inversion_idx})
         return tuple(features)
 
     def dump_device_info(self):
@@ -860,6 +926,14 @@ class HidGestureListener:
             features[f"BATTERY ({feat_name})"] = f"index 0x{self._battery_idx:02X}"
         for feature_id, index in sorted(self._wheel_feature_indexes.items()):
             features[f"WHEEL (0x{feature_id:04X})"] = f"index 0x{index:02X}"
+        if self._onboard_profiles_idx is not None:
+            features["ONBOARD_PROFILES (0x8100)"] = f"index 0x{self._onboard_profiles_idx:02X}"
+        if self._report_rate_idx is not None:
+            features["REPORT_RATE (0x8060)"] = f"index 0x{self._report_rate_idx:02X}"
+        if self._backlight2_idx is not None:
+            features["BACKLIGHT2 (0x1982)"] = f"index 0x{self._backlight2_idx:02X}"
+        if self._fn_inversion_idx is not None:
+            features["K375S_FN_INVERSION (0x40A3)"] = f"index 0x{self._fn_inversion_idx:02X}"
 
         controls = []
         for c in self._last_controls:
@@ -1102,6 +1176,77 @@ class HidGestureListener:
             return None
         name = bytes(name_bytes).decode("ascii", errors="replace").strip("\x00").strip()
         return name if name else None
+
+    def _discover_common_features(self):
+        """Discover DPI, battery, wheel (including ratchet on 0x2121), onboard profiles (0x8100),
+        and report rate.  Safe to call on any opened HID++ device, including gaming mice
+        that lack REPROG_CONTROLS_V4.
+        """
+        # ADJUSTABLE_DPI
+        dpi_fi = self._find_feature(FEAT_ADJ_DPI)
+        if dpi_fi:
+            self._dpi_idx = dpi_fi
+            print(f"[HidGesture] Found ADJUSTABLE_DPI @0x{dpi_fi:02X}")
+
+        # SMART_SHIFT (only useful for MX-style devices; harmless on others)
+        ss_fi = self._find_feature(FEAT_SMART_SHIFT_ENHANCED)
+        if ss_fi:
+            self._smart_shift_idx = ss_fi
+            self._smart_shift_enhanced = True
+            print(f"[HidGesture] Found SMART_SHIFT_ENHANCED @0x{ss_fi:02X}")
+        else:
+            ss_fi = self._find_feature(FEAT_SMART_SHIFT)
+            if ss_fi:
+                self._smart_shift_idx = ss_fi
+                self._smart_shift_enhanced = False
+                print(f"[HidGesture] Found SMART_SHIFT (basic) @0x{ss_fi:02X}")
+
+        # Wheel features (HIRES_WHEEL_ENHANCED 0x2121 on G502 X gives ratchet control)
+        for wheel_feature in (
+            FEAT_HIRES_WHEEL,
+            FEAT_HIRES_WHEEL_ENHANCED,
+            FEAT_LOWRES_WHEEL,
+            FEAT_THUMB_WHEEL,
+        ):
+            wheel_fi = self._find_feature(wheel_feature)
+            if wheel_fi:
+                self._wheel_feature_indexes[wheel_feature] = wheel_fi
+                print(f"[HidGesture] Found wheel feature 0x{wheel_feature:04X} @0x{wheel_fi:02X}")
+
+        # Battery
+        batt_fi = self._find_feature(FEAT_UNIFIED_BATT)
+        if batt_fi:
+            self._battery_idx = batt_fi
+            self._battery_feature_id = FEAT_UNIFIED_BATT
+            print(f"[HidGesture] Found UNIFIED_BATT @0x{batt_fi:02X}")
+        else:
+            batt_fi = self._find_feature(FEAT_BATTERY_STATUS)
+            if batt_fi:
+                self._battery_idx = batt_fi
+                self._battery_feature_id = FEAT_BATTERY_STATUS
+                print(f"[HidGesture] Found BATTERY_STATUS @0x{batt_fi:02X}")
+
+        # Gaming / onboard mice features
+        onboard_fi = self._find_feature(FEAT_ONBOARD_PROFILES)
+        if onboard_fi:
+            self._onboard_profiles_idx = onboard_fi
+            print(f"[HidGesture] Found ONBOARD_PROFILES @0x{onboard_fi:02X}")
+
+        rr_fi = self._find_feature(FEAT_REPORT_RATE)
+        if rr_fi:
+            self._report_rate_idx = rr_fi
+            print(f"[HidGesture] Found REPORT_RATE @0x{rr_fi:02X}")
+
+        # Keyboard / general device features (safe and useful on MX Mechanical Mini etc.)
+        bl_fi = self._find_feature(FEAT_BACKLIGHT2)
+        if bl_fi:
+            self._backlight2_idx = bl_fi
+            print(f"[HidGesture] Found BACKLIGHT2 @0x{bl_fi:02X}")
+
+        fn_fi = self._find_feature(FEAT_K375S_FN_INVERSION)
+        if fn_fi:
+            self._fn_inversion_idx = fn_fi
+            print(f"[HidGesture] Found K375S_FN_INVERSION @0x{fn_fi:02X}")
 
     def _get_cid_reporting(self, cid):
         if self._feat_idx is None:
@@ -1554,6 +1699,142 @@ class HidGestureListener:
 
         self._pending_battery = None
 
+    # ── Backlight (BACKLIGHT2) ──────────────────────────────────────
+
+    def read_backlight(self):
+        """Returns (enabled: bool | None, level: int | None). Host-side only, temporary."""
+        if self._backlight2_idx is None:
+            return None, None
+
+        self._backlight_result = None
+        self._pending_backlight = "read"
+
+        for _ in range(30):
+            if self._pending_backlight is None:
+                return self._backlight_result
+            time.sleep(0.1)
+        print("[HidGesture] Backlight read timed out")
+        self._pending_backlight = None
+        return None, None
+
+    def set_backlight(self, enabled: bool, level: int | None = None):
+        """Host-side backlight control. Changes are temporary (lost on reconnect/host switch)."""
+        if self._backlight2_idx is None:
+            return False
+
+        self._pending_backlight = ("set", bool(enabled), level)
+        self._backlight_result = None
+
+        for _ in range(30):
+            if self._pending_backlight is None:
+                return self._backlight_result is True
+            time.sleep(0.1)
+        print("[HidGesture] Backlight set timed out")
+        self._pending_backlight = None
+        return False
+
+    def _apply_pending_read_backlight(self):
+        if self._backlight2_idx is None or self._dev is None:
+            self._backlight_result = (None, None)
+            self._pending_backlight = None
+            return
+
+        resp = self._request(self._backlight2_idx, 0x00, [])
+        if resp:
+            params = resp[4] if resp[4] else b""
+            enabled = bool(params[0]) if params else None
+            level = params[3] if len(params) > 3 else None
+            self._backlight_result = (enabled, level)
+            print(f"[HidGesture] Backlight (host read): enabled={enabled}, level={level}")
+        else:
+            self._backlight_result = (None, None)
+            print("[HidGesture] Backlight read FAILED")
+        self._pending_backlight = None
+
+    def _apply_pending_set_backlight(self, enabled: bool, level: int | None):
+        if self._backlight2_idx is None or self._dev is None:
+            self._backlight_result = False
+            self._pending_backlight = None
+            return
+
+        # Minimal V2 write: [enabled, options=0, mask=0xFF, level or 0]
+        payload = [1 if enabled else 0, 0x00, 0xFF, level or 0]
+        resp = self._request(self._backlight2_idx, 0x10, payload)
+        success = resp is not None
+        self._backlight_result = success
+        if success:
+            print(f"[HidGesture] Backlight set (host-side, temporary): enabled={enabled}, level={level}")
+        else:
+            print("[HidGesture] Backlight set FAILED")
+        self._pending_backlight = None
+
+    # ── FN Inversion (K375S_FN_INVERSION) ───────────────────────────
+
+    def read_fn_inversion(self) -> bool | None:
+        """Returns current Fn/Fx swap state (host view)."""
+        if self._fn_inversion_idx is None:
+            return None
+
+        self._fn_result = None
+        self._pending_fn = "read"
+
+        for _ in range(30):
+            if self._pending_fn is None:
+                return self._fn_result
+            time.sleep(0.1)
+        print("[HidGesture] FN inversion read timed out")
+        self._pending_fn = None
+        return None
+
+    def set_fn_inversion(self, swap_fx: bool) -> bool:
+        """Host-side FN inversion toggle. Temporary."""
+        if self._fn_inversion_idx is None:
+            return False
+
+        self._pending_fn = ("set", bool(swap_fx))
+        self._fn_result = None
+
+        for _ in range(30):
+            if self._pending_fn is None:
+                return self._fn_result is True
+            time.sleep(0.1)
+        print("[HidGesture] FN inversion set timed out")
+        self._pending_fn = None
+        return False
+
+    def _apply_pending_read_fn_inversion(self):
+        if self._fn_inversion_idx is None or self._dev is None:
+            self._fn_result = None
+            self._pending_fn = None
+            return
+
+        resp = self._request(self._fn_inversion_idx, 0x00, [])
+        if resp:
+            params = resp[4] if resp[4] else b""
+            swap = bool(params[0]) if params else None
+            self._fn_result = swap
+            print(f"[HidGesture] FN inversion (host): {swap}")
+        else:
+            self._fn_result = None
+            print("[HidGesture] FN inversion read FAILED")
+        self._pending_fn = None
+
+    def _apply_pending_set_fn_inversion(self, swap_fx: bool):
+        if self._fn_inversion_idx is None or self._dev is None:
+            self._fn_result = False
+            self._pending_fn = None
+            return
+
+        payload = [1 if swap_fx else 0]
+        resp = self._request(self._fn_inversion_idx, 0x10, payload)
+        success = resp is not None
+        self._fn_result = success
+        if success:
+            print(f"[HidGesture] FN inversion set (host-side, temporary): swap_fx={swap_fx}")
+        else:
+            print("[HidGesture] FN inversion set FAILED")
+        self._pending_fn = None
+
     # ── notification handling ─────────────────────────────────────
 
     @staticmethod
@@ -1678,11 +1959,17 @@ class HidGestureListener:
 
         # Try direct devices (Bluetooth) before USB receivers, which
         # require scanning multiple slots with slow timeouts.
-        def _direct_device_first(info):
+        # Phase 0: prefer mouse-kind candidates (by PID/name heuristics + classify)
+        # so Lightspeed (0xC547) etc. are handled before Bolt+keyboard receivers.
+        def _candidate_sort_key(info):
+            pid = int(info.get("product_id", 0) or 0)
             name = (info.get("product_string") or "").lower()
-            return (1 if "receiver" in name else 0, name)
+            kind = classify_device_kind(pid, name)
+            kind_prio = {"mouse": 0, "unknown": 1, "other": 2, "keyboard": 3}.get(kind, 4)
+            is_receiver = 1 if "receiver" in name else 0
+            return (kind_prio, is_receiver, name)
 
-        infos.sort(key=_direct_device_first)
+        infos.sort(key=_candidate_sort_key)
 
         print(f"[HidGesture] Backend preference: {_BACKEND_PREFERENCE}")
         print(f"[HidGesture] Candidate HID interfaces: {len(infos)}")
@@ -1711,6 +1998,10 @@ class HidGestureListener:
             self._battery_idx = None
             self._battery_feature_id = None
             self._wheel_feature_indexes = {}
+            self._onboard_profiles_idx = None
+            self._report_rate_idx = None
+            self._backlight2_idx = None
+            self._fn_inversion_idx = None
             self._gesture_cid = DEFAULT_GESTURE_CID
             self._gesture_candidates = list(
                 getattr(device_spec, "gesture_cids", ()) or DEFAULT_GESTURE_CIDS
@@ -1805,6 +2096,64 @@ class HidGestureListener:
                             getattr(device_spec, "gesture_cids", ())
                             or DEFAULT_GESTURE_CIDS
                         )
+
+                    # Phase 0: early classification after first responsive devIdx (the one
+                    # with REPROG_V4) + light feature peek. Keyboards short-circuited here
+                    # before the expensive _discover_reprog_controls (32-control walk) and
+                    # before any _divert gesture attempts (prevents INVALID_ARGUMENT spam and
+                    # mouse-only logic on MX Mechanical etc.). Combined with _candidate_sort_key
+                    # this ensures multiple receivers are handled independently (mouse receivers
+                    # preferred; kbd receivers only reached when no mouse present).
+                    light_feats = {FEAT_REPROG_V4}
+                    for f in (
+                        FEAT_BACKLIGHT2,
+                        FEAT_K375S_FN_INVERSION,
+                        FEAT_ADJ_DPI,
+                        FEAT_ONBOARD_PROFILES,
+                        FEAT_HIRES_WHEEL_ENHANCED,
+                        FEAT_UNIFIED_BATT,
+                        FEAT_REPORT_RATE,
+                    ):
+                        if self._find_feature(f) is not None:
+                            light_feats.add(f)
+                    kind = classify_device_kind(pid, product, hidpp_name, light_feats)
+                    print(f"[HidGesture] Early device kind classification: {kind} "
+                          f"(PID=0x{int(pid or 0):04X} devIdx=0x{idx:02X})")
+                    if kind == "keyboard":
+                        print(f"[HidGesture] Treating device as KeyboardDevice ({hidpp_name or product}) "
+                              f"— skipping mouse gesture paths.")
+                        self._discover_common_features()
+                        # Kbd path: common features only (battery, backlight, fn inversion etc.).
+                        # No reprog walk, no gesture candidates/divert. Return success so kbd is
+                        # usable at control level; outer sort ensures G502 wins when both receivers present.
+                        if idx == BT_DEV_IDX:
+                            actual_transport = "Bluetooth"
+                        elif pid == BOLT_RECEIVER_PID:
+                            actual_transport = "Logi Bolt"
+                        else:
+                            actual_transport = "USB Receiver"
+                        self._connected_device_info = build_connected_device_info(
+                            product_id=pid,
+                            product_name=hidpp_name or product,
+                            transport=actual_transport,
+                            source=source,
+                            gesture_cids=(),
+                            reprog_controls=(),
+                            discovered_features=self._discovered_feature_inventory(),
+                            device_identity={
+                                "device_index": self._dev_idx,
+                                "usage_page": opened_up,
+                                "usage": opened_usage,
+                                "backend": transport,
+                                "hid_module": _HID_MODULE_NAME or "",
+                                "device_path": opened_path,
+                                "device_kind": kind,
+                            },
+                        )
+                        return True
+
+                    # Mouse / standard path (REPROG present, not keyboard): proceed with
+                    # full reprog controls discovery + gesture diversion (safe now).
                     controls = self._discover_reprog_controls()
                     self._last_controls = controls
                     self._gesture_candidates = self._choose_gesture_candidates(
@@ -1813,48 +2162,15 @@ class HidGestureListener:
                     )
                     print("[HidGesture] Gesture CID candidates: "
                           + ", ".join(_format_cid(cid) for cid in self._gesture_candidates))
-                    # Also discover ADJUSTABLE_DPI and SMART_SHIFT
-                    dpi_fi = self._find_feature(FEAT_ADJ_DPI)
-                    if dpi_fi:
-                        self._dpi_idx = dpi_fi
-                        print(f"[HidGesture] Found ADJUSTABLE_DPI @0x{dpi_fi:02X}")
-                    # Prefer 0x2111 (Enhanced) — used by MX Master 3/3S/4 and Logi Options+.
-                    # Fall back to 0x2110 (basic) for older devices.
-                    ss_fi = self._find_feature(FEAT_SMART_SHIFT_ENHANCED)
-                    if ss_fi:
-                        self._smart_shift_idx = ss_fi
-                        self._smart_shift_enhanced = True
-                        print(f"[HidGesture] Found SMART_SHIFT_ENHANCED @0x{ss_fi:02X}")
-                    else:
-                        ss_fi = self._find_feature(FEAT_SMART_SHIFT)
-                        if ss_fi:
-                            self._smart_shift_idx = ss_fi
-                            self._smart_shift_enhanced = False
-                            print(f"[HidGesture] Found SMART_SHIFT (basic) @0x{ss_fi:02X}")
-                    for wheel_feature in (
-                        FEAT_HIRES_WHEEL,
-                        FEAT_HIRES_WHEEL_ENHANCED,
-                        FEAT_LOWRES_WHEEL,
-                        FEAT_THUMB_WHEEL,
-                    ):
-                        wheel_fi = self._find_feature(wheel_feature)
-                        if wheel_fi:
-                            self._wheel_feature_indexes[wheel_feature] = wheel_fi
-                            print(
-                                f"[HidGesture] Found wheel feature "
-                                f"0x{wheel_feature:04X} @0x{wheel_fi:02X}"
-                            )
-                    batt_fi = self._find_feature(FEAT_UNIFIED_BATT)
-                    if batt_fi:
-                        self._battery_idx = batt_fi
-                        self._battery_feature_id = FEAT_UNIFIED_BATT
-                        print(f"[HidGesture] Found UNIFIED_BATT @0x{batt_fi:02X}")
-                    else:
-                        batt_fi = self._find_feature(FEAT_BATTERY_STATUS)
-                        if batt_fi:
-                            self._battery_idx = batt_fi
-                            self._battery_feature_id = FEAT_BATTERY_STATUS
-                            print(f"[HidGesture] Found BATTERY_STATUS @0x{batt_fi:02X}")
+                    # Discover all useful features (DPI, battery, wheel/ratchet, onboard profiles, etc.)
+                    self._discover_common_features()
+
+                    # Reuse the kind already computed earlier in this REPROG block (after the light
+                    # feature peek) for consistency. The keyboard short-circuit branch already
+                    # used it; the mouse path now reuses it too (no re-computation, same heuristic).
+                    print(f"[HidGesture] Early device kind classification (REPROG path): {kind} "
+                          f"(PID=0x{int(pid or 0):04X} devIdx=0x{idx:02X})")
+
                     if self._divert():
                         self._divert_extras()
                         if idx == BT_DEV_IDX:
@@ -1880,6 +2196,7 @@ class HidGestureListener:
                                 "backend": transport,
                                 "hid_module": _HID_MODULE_NAME or "",
                                 "device_path": opened_path,
+                                "device_kind": kind,
                             },
                         )
                         return True
@@ -1891,6 +2208,76 @@ class HidGestureListener:
                     f"UP=0x{opened_up:04X} usage=0x{opened_usage:04X} "
                     f"transport={opened_transport or '-'} source={source}"
                 )
+
+                # Gaming / onboard-primary mice (G502 X Lightspeed etc.) often lack
+                # REPROG_CONTROLS_V4.  Still try to establish a control/monitoring
+                # connection so DPI, battery, wheel ratchet (0x2121), onboard profiles
+                # (0x8100), and report rate remain usable for KVM + onboard workflows.
+                if self._dev is not None:
+                    self._discover_common_features()
+
+                    # Phase 0 micro-chunk (cleaned): classify the device in the no-REPROG
+                    # gaming fallback path so every connected device gets a stable kind.
+                    light_feats = set()
+                    feature_to_attr = {
+                        FEAT_ADJ_DPI: "_dpi_idx",
+                        FEAT_ONBOARD_PROFILES: "_onboard_profiles_idx",
+                        FEAT_HIRES_WHEEL_ENHANCED: "_wheel_feature_indexes",
+                        FEAT_UNIFIED_BATT: "_battery_idx",
+                        FEAT_REPORT_RATE: "_report_rate_idx",
+                        FEAT_BACKLIGHT2: "_backlight2_idx",
+                        FEAT_K375S_FN_INVERSION: "_fn_inversion_idx",
+                    }
+                    for feat, attr in feature_to_attr.items():
+                        if getattr(self, attr, None) is not None:
+                            light_feats.add(feat)
+
+                    kind = classify_device_kind(pid, product, hidpp_name, light_feats)
+                    print(f"[HidGesture] Early device kind classification (no-REPROG fallback): {kind} "
+                          f"(PID=0x{int(pid or 0):04X})")
+
+                    has_useful_features = bool(
+                        self._dpi_idx
+                        or self._battery_idx
+                        or self._wheel_feature_indexes
+                        or self._onboard_profiles_idx
+                        or self._report_rate_idx
+                    )
+                    if has_useful_features:
+                        print(
+                            "[HidGesture] No REPROG_V4 but useful HID++ features found "
+                            "(DPI/battery/wheel/onboard) — establishing control connection "
+                            "for gaming/onboard device."
+                        )
+                        if idx == BT_DEV_IDX:
+                            actual_transport = "Bluetooth"
+                        elif pid == BOLT_RECEIVER_PID:
+                            actual_transport = "Logi Bolt"
+                        else:
+                            actual_transport = "USB Receiver"
+                        # Minimal device info so the UI shows the correct name + capabilities.
+                        # No gesture diversion or reprog controls.
+                        self._connected_device_info = build_connected_device_info(
+                            product_id=pid,
+                            product_name=hidpp_name or product,
+                            transport=actual_transport,
+                            source=source,
+                            gesture_cids=(),
+                            reprog_controls=(),
+                            discovered_features=self._discovered_feature_inventory(),
+                            device_identity={
+                                "device_index": self._dev_idx,
+                                "usage_page": opened_up,
+                                "usage": opened_usage,
+                                "backend": transport,
+                                "hid_module": _HID_MODULE_NAME or "",
+                                "device_path": opened_path,
+                                "onboard_only": True,
+                                "device_kind": kind,
+                            },
+                        )
+                        return True
+                    # No useful features either — fall through to close
 
             # Couldn't use this interface — close and try next
             try:
@@ -1949,6 +2336,18 @@ class HidGestureListener:
                         self._apply_pending_smart_shift()
                     if self._pending_battery is not None:
                         self._apply_pending_read_battery()
+                    if self._pending_backlight is not None:
+                        if isinstance(self._pending_backlight, tuple) and self._pending_backlight[0] == "set":
+                            _, enabled, level = self._pending_backlight
+                            self._apply_pending_set_backlight(enabled, level)
+                        else:
+                            self._apply_pending_read_backlight()
+                    if self._pending_fn is not None:
+                        if isinstance(self._pending_fn, tuple) and self._pending_fn[0] == "set":
+                            _, swap = self._pending_fn
+                            self._apply_pending_set_fn_inversion(swap)
+                        else:
+                            self._apply_pending_read_fn_inversion()
                     raw = self._rx(1000)
                     if raw:
                         _no_data_count = 0
@@ -1976,9 +2375,17 @@ class HidGestureListener:
             self._battery_idx = None
             self._battery_feature_id = None
             self._wheel_feature_indexes = {}
+            self._onboard_profiles_idx = None
+            self._report_rate_idx = None
+            self._backlight2_idx = None
+            self._fn_inversion_idx = None
             self._pending_battery = None
             self._pending_dpi = None
             self._dpi_result = None
+            self._pending_backlight = None
+            self._backlight_result = None
+            self._pending_fn = None
+            self._fn_result = None
             self._abort_pending_smart_shift()
             self._last_logged_battery = None
             self._consecutive_request_timeouts = 0

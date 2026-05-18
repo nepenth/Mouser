@@ -177,6 +177,36 @@ LOGI_DEVICE_SPECS = (
         "supported_buttons": MX_ANYWHERE_BUTTONS,
         "dpi_max": 4000,
     },
+    # G502 X family (Lightspeed wireless via c547/409f, wired c098).
+    # Uses onboard profiles for most G-buttons; OS-visible side buttons,
+    # wheel tilt (hscroll), middle click, and DPI are exposed. No
+    # REPROG_CONTROLS_V4 advertised in standard feature set, so extra
+    # buttons rely on evdev/keyboard events or onboard config.
+    {
+        "key": "g502_x_lightspeed",
+        "display_name": "G502 X Lightspeed",
+        "product_ids": (0xC547, 0x409F, 0xC098),
+        "aliases": (
+            "G502 X LIGHTSPEED",
+            "G502 X LS",
+            "Logitech G502 X LS",
+            "G502 X Plus",
+            "G502 X",
+            "G502X",
+            "G502 X Wired",
+        ),
+        "ui_layout": "generic_mouse",
+        "image_asset": "icons/mouse-simple.svg",
+        "supported_buttons": (
+            "middle",
+            "xbutton1",
+            "xbutton2",
+            "hscroll_left",
+            "hscroll_right",
+        ),
+        "dpi_min": 100,
+        "dpi_max": 25600,
+    },
 )
 
 

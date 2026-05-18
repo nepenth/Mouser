@@ -292,6 +292,10 @@ class DeviceCapabilityInventory:
     smart_shift: bool = False
     adjustable_dpi: bool = False
     battery: bool = False
+    backlight2: bool = False          # BACKLIGHT2 (0x1982) present (MX Mechanical etc.)
+    fn_inversion: bool = False        # K375S_FN_INVERSION (0x40A3) present
+    keyboard_device: bool = False     # Classified as keyboard (via classify_device_kind or features)
+    safe_divert_cids: tuple[int, ...] = ()  # CIDs safe for host diversion on this device (e.g. backlight keys)
     known_unsupported_controls: tuple[tuple[int, str], ...] = ()
 
     def supported_buttons(self, static_buttons: tuple[str, ...]) -> tuple[str, ...]:
@@ -345,6 +349,10 @@ class DeviceCapabilityInventory:
             "smart_shift": self.smart_shift,
             "adjustable_dpi": self.adjustable_dpi,
             "battery": self.battery,
+            "backlight2": self.backlight2,
+            "fn_inversion": self.fn_inversion,
+            "keyboard_device": self.keyboard_device,
+            "safe_divert_cids": [_format_cid(cid) for cid in self.safe_divert_cids],
             "known_unsupported_controls": [
                 {"cid": _format_cid(cid), "name": name}
                 for cid, name in self.known_unsupported_controls
@@ -734,6 +742,10 @@ def build_device_capability_inventory(
         ),
         adjustable_dpi=_has_feature(feature_tokens, "adjustable_dpi", "0x2201"),
         battery=_has_feature(feature_tokens, "battery", "0x1000", "0x1004"),
+        backlight2=_has_feature(feature_tokens, "backlight2", "0x1982"),
+        fn_inversion=_has_feature(feature_tokens, "fn_inversion", "0x40a3"),
+        keyboard_device=_has_feature(feature_tokens, "backlight2", "0x1982") or _has_feature(feature_tokens, "fn_inversion", "0x40a3"),
+        safe_divert_cids=(),  # populated later when we have the actual safe CIDs from REPROG
         known_unsupported_controls=known_unsupported,
     )
 
@@ -859,10 +871,26 @@ def build_evdev_connected_device_info(
     source="evdev",
     gesture_cids=None,
 ) -> ConnectedDeviceInfo:
+    # Phase 0 micro-chunk: give evdev paths the same stable device_kind so
+    # the rest of the system (UI, capability checks, future handlers) sees
+    # a consistent picture even when the HID++ listener isn't active.
+    pid = int(product_id) if product_id not in (None, "") else 0
+    name = product_name or ""
+    # Reuse the same cheap heuristic logic used by classify_device_kind
+    if any(x in name.lower() for x in ("g502", "mx master", "mx anywhere", "mx vertical")):
+        kind = "mouse"
+    elif any(x in name.lower() for x in ("mechanical", "keyboard", "mx keys")):
+        kind = "keyboard"
+    elif pid in (0x409F, 0xC547, 0xC098, 0xB020):
+        kind = "mouse"
+    else:
+        kind = "unknown"
+
     return build_connected_device_info(
         product_id=product_id,
         product_name=product_name,
         transport=transport,
         source=source,
         gesture_cids=gesture_cids,
+        device_identity={"device_kind": kind},
     )

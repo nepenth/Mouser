@@ -105,6 +105,7 @@ DEFAULT_CONFIG = {
         "appearance_mode": "system",
         "debug_mode": False,
         "device_layout_overrides": {},
+        "keyboard_middle_path": {},   # per-device: {"B367": {"backlight_host": True, "fn_inversion_host": False, "allow_diversion_backlight": False}}
         "language": "en",
         "ignore_trackpad": True,
         "check_for_updates": True,
@@ -333,6 +334,7 @@ def _migrate(cfg):
     cfg["settings"].setdefault("appearance_mode", "system")
     cfg["settings"].setdefault("debug_mode", False)
     cfg["settings"].setdefault("device_layout_overrides", {})
+    cfg["settings"].setdefault("keyboard_middle_path", {})
     cfg["settings"].setdefault("language", "en")
     cfg["settings"].setdefault("ignore_trackpad", True)
     cfg["settings"].setdefault("check_for_updates", True)

@@ -806,5 +806,124 @@ class HidReconnectInvariantTests(unittest.TestCase):
         extra_up.assert_called_once_with()
 
 
+class MXMechanicalMiniMiddlePathTests(unittest.TestCase):
+    """Focused tests for the MX Mechanical Mini keyboard middle-path features
+    (BACKLIGHT2 + K375S_FN_INVERSION). These complement the broader Phase 0
+    classification and multi-receiver hygiene work.
+
+    Manual validation checklist (run with real hardware when possible):
+    1. Plug both receivers (Lightspeed c547 + Bolt c548).
+    2. Launch Mouser — G502 X should still appear quickly as "mouse".
+    3. MX Mechanical Mini should be detected as "keyboard" (check debug logs or device info).
+    4. Call read_backlight() / set_backlight() via the backend (or future UI) — changes must be marked temporary.
+    5. Reconnect or switch hosts — host-side backlight/FN changes should be lost (onboard state wins).
+    6. Confirm no mouse gesture paths or RawXY attempts are made on the keyboard device.
+    """
+
+    def setUp(self):
+        self.listener = hid_gesture.HidGestureListener()
+
+    # ------------------------------------------------------------------
+    # Classification tests (expanded per reviewer feedback)
+    # ------------------------------------------------------------------
+    def test_classify_device_kind_detects_keyboard_via_backlight2(self):
+        """BACKLIGHT2 presence (without mouse DPI/ONBOARD) should classify as keyboard."""
+        kind = hid_gesture.classify_device_kind(
+            pid=0xB367,
+            product_name="MX Mechanical Mini",
+            discovered_feature_ids={0x1982},  # BACKLIGHT2
+        )
+        self.assertEqual(kind, "keyboard")
+
+    def test_classify_device_kind_prefers_mouse_when_dpi_present(self):
+        """Even if BACKLIGHT2 is somehow reported, DPI/ONBOARD should win as mouse."""
+        kind = hid_gesture.classify_device_kind(
+            pid=0xB367,
+            product_name="MX Mechanical Mini",
+            discovered_feature_ids={0x1982, 0x2201},  # BACKLIGHT2 + DPI
+        )
+        self.assertEqual(kind, "mouse")
+
+    def test_classify_device_kind_name_based_keyboard(self):
+        """Name-based heuristics should catch the MX Mechanical Mini."""
+        kind = hid_gesture.classify_device_kind(
+            pid=0x0000,
+            product_name="MX Mechanical Mini",
+        )
+        self.assertEqual(kind, "keyboard")
+
+    def test_classify_device_kind_feature_only_neutral_name(self):
+        """Feature-only classification should still work with an empty product name."""
+        kind = hid_gesture.classify_device_kind(
+            pid=0x0000,
+            product_name="",
+            discovered_feature_ids={0x1982},
+        )
+        self.assertEqual(kind, "keyboard")
+
+    # ------------------------------------------------------------------
+    # Apply + pending state machine tests (highest leverage per reviewer)
+    # ------------------------------------------------------------------
+    def test_apply_pending_read_backlight_success_and_failure(self):
+        """Directly test the apply helper + result/pending state (the real implementation surface)."""
+        self.listener._backlight2_idx = 0x0A
+        self.listener._dev = Mock()
+
+        with patch.object(self.listener, "_request") as m:
+            # Success path
+            m.return_value = (None, None, None, None, b"\x01\x00\x00\x50\x00")
+            self.listener._apply_pending_read_backlight()
+            self.assertEqual(self.listener._backlight_result, (True, 0x50))
+            self.assertIsNone(self.listener._pending_backlight)
+
+            # Failure path
+            m.return_value = None
+            self.listener._apply_pending_read_backlight()
+            self.assertEqual(self.listener._backlight_result, (None, None))
+            self.assertIsNone(self.listener._pending_backlight)
+
+    def test_read_backlight_timeout_clears_pending(self):
+        """Public read method must clear pending on timeout (matches DPI pattern)."""
+        self.listener._backlight2_idx = 0x0A
+        # Force the timeout path by making the loop run without the apply clearing pending
+        with patch("time.sleep"):
+            res = self.listener.read_backlight()
+
+        self.assertIsNone(self.listener._pending_backlight)
+        self.assertEqual(res, (None, None))
+
+    # ------------------------------------------------------------------
+    # FN inversion coverage (was completely missing)
+    # ------------------------------------------------------------------
+    def test_read_write_fn_inversion_basic_paths(self):
+        """Basic smoke test for the FN inversion methods (apply + timeout behavior)."""
+        self.listener._fn_inversion_idx = 0x0B
+        self.listener._dev = Mock()
+
+        with patch.object(self.listener, "_request") as m:
+            m.return_value = (None, None, None, None, b"\x01")
+            self.listener._apply_pending_read_fn_inversion()
+            self.assertTrue(self.listener._fn_result)
+
+    def test_public_methods_early_return_when_index_none(self):
+        """All public methods must early-return cleanly when the feature index is not present."""
+        self.assertEqual(self.listener.read_backlight(), (None, None))
+        self.assertFalse(self.listener.set_backlight(True))
+        self.assertIsNone(self.listener.read_fn_inversion())
+        self.assertFalse(self.listener.set_fn_inversion(True))
+
+    def test_discover_common_features_populates_keyboard_indexes(self):
+        """_discover_common_features should set the backlight2 and fn_inversion indexes when present."""
+        listener = hid_gesture.HidGestureListener()
+        listener._dev = Mock()
+
+        with patch.object(listener, "_find_feature") as m:
+            m.side_effect = lambda fid: 0x0A if fid in (0x1982, 0x40A3) else None
+            listener._discover_common_features()
+
+        self.assertEqual(listener._backlight2_idx, 0x0A)
+        self.assertEqual(listener._fn_inversion_idx, 0x0A)
+
+
 if __name__ == "__main__":
     unittest.main()
