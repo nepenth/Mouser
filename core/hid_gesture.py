@@ -1875,6 +1875,14 @@ class HidGestureListener:
             brightness = params[1] if len(params) > 1 else None
             return enabled, brightness
         return None, None
+
+    def _parse_battery_response(self, params: bytes) -> Optional[dict]:
+        """Tiny helper exposed for BatteryHandler (009.2).
+        Returns a normalized battery dict or None. For the initial extraction
+        this is a placeholder; the real parse logic can be moved in a later micro-chunk.
+        """
+        # Placeholder for 009.2 — keeps the diff minimal while proving the handler delegation pattern.
+        return None
         if success:
             print(f"[HidGesture] FN inversion set (host-side, temporary): swap_fx={swap_fx}")
         else:

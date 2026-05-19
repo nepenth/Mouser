@@ -33,6 +33,12 @@ except Exception:
     LogitechDevice = None
     LitraIlluminationHandler = None
 
+# 009.2: BatteryHandler import (guarded)
+try:
+    from core.devices.battery_handler import BatteryHandler
+except Exception:
+    BatteryHandler = None
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -683,7 +689,16 @@ class Engine:
             if hg and hg.connected_device is not None:
                 if now - _last_battery >= _battery_poll_interval:
                     _last_battery = now
-                    level = hg.read_battery()
+                    # 009.2: lazy attachment + optional delegation to BatteryHandler
+                    self._maybe_attach_battery_handler()
+                    level = None
+                    if BatteryHandler is not None and hasattr(self, "_battery_device") and self._battery_device:
+                        handler = self._battery_device.get_handler("battery")
+                        if handler:
+                            level = handler.handle_read()
+                    if level is None:
+                        level = hg.read_battery()
+
                     if stop_event.is_set():
                         return
                     if level is not None and self._battery_read_cb:
@@ -914,6 +929,24 @@ class Engine:
             self._litra_device = LogitechDevice(pid, name, key)
             handler = LitraIlluminationHandler(self._litra_device, hg)
             self._litra_device.add_handler("litra_illumination", handler)
+
+    # 009.2: minimal lazy attachment for BatteryHandler (same pattern as Litra)
+    def _maybe_attach_battery_handler(self):
+        if not (BatteryHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_battery_idx", None) is None:
+            return
+
+        if not hasattr(self, "_battery_device") or self._battery_device is None:
+            dev = getattr(hg, "connected_device", None)
+            pid = getattr(dev, "product_id", 0) if dev else 0
+            name = getattr(dev, "name", "Device") if dev else "Device"
+            key = getattr(dev, "key", None) if dev else str(pid)
+
+            self._battery_device = LogitechDevice(pid, name, key)
+            handler = BatteryHandler(self._battery_device, hg)
+            self._battery_device.add_handler("battery", handler)
 
     def reload_mappings(self):
         """
