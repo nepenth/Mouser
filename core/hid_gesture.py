@@ -1276,6 +1276,15 @@ class HidGestureListener:
             print(f"[HidGesture] set_device_name error: {e}")
             return False
 
+    # 009.31: Thin aliases for Device Friendly Name (user-settable name) — delegates to the existing Device Name path (same 0x0005 feature on most devices)
+    def read_device_friendly_name(self):
+        """Return the current user-settable Friendly Name (or None). Host-side only, temporary."""
+        return self.read_device_name()
+
+    def set_device_friendly_name(self, name: str):
+        """Set the user-settable Friendly Name. Host-side only, temporary. Returns success."""
+        return self.set_device_name(name)
+
     # 009.16: Basic LED control skeleton (host-side only, temporary)
     def set_led_state(self, enabled: bool, brightness: int | None = None):
         """Host-side LED on/off + optional brightness (0-100). Temporary (lost on reconnect/host switch)."""

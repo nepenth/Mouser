@@ -1072,6 +1072,36 @@ class Engine:
             _fallback, name
         )
 
+    # 009.31: thin public Device Friendly Name (user-settable) wrappers
+    def read_device_friendly_name(self):
+        """Read the current user-settable Friendly Name. Host-side only, temporary."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "read_device_friendly_name"):
+                return hg.read_device_friendly_name()
+            return None
+
+        self._maybe_attach_device_name_handler()
+        return self._delegate_or_fallback(
+            "_device_name_device", "device_name", "handle_read_friendly_name",
+            _fallback
+        )
+
+    def set_device_friendly_name(self, name: str):
+        """Set the user-settable Friendly Name. Host-side only, temporary. Returns success."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "set_device_friendly_name"):
+                return hg.set_device_friendly_name(name)
+            print("[Engine] set_device_friendly_name: No HID++ connection — not applied")
+            return False
+
+        self._maybe_attach_device_name_handler()
+        return self._delegate_or_fallback(
+            "_device_name_device", "device_name", "handle_write_friendly_name",
+            _fallback, name
+        )
+
     # 009.16: thin public LED wrappers (host-side only, temporary)
     def set_led_state(self, enabled, brightness=-1):
         """Host-side mouse LED on/off + brightness (0-100). Temporary (lost on reconnect/host switch)."""

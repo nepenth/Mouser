@@ -31,4 +31,15 @@ class DeviceNameHandler(ThinDelegationHandler):
             write_method="set_device_name"
         )
 
-    # All behavior (is_supported + handle_read + handle_write) comes from ThinDelegationHandler.
+    # All behavior (is_supported + handle_read + handle_write) comes from ThinDelegationHandler / DefaultThinHandler.
+
+    # 009.31: Friendly Name (user-settable) aliases — delegate to the existing name methods (same underlying feature on most devices)
+    def handle_read_friendly_name(self) -> Optional[str]:
+        if hasattr(self._listener, "read_device_friendly_name"):
+            return self._listener.read_device_friendly_name()
+        return self.handle_read()
+
+    def handle_write_friendly_name(self, name: str) -> bool:
+        if hasattr(self._listener, "set_device_friendly_name"):
+            return self._listener.set_device_friendly_name(name)
+        return self.handle_write(name)
