@@ -630,6 +630,7 @@ FEAT_LED_EFFECTS        = 0x1A02  # Placeholder for LED Effects (patterns/modes 
 FEAT_DEVICE_MODE        = 0x1B00  # Placeholder for Device Mode / Wireless Mode; replace with real ID from device dumps
 FEAT_WIRELESS_POWER     = 0x1C00  # Placeholder for Wireless Power / RF Power Management; replace with real ID from device dumps
 FEAT_WIRELESS_CHANNEL   = 0x1D00  # Placeholder for Wireless Channel / RF Channel; replace with real ID from device dumps
+FEAT_WIRELESS_STATUS    = 0x1F00  # Placeholder for Wireless Status (link quality / RSSI); replace with real ID from device dumps
 FEAT_SLEEP_TIMEOUT      = 0x1E00  # Placeholder for Sleep Timeout / Power Save Timeout; replace with real ID from device dumps
 DEFAULT_GESTURE_CID = DEFAULT_GESTURE_CIDS[0]
 
@@ -813,6 +814,7 @@ class HidGestureListener:
         self._wireless_power_idx = None     # 0x1C00 - Wireless Power / RF Power (placeholder)
         self._wireless_channel_idx = None   # 0x1D00 - Wireless Channel / RF Channel (placeholder)
         self._sleep_timeout_idx = None      # 0x1E00 - Sleep Timeout / Power Save Timeout (placeholder)
+        self._wireless_status_idx = None    # 0x1F00 - Wireless Status (placeholder)
         self._pending_smart_shift = None
         self._smart_shift_result = None
         self._smart_shift_call_lock = threading.Lock()
@@ -934,6 +936,8 @@ class HidGestureListener:
             features.append({"feature_id": FEAT_WIRELESS_CHANNEL, "index": self._wireless_channel_idx})
         if self._sleep_timeout_idx is not None:
             features.append({"feature_id": FEAT_SLEEP_TIMEOUT, "index": self._sleep_timeout_idx})
+        if self._wireless_status_idx is not None:
+            features.append({"feature_id": FEAT_WIRELESS_STATUS, "index": self._wireless_status_idx})
         return tuple(features)
 
     def dump_device_info(self):
@@ -984,6 +988,8 @@ class HidGestureListener:
             features["WIRELESS_CHANNEL (0x1D00)"] = f"index 0x{self._wireless_channel_idx:02X}"
         if self._sleep_timeout_idx is not None:
             features["SLEEP_TIMEOUT (0x1E00)"] = f"index 0x{self._sleep_timeout_idx:02X}"
+        if self._wireless_status_idx is not None:
+            features["WIRELESS_STATUS (0x1F00)"] = f"index 0x{self._wireless_status_idx:02X}"
 
         controls = []
         for c in self._last_controls:
@@ -1340,6 +1346,16 @@ class HidGestureListener:
         print(f"[HidGesture] Sleep Timeout set (host-side, temporary): timeout={timeout_value} -> {'OK' if success else 'FAILED'}")
         return success
 
+    # 009.22: Basic Wireless Status (link quality / RSSI) skeleton (host-side only, temporary; read-only)
+    def read_wireless_status(self):
+        """Returns current wireless status values (raw parameters) or None. Host-side only, temporary."""
+        if self._wireless_status_idx is None or self._dev is None:
+            return None
+        resp = self._request(self._wireless_status_idx, 0x00, [])
+        if resp and resp[4]:
+            return list(resp[4])  # raw parameters for now
+        return None
+
     # 009.19: Basic LED Effects skeleton (host-side only, temporary)
     def read_led_effect(self):
         """Returns current LED effect state/parameters or None. Host-side only, temporary."""
@@ -1476,6 +1492,12 @@ class HidGestureListener:
         if st_fi:
             self._sleep_timeout_idx = st_fi
             print(f"[HidGesture] Found SLEEP_TIMEOUT @0x{st_fi:02X}")
+
+        # Wireless Status (link quality / RSSI) — 009.22
+        ws_fi = self._find_feature(FEAT_WIRELESS_STATUS)
+        if ws_fi:
+            self._wireless_status_idx = ws_fi
+            print(f"[HidGesture] Found WIRELESS_STATUS @0x{ws_fi:02X}")
 
         fn_fi = self._find_feature(FEAT_K375S_FN_INVERSION)
         if fn_fi:
@@ -2283,6 +2305,7 @@ class HidGestureListener:
             self._wireless_power_idx = None
             self._wireless_channel_idx = None
             self._sleep_timeout_idx = None
+            self._wireless_status_idx = None
             self._gesture_cid = DEFAULT_GESTURE_CID
             self._gesture_candidates = list(
                 getattr(device_spec, "gesture_cids", ()) or DEFAULT_GESTURE_CIDS
@@ -2677,6 +2700,7 @@ class HidGestureListener:
             self._wireless_power_idx = None
             self._wireless_channel_idx = None
             self._sleep_timeout_idx = None
+            self._wireless_status_idx = None
             self._pending_battery = None
             self._pending_dpi = None
             self._dpi_result = None

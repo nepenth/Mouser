@@ -106,6 +106,12 @@ try:
 except Exception:
     SleepTimeoutHandler = None
 
+# 009.22: WirelessStatusHandler import (guarded)
+try:
+    from core.devices.wireless_status_handler import WirelessStatusHandler
+except Exception:
+    WirelessStatusHandler = None
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -1225,6 +1231,21 @@ class Engine:
             _fallback, timeout_value
         )
 
+    # 009.22: thin public Wireless Status wrapper (host-side only, temporary; read-only)
+    def read_wireless_status(self):
+        """Read current wireless status values (raw parameters). Host-side only, temporary."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "read_wireless_status"):
+                return hg.read_wireless_status()
+            return None
+
+        self._maybe_attach_wireless_status_handler()
+        return self._delegate_or_fallback(
+            "_wireless_status_device", "wireless_status", "handle_read",
+            _fallback
+        )
+
     # ------------------------------------------------------------------
     # Litra Beam basic illumination (008.2 skeleton, host-side only, temporary)
     # ------------------------------------------------------------------
@@ -1547,6 +1568,28 @@ class Engine:
             )
             if dev:
                 self._sleep_timeout_device = dev
+
+    # 009.22: minimal lazy attachment for WirelessStatusHandler (same pattern)
+    def _maybe_attach_wireless_status_handler(self):
+        if not (WirelessStatusHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_wireless_status_idx", None) is None:
+            return
+
+        if not hasattr(self, "_wireless_status_device") or self._wireless_status_device is None:
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=WirelessStatusHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_wireless_status_idx",
+                handler_name="wireless_status",
+            )
+            if dev:
+                self._wireless_status_device = dev
 
     # 009.7: tiny reusable helper for the common “delegate or fallback” pattern
     def _delegate_or_fallback(self, device_attr: str, handler_name: str, handler_method: str, fallback_callable, *args, **kwargs):
