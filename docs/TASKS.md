@@ -329,6 +329,9 @@ Introduced small protected helper `_get_success_label(operation)` on `FeatureHan
 **Implementation Note (TASK-009 micro-chunk 009.49)**  
 Fresh non-duplicate extraction (Remaining Pairing slots). Added `FEAT_REMAINING_PAIRING` detection + tiny listener method. Created `RemainingPairingHandler` (ultra-thin read-only) using the reusable `is_supported()` default. Wired thin public wrapper on Engine with lazy attachment and full fallback. Nineteenth feature extraction (chosen after exercising the Device Type escape clause in the PM directive). Passed Code Review + AC validation. Commit: 1bfdcc8.
 
+**Implementation Note (TASK-009 micro-chunk 009.50)**  
+Expanded the “Full Recommended Pattern for a Brand-New Thin Handler” section in the `RecommendedThinHandler` class docstring to show the complete current best-practice shape using `RecommendedThinHandler` / `UltraThinHandler` + all the key helpers and declarative patterns (inheritance, `super().__init__` call with the three attributes, `_declare_attributes`, `_mark_as_read_only`, and the optional helpers for safe access and consistent logging). Includes the read-only variant and a note about custom overrides when needed. Small, high-value documentation improvement with zero behavioral or API change. Passed Code Review + AC validation. Commit: 849f205.
+
 **Implementation Note (TASK-009 micro-chunk 009.48)**  
 Introduced small protected helper `_get_success_label(operation)` on `FeatureHandler` that returns a human-readable label for successful operations (e.g., "Battery read succeeded", "LED effect set"), using the `_friendly_name` from 009.43 and `_get_operation_label()` from 009.46 when available. Added example success-path logging comments in `ReportRateHandler` and `LitraIlluminationHandler`. Small, high-value consistency and maintainability improvement with zero behavioral change. Passed Code Review + AC validation. Commit: c7361b2.
 
