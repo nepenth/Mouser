@@ -169,6 +169,9 @@ Thin Backend exposure for Litra Beam illumination. Added `setLitraIllumination()
 **Implementation Note (TASK-008 micro-chunk 008.4)**  
 Minimal test + debug surface for Litra Beam illumination. Added `LitraIlluminationBackendTests` (two focused tests covering safe no-engine defaults and correct delegation). Confirmed the new Backend methods are directly callable from the existing debug surface of the application. Completes the “via debug methods at minimum” requirement from the original task definition. Passed Code Review + AC validation. Commit: d87a252.
 
+**Implementation Note (TASK-008 micro-chunk 008.5)**  
+First minimal user-facing Litra Beam experience. Added tiny `hasLitraBeam` read-only property in Backend (derived from device display name). Created `LitraControls.qml` (small self-contained card with On/Off switch + brightness slider, prominent “Host-side only — temporary” warning, and Refresh button). Wired to the existing Backend illumination methods. Placed as a conditional sibling after the context-aware `KeyboardControls` footer in `Main.qml` (following the exact incremental pattern used for the keyboard card in 005.1). Passed Code Review + AC validation. Commit: ecaf8e8.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
