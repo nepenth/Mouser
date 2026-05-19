@@ -10,27 +10,25 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from core.logi_device import FeatureHandler, SimpleDelegationHandler
+from core.logi_device import FeatureHandler, ThinDelegationHandler
 
 if TYPE_CHECKING:
     from core.logi_device import LogitechDevice
 
 
-class OnboardProfilesHandler(SimpleDelegationHandler):
-    """Basic onboard profile read/switch handling for devices that support 0x8100."""
+class OnboardProfilesHandler(ThinDelegationHandler):
+    """Basic onboard profile read/switch handling for devices that support 0x8100.
 
-    # 009.10/009.11: use the reusable default is_supported() from the base
+    009.25/009.26: Inherits from ThinDelegationHandler (pure thin delegation case).
+    """
+
     _feature_index_attr = "_onboard_profiles_idx"
-
-    # 009.13: declare the listener method names for the SimpleDelegationHandler defaults
     _read_method_name = "read_onboard_profile"
     _write_method_name = "switch_onboard_profile"
 
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
-        # Also expose listener for the default is_supported() implementation and delegation
         self.listener = listener
 
-    # (is_supported() inherited from FeatureHandler base)
-    # (handle_read / handle_write inherited from SimpleDelegationHandler)
+    # All behavior (is_supported + handle_read + handle_write) comes from ThinDelegationHandler.

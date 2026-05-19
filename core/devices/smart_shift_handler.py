@@ -13,35 +13,26 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from core.logi_device import FeatureHandler, SimpleDelegationHandler
+from core.logi_device import FeatureHandler, ThinDelegationHandler
 
 if TYPE_CHECKING:
     from core.logi_device import LogitechDevice
 
 
-class SmartShiftHandler(SimpleDelegationHandler):
-    """SmartShift read/write handling for devices that support 0x2110 or 0x2111."""
+class SmartShiftHandler(ThinDelegationHandler):
+    """SmartShift read/write handling for devices that support 0x2110 or 0x2111.
 
-    # 009.10/009.11: use the reusable default is_supported() from the base
+    009.25/009.26: Inherits from ThinDelegationHandler (the custom handle_read/handle_write
+    with extra parameters are intentionally kept because they contain additional logic).
+    """
+
     _feature_index_attr = "_smart_shift_idx"
-
-    # 009.13: declare the listener method names for the SimpleDelegationHandler defaults
     _read_method_name = "read_smart_shift"
     _write_method_name = "set_smart_shift"
 
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
-        # Also expose listener for the default is_supported() implementation and delegation
         self.listener = listener
 
-    # (is_supported() inherited from FeatureHandler base)
-    # (handle_read / handle_write inherited from SimpleDelegationHandler)
-        # Delegate to the listener's existing read implementation (keeps change minimal)
-        return self._listener.read_smart_shift()
-
-    def handle_write(self, mode: str, smart_shift_enabled: bool = False, threshold: int = 25) -> bool:
-        """Send SmartShift settings. Returns success."""
-        if not self.is_supported() or self._listener._dev is None:
-            return False
-        return self._listener.set_smart_shift(mode, smart_shift_enabled, threshold)
+    # Custom handle_read/handle_write retained (different signature + guards) — they are not pure delegation.
