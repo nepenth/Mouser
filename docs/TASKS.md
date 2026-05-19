@@ -151,6 +151,9 @@ First real gated diversion wiring in the hook layer. Extended `_build_extra_dive
 **Implementation Note (TASK-007 micro-chunk 007.3)**  
 First functional dispatch for the diverted keys. Replaced the placeholder handlers with real logic that turns physical Backlight Up/Down presses (when diversion is opted in) into recognizable host-visible events (`keyboard_backlight_up_down/up`, `keyboard_backlight_down_down/up`) via the existing gesture callback path. Events are now visible to the mapping/debug infrastructure. Clear logging when dispatched. No UI mapping yet (reserved for 007.4+). Passed Code Review + AC validation. Commit: d9a7617.
 
+**Implementation Note (TASK-007 micro-chunk 007.4)**  
+Made the four diverted backlight key events first-class mappable buttons. Registered them in `BUTTON_NAMES`, `PROFILE_BUTTON_NAMES`, and `BUTTON_TO_EVENTS` (with clear “(diverted)” labels). Extended Engine gesture event handling to route the incoming diverted events to the active profile’s mappings and execute any assigned action. Users can now assign normal Mouser actions to the opted-in diverted Backlight Up/Down keys through the existing action system. The feature remains fully gated behind the per-device `allow_diversion_backlight` flag. Passed Code Review + AC validation. Commit: b3b1da0.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
