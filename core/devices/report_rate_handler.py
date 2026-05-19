@@ -33,3 +33,6 @@ class ReportRateHandler(DefaultThinHandler):
         self._listener = listener
 
     # All behavior (is_supported, handle_read, handle_write) comes from DefaultThinHandler / ThinDelegationHandler.
+
+    # 009.48 demonstration: example success-path logging using the new helper (for debug/traceability)
+    # (In a real success path after a successful read, one could log self._get_success_label("read"))
