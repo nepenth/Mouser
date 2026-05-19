@@ -195,6 +195,9 @@ Fourth feature extraction (DPI). Created `DPIHandler`. Wired delegation in `Engi
 **Implementation Note (TASK-009 micro-chunk 009.5)**  
 Fifth feature extraction (Report Rate). Created `ReportRateHandler`. Wired delegation in Engine via thin public wrappers (`set_report_rate` / `read_report_rate`) with lazy attachment and full fallback to the original listener path. Public Engine Report Rate API and all existing behavior remain 100% unchanged. Extraction performed on a clean, cross-device capability. Passed Code Review + AC validation. Commit: 7bc5d59.
 
+**Implementation Note (TASK-009 micro-chunk 009.6)**  
+First consolidation step after five feature extractions. Added small reusable helper `maybe_attach_handler(...)` in `core/logi_device.py` that encapsulates the common lazy attachment boilerplate. Refactored the five `_maybe_attach_*_handler()` methods (Litra, Battery, SmartShift, DPI, Report Rate) to use the shared helper. Significant reduction in obvious duplication with zero behavioral change. Passed Code Review + AC validation. Commit: a9160b2.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
