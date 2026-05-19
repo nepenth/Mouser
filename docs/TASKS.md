@@ -121,6 +121,9 @@ Robustness and polish pass on the keyboard controls card. Added:
 - Connections to backend capability signals + strengthened defensive handling of read values.
 All changes limited to `KeyboardControls.qml`. Passed Code Review + AC validation. Commit: e30d466.
 
+**Implementation Note (TASK-005 micro-chunk 005.3)**  
+First structural expansion of the keyboard experience. Created `ui/qml/KeyboardPage.qml` as a minimal dedicated page that hosts the existing `KeyboardControls` component, with a clear header and prominent temporary/host-side warning. Added a third sidebar navigation entry ("Keyboard", page 2) and wired `KeyboardPage` into the main `StackLayout` in `Main.qml`. The previous quick-access footer under the mouse view was left in place. No new controls or features. Passed Code Review + AC validation. Commit: 74d4790.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
