@@ -376,6 +376,32 @@ class RecommendedThinHandler(DefaultThinHandler):
                 )
 
     Handlers can still override methods if custom logic is needed.
+
+    Full Recommended Pattern for a Brand-New Thin Handler (current best practice):
+
+        class MyFeatureHandler(RecommendedThinHandler):
+            """Example of the full modern recommended shape (009.33–009.50)."""
+
+            def __init__(self, device, listener):
+                super().__init__(device, listener,
+                                 feature_index_attr="_my_idx",
+                                 read_method="read_my",
+                                 write_method="set_my")
+                # For one-way handlers:
+                # self._mark_as_read_only()   # or _mark_as_write_only()
+
+            # Optional: safe attribute access from the listener
+            # def _get_something(self):
+            #     return self._get_listener_attr("_some_listener_attr")
+
+            # The helpers below are automatically available for consistent logging/debug:
+            #   self._get_friendly_name()
+            #   self._get_operation_label("read")
+            #   self._get_success_label("read")
+            #   self._log_unsupported("write")
+
+    Existing handlers can continue to inherit directly from `DefaultThinHandler`,
+    `ThinDelegationHandler`, or `FeatureHandler` if they need custom logic.
     """
 
     # No additional implementation required — the value is the clear
