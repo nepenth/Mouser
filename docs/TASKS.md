@@ -281,6 +281,9 @@ Culminating ergonomic refinement after the previous harvests. Introduced `Recomm
 **Implementation Note (TASK-009 micro-chunk 009.34)**  
 Added clear “Recommended Usage” section to the `RecommendedThinHandler` class docstring (pure documentation / example). Shows the near-zero-boilerplate pattern for new thin handlers (inheritance + one `super().__init__` call with the three attributes, plus the read-only variant and a note about custom overrides). Small, high-value documentation improvement with zero behavioral or API change. Passed Code Review + AC validation. Commit: 5e17101.
 
+**Implementation Note (TASK-009 micro-chunk 009.35)**  
+Seventeenth feature extraction (Device Type / Product Type). Added `FEAT_DEVICE_TYPE` detection (placeholder) + minimal `read_device_type()` on the listener. Created `DeviceTypeHandler` using the reusable `is_supported()` default (read-only for this micro-chunk). Wired thin public wrapper on Engine with lazy attachment and full fallback. Core type read only (per scope). Complements prior identity work (Device Name/Friendly Name, Device Identity). Passed Code Review + AC validation. Commit: 4ee3213.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
