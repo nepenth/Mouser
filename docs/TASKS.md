@@ -287,6 +287,9 @@ Seventeenth feature extraction (Device Type / Product Type). Added `FEAT_DEVICE_
 **Implementation Note (TASK-009 micro-chunk 009.36)**  
 Expanded the “Recommended Usage” section in the `RecommendedThinHandler` class docstring (pure documentation / example). Shows the full current best-practice pattern for new thin handlers (inheritance + one `super().__init__` call with the three attributes, read-only variant using `_mark_as_read_only()`, alternative `_declare_attributes(...)` style, and note about custom overrides). Small, high-value documentation improvement with zero behavioral or API change. Passed Code Review + AC validation. Commit: b2b44d9.
 
+**Implementation Note (TASK-009 micro-chunk 009.37)**  
+Eighteenth feature extraction (Power Management beyond Sleep Timeout / Wireless Power / Battery). Added `FEAT_POWER_MANAGEMENT` detection (placeholder 0x1C01) + minimal `read_power_management()` / `set_power_management()` on the listener. Created `PowerManagementHandler` using the reusable `is_supported()` default. Wired thin public wrappers on Engine with lazy attachment and full fallback. Core power management read/write only (per scope). Passed Code Review + AC validation. Commit: d85079d.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
