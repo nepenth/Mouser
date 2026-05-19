@@ -627,6 +627,7 @@ FEAT_BATTERY_STATUS = 0x1000      # Battery Status (fallback)
 FEAT_LITRA_ILLUMINATION = 0x1A00  # Placeholder — replace with actual Litra illumination feature ID from device dump
 FEAT_LED_CONTROL        = 0x1A01  # Placeholder for common mouse LED control (on/off + brightness); replace with real ID from device dumps
 FEAT_DEVICE_MODE        = 0x1B00  # Placeholder for Device Mode / Wireless Mode; replace with real ID from device dumps
+FEAT_WIRELESS_POWER     = 0x1C00  # Placeholder for Wireless Power / RF Power Management; replace with real ID from device dumps
 DEFAULT_GESTURE_CID = DEFAULT_GESTURE_CIDS[0]
 
 MY_SW          = 0x0A        # arbitrary software-id used in our requests
@@ -805,6 +806,7 @@ class HidGestureListener:
         self._device_name_idx = None        # 0x0005 - Device Name / Friendly Name
         self._led_control_idx = None        # 0x1A01 - Common mouse LED control (placeholder)
         self._device_mode_idx = None        # 0x1B00 - Device Mode / Wireless Mode (placeholder)
+        self._wireless_power_idx = None     # 0x1C00 - Wireless Power / RF Power (placeholder)
         self._pending_smart_shift = None
         self._smart_shift_result = None
         self._smart_shift_call_lock = threading.Lock()
@@ -918,6 +920,8 @@ class HidGestureListener:
             features.append({"feature_id": FEAT_LED_CONTROL, "index": self._led_control_idx})
         if self._device_mode_idx is not None:
             features.append({"feature_id": FEAT_DEVICE_MODE, "index": self._device_mode_idx})
+        if self._wireless_power_idx is not None:
+            features.append({"feature_id": FEAT_WIRELESS_POWER, "index": self._wireless_power_idx})
         return tuple(features)
 
     def dump_device_info(self):
@@ -960,6 +964,8 @@ class HidGestureListener:
             features["LED_CONTROL (0x1A01)"] = f"index 0x{self._led_control_idx:02X}"
         if self._device_mode_idx is not None:
             features["DEVICE_MODE (0x1B00)"] = f"index 0x{self._device_mode_idx:02X}"
+        if self._wireless_power_idx is not None:
+            features["WIRELESS_POWER (0x1C00)"] = f"index 0x{self._wireless_power_idx:02X}"
 
         controls = []
         for c in self._last_controls:
@@ -1253,6 +1259,27 @@ class HidGestureListener:
         print(f"[HidGesture] Device Mode set (host-side, temporary): mode={mode_value} -> {'OK' if success else 'FAILED'}")
         return success
 
+    # 009.18: Basic Wireless Power / RF Power Management skeleton (host-side only, temporary)
+    def read_wireless_power(self):
+        """Returns current wireless power level/mode or None. Host-side only, temporary."""
+        if self._wireless_power_idx is None or self._dev is None:
+            return None
+        resp = self._request(self._wireless_power_idx, 0x00, [])
+        if resp and resp[4]:
+            return resp[4][0] if resp[4] else None
+        return None
+
+    def set_wireless_power(self, power_value: int):
+        """Set wireless power level/mode. Host-side only, temporary. Returns success."""
+        if self._wireless_power_idx is None or self._dev is None:
+            print("[HidGesture] set_wireless_power: Wireless Power not available — not applied")
+            return False
+        payload = [power_value & 0xFF]
+        resp = self._request(self._wireless_power_idx, 0x10, payload)
+        success = resp is not None
+        print(f"[HidGesture] Wireless Power set (host-side, temporary): power={power_value} -> {'OK' if success else 'FAILED'}")
+        return success
+
     def _discover_common_features(self):
         """Discover DPI, battery, wheel (including ratchet on 0x2121), onboard profiles (0x8100),
         and report rate.  Safe to call on any opened HID++ device, including gaming mice
@@ -1342,6 +1369,12 @@ class HidGestureListener:
         if dm_fi:
             self._device_mode_idx = dm_fi
             print(f"[HidGesture] Found DEVICE_MODE @0x{dm_fi:02X}")
+
+        # Wireless Power / RF Power Management — 009.18
+        wp_fi = self._find_feature(FEAT_WIRELESS_POWER)
+        if wp_fi:
+            self._wireless_power_idx = wp_fi
+            print(f"[HidGesture] Found WIRELESS_POWER @0x{wp_fi:02X}")
 
         fn_fi = self._find_feature(FEAT_K375S_FN_INVERSION)
         if fn_fi:
@@ -2145,6 +2178,7 @@ class HidGestureListener:
             self._device_name_idx = None
             self._led_control_idx = None
             self._device_mode_idx = None
+            self._wireless_power_idx = None
             self._gesture_cid = DEFAULT_GESTURE_CID
             self._gesture_candidates = list(
                 getattr(device_spec, "gesture_cids", ()) or DEFAULT_GESTURE_CIDS
@@ -2535,6 +2569,7 @@ class HidGestureListener:
             self._device_name_idx = None
             self._led_control_idx = None
             self._device_mode_idx = None
+            self._wireless_power_idx = None
             self._pending_battery = None
             self._pending_dpi = None
             self._dpi_result = None
