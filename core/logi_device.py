@@ -140,6 +140,49 @@ class ThinDelegationHandler(SimpleDelegationHandler):
             self._write_method_name = write_method
 
 
+class DefaultThinHandler(ThinDelegationHandler):
+    """Ultra-light convenience base for the simplest thin delegation handlers (009.29).
+
+    This class combines the reusable patterns we have already developed:
+    - ThinDelegationHandler defaults (delegation via _read_method_name / _write_method_name)
+    - Reusable is_supported() via _feature_index_attr
+    - _get_listener_attr safety
+    - _declare_attributes helper (009.27)
+
+    Subclasses can be written with almost zero boilerplate:
+
+        class MyFeatureHandler(DefaultThinHandler):
+            def __init__(self, device, listener):
+                super().__init__(device, listener,
+                                 feature_index_attr="_my_idx",
+                                 read_method="read_my",
+                                 write_method="set_my")
+
+    Or (if the base is extended with auto-detection in a future micro-chunk) even less.
+
+    Existing handlers can continue to inherit directly from ThinDelegationHandler
+    or FeatureHandler if they need custom logic.
+    """
+
+    def __init__(self, device: "LogitechDevice", listener: Any,
+                 feature_index_attr: str | None = None,
+                 read_method: str | None = None,
+                 write_method: str | None = None):
+        super().__init__(device)
+        self.listener = listener
+        # Auto-register via the declarative helper (supports both explicit args
+        # and class attributes already present on the subclass).
+        fi = feature_index_attr or getattr(self, "_feature_index_attr", None)
+        rm = read_method or getattr(self, "_read_method_name", None)
+        wm = write_method or getattr(self, "_write_method_name", None)
+        if fi or rm or wm:
+            self._declare_attributes(
+                feature_index_attr=fi,
+                read_method=rm,
+                write_method=wm
+            )
+
+
 class LogitechDevice:
     """Very lightweight base for a Logitech HID++ device.
 
