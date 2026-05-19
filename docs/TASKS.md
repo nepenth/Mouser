@@ -269,6 +269,9 @@ Introduced `DefaultThinHandler` ultra-light convenience base (inheriting from `T
 **Implementation Note (TASK-009 micro-chunk 009.30)**  
 Mechanical follow-through on the `DefaultThinHandler` harvest. Updated the remaining thin/near-thin handlers (SmartShiftHandler, BatteryHandler, DPIHandler, OnboardProfilesHandler, and others) to inherit from `DefaultThinHandler` and adopt the single `super().__init__(device, listener, feature_index_attr=..., read_method=..., write_method=...)` declaration style. All handlers that can benefit from the ultra-light pattern now use it. Zero behavioral change. Passed Code Review + AC validation. Commit: 895e9dd.
 
+**Implementation Note (TASK-009 micro-chunk 009.31)**  
+Sixteenth extraction / completion (Device Friendly Name / user-settable name). Added thin listener aliases `read_device_friendly_name()` / `set_device_friendly_name()` (delegating to the existing 0x0005 Device Name path). Extended `DeviceNameHandler` with friendly-name read/write methods. Wired thin public wrappers on Engine with full fallback. Completes the Device Name / Friendly Name family (hardware name + identity + user-settable Friendly Name) as a full read+write capability behind the handler model. Passed Code Review + AC validation. Commit: 6cb8dab.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
