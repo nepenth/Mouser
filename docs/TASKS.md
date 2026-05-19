@@ -183,6 +183,9 @@ The card now feels as solid and KVM-friendly as the polished keyboard controls. 
 **Implementation Note (TASK-009 micro-chunk 009.1)**  
 Official start of the cleaner architecture work. Created minimal `LogitechDevice` + `FeatureHandler` base classes. Extracted Litra illumination into `LitraIlluminationHandler`. Wired `Engine` to optionally delegate to the handler for Litra devices, with full fallback to the original listener path. Public `Engine` API and all existing behavior remain 100% unchanged. First disciplined step toward the `LogitechDevice` / `FeatureHandler` model. Passed Code Review + AC validation. Commit: 437cd99.
 
+**Implementation Note (TASK-009 micro-chunk 009.2)**  
+Second feature extraction (Battery). Created `BatteryHandler`. Added minimal placeholder parse helper in the listener. Wired delegation in `Engine._battery_poll_loop` with lazy attachment and full fallback to the original `hg.read_battery()` path. Public Engine battery API and all callbacks remain 100% unchanged. Extraction performed on an established, cross-device feature while keeping changes minimal. Passed Code Review + AC validation. Commit: 05aa06b.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
