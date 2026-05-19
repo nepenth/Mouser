@@ -275,6 +275,9 @@ Sixteenth extraction / completion (Device Friendly Name / user-settable name). A
 **Implementation Note (TASK-009 micro-chunk 009.32)**  
 Introduced declarative read-only / write-only marker (`_read_only` / `_write_only` class attributes + `_mark_as_read_only()` / `_mark_as_write_only()` helpers) on `FeatureHandler`. Updated `ThinDelegationHandler` / `DefaultThinHandler` defaults to automatically provide safe behavior when the flags are set. Migrated `WirelessStatusHandler` and `DeviceIdentityHandler` as demonstrations (replacing manual safe overrides). Small, high-value safety and consistency improvement with zero behavioral change. Passed Code Review + AC validation. Commit: 660859a.
 
+**Implementation Note (TASK-009 micro-chunk 009.33)**  
+Culminating ergonomic refinement after the previous harvests. Introduced `RecommendedThinHandler` convenience base (inheriting from `DefaultThinHandler`) that bundles all the reusable patterns: `is_supported()` default, delegation, `_get_listener_attr`, `_declare_attributes`, and read-only/write-only support. Includes a detailed class docstring that clearly states the recommended usage pattern for future thin handlers. Migrated `OnboardProfilesHandler` as demonstration of the near-zero-boilerplate path. Small, high-value improvement that makes the accumulated refinements immediately usable and visible. Passed Code Review + AC validation. Commit: 8c57878.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
