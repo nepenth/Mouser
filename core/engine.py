@@ -14,6 +14,7 @@ from core.key_simulator import (
 from core.config import (
     load_config, get_active_mappings, get_profile_for_app,
     BUTTON_TO_EVENTS, GESTURE_DIRECTION_BUTTONS, save_config,
+    get_keyboard_middle_path_settings,
 )
 from core.app_detector import AppDetector
 from core.mouse_hook_types import HidRuntimeState
@@ -765,6 +766,17 @@ class Engine:
 
     def set_backlight(self, enabled, level=-1):
         """Host-side backlight control. Temporary (lost on reconnect/host switch)."""
+        # Respect per-device middle-path setting (006.2)
+        device = getattr(self, "connected_device", None)
+        device_key = getattr(device, "key", None) if device else None
+        if not device_key and device:
+            device_key = str(getattr(device, "product_id", "unknown"))
+        if device_key:
+            kmp = get_keyboard_middle_path_settings(self.cfg, device_key)
+            if not kmp.get("allow_host_backlight", True):
+                print(f"[Engine] set_backlight blocked by per-device setting (device={device_key})")
+                return False
+
         hg = self.hook._hid_gesture
         if hg:
             lvl = None if level < 0 else level
@@ -782,6 +794,17 @@ class Engine:
 
     def set_fn_inversion(self, swap):
         """Host-side FN inversion toggle. Temporary (lost on reconnect/host switch)."""
+        # Respect per-device middle-path setting (006.2)
+        device = getattr(self, "connected_device", None)
+        device_key = getattr(device, "key", None) if device else None
+        if not device_key and device:
+            device_key = str(getattr(device, "product_id", "unknown"))
+        if device_key:
+            kmp = get_keyboard_middle_path_settings(self.cfg, device_key)
+            if not kmp.get("allow_fn_inversion", True):
+                print(f"[Engine] set_fn_inversion blocked by per-device setting (device={device_key})")
+                return False
+
         hg = self.hook._hid_gesture
         if hg:
             return hg.set_fn_inversion(bool(swap))
