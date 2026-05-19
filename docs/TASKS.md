@@ -296,6 +296,9 @@ Introduced `UltraThinHandler` ultra-light convenience base (inheriting from `Rec
 **Implementation Note (TASK-009 micro-chunk 009.40)**  
 Introduced small protected helper `_log_unsupported(operation, **context)` on `FeatureHandler`. Integrated into the safe defaults of `ThinDelegationHandler` / `DefaultThinHandler` for handlers marked read-only or write-only (via the 009.32 declarative markers). Automatically standardizes logging for unsupported operations across all one-way handlers (replaces ad-hoc prints). Small, high-value maintainability and consistency improvement with zero behavioral change. Passed Code Review + AC validation. Commit: 54f3698.
 
+**Implementation Note (TASK-009 micro-chunk 009.41)**  
+Extended the prior Wireless Status extraction (009.22) with additional link health fields (link_quality, rssi, etc.) returned in a richer structure (`{"raw": [...], "link_quality": ..., "rssi": ...}`) while preserving the raw list for full backward compatibility. Small enhancement to `read_wireless_status()` in the listener + docstring update in the handler. The existing thin Engine wrapper automatically benefits. Passed Code Review + AC validation. Commit: d03cf59.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
