@@ -924,6 +924,44 @@ class MXMechanicalMiniMiddlePathTests(unittest.TestCase):
         self.assertEqual(listener._backlight2_idx, 0x0A)
         self.assertEqual(listener._fn_inversion_idx, 0x0A)
 
+    def test_apply_pending_set_backlight_and_timeout(self):
+        """Test set apply success and timeout pending-clear behavior."""
+        self.listener._backlight2_idx = 0x0A
+        self.listener._dev = Mock()
+
+        with patch.object(self.listener, "_request") as m:
+            m.return_value = (None, None, None, None, b"")  # success (any non-None)
+            self.listener._pending_backlight = ("set", True, 50)
+            self.listener._apply_pending_set_backlight(True, 50)
+            self.assertTrue(self.listener._backlight_result)
+            self.assertIsNone(self.listener._pending_backlight)
+
+        # Timeout case (no apply clears it)
+        self.listener._pending_backlight = ("set", True, 50)
+        with patch("time.sleep"):
+            res = self.listener.set_backlight(True, 50)
+        self.assertIsNone(self.listener._pending_backlight)
+        self.assertFalse(res)
+
+    def test_apply_pending_set_fn_inversion(self):
+        """Basic coverage for FN set apply."""
+        self.listener._fn_inversion_idx = 0x0B
+        self.listener._dev = Mock()
+
+        with patch.object(self.listener, "_request") as m:
+            m.return_value = (None, None, None, None, b"")
+            self.listener._pending_fn = ("set", False)
+            self.listener._apply_pending_set_fn_inversion(False)
+            self.assertTrue(self.listener._fn_result)
+            self.assertIsNone(self.listener._pending_fn)
+
+    # TODO (next micro-chunk after this batch): Add a proper integration test that exercises
+    # the full `if kind == "keyboard":` early-return path inside `_try_connect` (mocking at the
+    # correct level: _vendor_hid_infos + the light _find_feature peek, then assert early return,
+    # no expensive REPROG work, and correct device_kind in the resulting ConnectedDeviceInfo).
+    # The previous version of this test was a broken placeholder and has been removed from this batch
+    # to keep it reviewable and green.
+
 
 if __name__ == "__main__":
     unittest.main()

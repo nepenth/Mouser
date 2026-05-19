@@ -690,7 +690,16 @@ def classify_device_kind(
     name = ((hidpp_name or product_name) or "").lower()
     feats = discovered_feature_ids or set()
 
-    # Fast name-based signals
+    # Feature-driven classification first (strong mouse signals win even over keyboard-ish names)
+    has_dpi       = FEAT_ADJ_DPI in feats or 0x2201 in feats
+    has_onboard   = FEAT_ONBOARD_PROFILES in feats or 0x8100 in feats
+    has_hires     = FEAT_HIRES_WHEEL_ENHANCED in feats or 0x2121 in feats
+    has_backlight = FEAT_BACKLIGHT2 in feats or 0x1982 in feats
+
+    if has_dpi or has_onboard or has_hires:
+        return "mouse"
+
+    # Fast name-based signals (only after mouse features did not win)
     if any(x in name for x in ("g502", "mx master", "mx anywhere", "mx vertical")):
         return "mouse"
     if any(x in name for x in ("mechanical mini", "mechanical", "mx keys", "keyboard")):
@@ -698,16 +707,6 @@ def classify_device_kind(
     if pid in (0x409F, 0xC547, 0xC098, 0xB020):
         return "mouse"
 
-    # Feature-driven classification (available after a light probe or full discovery)
-    has_dpi       = FEAT_ADJ_DPI in feats or 0x2201 in feats
-    has_onboard   = FEAT_ONBOARD_PROFILES in feats or 0x8100 in feats
-    has_hires     = FEAT_HIRES_WHEEL_ENHANCED in feats or 0x2121 in feats
-    has_backlight = FEAT_BACKLIGHT2 in feats or 0x1982 in feats
-
-    if has_backlight and not (has_dpi or has_onboard):
-        return "keyboard"
-    if has_dpi or has_onboard or has_hires:
-        return "mouse"
     if has_backlight:
         return "keyboard"
     return "unknown"
