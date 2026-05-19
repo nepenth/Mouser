@@ -51,8 +51,11 @@ The four keyboard middle-path methods added to `ui/backend.py` (`readBacklight`,
 ---
 
 ### TASK-002: Complete High-Quality Test Harness for Keyboard Middle-Path
-**Status**: In Progress  
+**Status**: Done  
 **Priority**: P0
+
+**Implementation Note**  
+Added/expanded state-machine tests for pending/apply + timeout behavior on BACKLIGHT2 and FN inversion (`test_apply_pending_set_backlight_and_timeout`, `test_apply_pending_set_fn_inversion`, etc.). Fixed `classify_device_kind` heuristic priority so strong mouse features win even against keyboard-ish names. Removed broken placeholder short-circuit test and added clear scoped TODO for the full integration test as a follow-up micro-chunk. The dedicated `MXMechanicalMiniMiddlePathTests` class is now 11/11 green. Broader relevant suite clean (no mouse regressions). Passed Code Review + strict Acceptance Criteria validation (Project Manager acting as reviewers).
 
 **Description**  
 Create a solid, maintainable test suite for the new keyboard features (BACKLIGHT2, FN inversion, classification behavior, pending state machine, etc.) so we can confidently build UI and future features on top of them.
@@ -98,8 +101,25 @@ Clean up the remaining non-blocking but important technical debt and consistency
 ## Phase 1 – Keyboard User Experience (High Value)
 
 ### TASK-004: Stable Public API Surface for Keyboard Middle-Path in Backend
-**Status**: Backlog  
+**Status**: In Progress (micro-chunk 004.1 Done)  
 **Priority**: P1
+
+**Implementation Note (micro-chunk 004.1)**  
+Added four clean public methods on `Engine` (`read_backlight`, `set_backlight`, `read_fn_inversion`, `set_fn_inversion`) with defensive `hook._hid_gesture` access and explicit "host-side only, temporary" docstrings. Updated `ui/backend.py` slots to delegate through the new `Engine` methods instead of directly accessing private hook internals. Net improvement in encapsulation and architecture. Passed Code Review + AC validation for this slice. Commit: 9e06845.
+
+**Implementation Note (micro-chunk 004.2)**  
+Added `has_backlight_control()` and `has_fn_inversion_control()` on `Engine` (defensive checks against listener indexes). Exposed matching `keyboardBacklightSupported` and `keyboardFnInversionSupported` read-only `@Property` entries in `Backend` (notified via `hidFeaturesReadyChanged`). Follows the `smartShiftSupported` pattern exactly. No QML or capability inventory changes. Passed Code Review + AC validation. Commit: 1034aca.
+
+**Implementation Note (TASK-005 micro-chunk 005.1)**  
+First real user-facing keyboard middle-path UI delivered. Created `ui/qml/KeyboardControls.qml` — a conditional, self-contained card showing backlight (on/off + brightness) and FN inversion controls when the corresponding capability flags are true. Strong visual emphasis on the “host-side only / temporary” nature. Integrated as a footer-style section below the existing mouse UI in `Main.qml` (via minimal ColumnLayout wrapper). Uses the public Engine/Backend API from TASK-004. No persistence, no new navigation page, no diversion. Passed Code Review + AC validation. Commit: 190a450.
+
+**Implementation Note (TASK-005 micro-chunk 005.2)**  
+Robustness and polish pass on the keyboard controls card. Added:
+- Refreshing state with visual indicator and disabled controls during refresh.
+- Non-intrusive error feedback (red text) when setBacklight/setFnInversion returns false, with auto-clear timer.
+- 350 ms debounce on the brightness slider to avoid spamming HID++ commands.
+- Connections to backend capability signals + strengthened defensive handling of read values.
+All changes limited to `KeyboardControls.qml`. Passed Code Review + AC validation. Commit: e30d466.
 
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.

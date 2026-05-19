@@ -96,7 +96,8 @@ ApplicationWindow {
                     Repeater {
                         model: [
                             { icon: "mouse-simple", tipKey: "nav.mouse_profiles", page: 0 },
-                            { icon: "sliders-horizontal", tipKey: "nav.point_scroll", page: 1 }
+                            { icon: "sliders-horizontal", tipKey: "nav.point_scroll", page: 1 },
+                            { icon: "keyboard-simple", tipKey: "nav.keyboard", page: 2 }
                         ]
 
                         delegate: FocusScope {
@@ -263,6 +264,7 @@ ApplicationWindow {
                     active: root.currentPage === 1 || item
                     source: "ScrollPage.qml"
                 }
+                KeyboardPage {}
             }
 
             // First real exposure of keyboard middle-path controls (TASK-005 005.1)
