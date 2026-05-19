@@ -28,31 +28,74 @@ Item {
     property int backlightLevel: 50
     property bool fnSwapActive: false
 
+    // Polish state for 005.2
+    property bool refreshing: false
+    property string lastError: ""
+
     Component.onCompleted: {
         refreshFromDevice()
     }
 
     function refreshFromDevice() {
+        if (refreshing) return
+        refreshing = true
+        lastError = ""
+
         if (backend.keyboardBacklightSupported) {
             var bl = backend.readBacklight()
             if (bl && bl.length >= 2) {
-                backlightEnabled = !!bl[0]
-                backlightLevel = (bl[1] !== null && bl[1] !== undefined) ? bl[1] : 50
+                var en = bl[0]
+                var lvl = bl[1]
+                backlightEnabled = (en !== null && en !== undefined) ? !!en : false
+                backlightLevel = (lvl !== null && lvl !== undefined) ? lvl : 50
             }
         }
         if (backend.keyboardFnInversionSupported) {
-            fnSwapActive = backend.readFnInversion()
+            var fnVal = backend.readFnInversion()
+            fnSwapActive = (fnVal !== null && fnVal !== undefined) ? !!fnVal : false
         }
+
+        refreshing = false
     }
 
     function applyBacklight() {
         if (!backend.keyboardBacklightSupported) return
-        backend.setBacklight(backlightEnabled, backlightLevel)
+        var ok = backend.setBacklight(backlightEnabled, backlightLevel)
+        if (!ok) {
+            showError("Failed to apply backlight (temporary change)")
+        }
     }
 
     function applyFnInversion() {
         if (!backend.keyboardFnInversionSupported) return
-        backend.setFnInversion(fnSwapActive)
+        var ok = backend.setFnInversion(fnSwapActive)
+        if (!ok) {
+            showError("Failed to apply Fn inversion (temporary change)")
+        }
+    }
+
+    function showError(msg) {
+        lastError = msg
+        errorClearTimer.restart()
+    }
+
+    Timer {
+        id: errorClearTimer
+        interval: 3800
+        repeat: false
+        onTriggered: lastError = ""
+    }
+
+    // Debounce timer for brightness slider (prevents HID++ spam)
+    Timer {
+        id: brightnessDebounce
+        interval: 350
+        repeat: false
+        onTriggered: {
+            if (backend.keyboardBacklightSupported && !refreshing) {
+                backend.setBacklight(backlightEnabled, backlightLevel)
+            }
+        }
     }
 
     Rectangle {
@@ -108,7 +151,24 @@ Item {
                     }
                 }
 
+                // Refreshing indicator (005.2 polish)
+                Text {
+                    visible: root.refreshing
+                    text: "Refreshing…"
+                    font { family: uiState.fontFamily; pixelSize: 12; italic: true }
+                    color: root.theme.textSecondary
+                }
+
                 Item { Layout.fillWidth: true }
+            }
+
+            // Error feedback row (005.2)
+            Text {
+                visible: root.lastError !== ""
+                text: root.lastError
+                font { family: uiState.fontFamily; pixelSize: 12; bold: true }
+                color: "#D32F2F"
+                Layout.leftMargin: 4
             }
 
             // ── Backlight section ────────────────────────────────────────
@@ -143,6 +203,7 @@ Item {
                     Switch {
                         checked: root.backlightEnabled
                         Material.accent: root.theme.accent
+                        enabled: !root.refreshing
                         onClicked: {
                             root.backlightEnabled = checked
                             root.applyBacklight()
@@ -184,9 +245,12 @@ Item {
                             to: 100
                             stepSize: 5
                             value: root.backlightLevel
+                            enabled: !root.refreshing
+
                             onMoved: {
                                 root.backlightLevel = Math.round(value)
-                                root.applyBacklight()
+                                // Debounced apply — only hits the device after user stops moving
+                                brightnessDebounce.restart()
                             }
                         }
 
@@ -242,6 +306,7 @@ Item {
                 Switch {
                     checked: root.fnSwapActive
                     Material.accent: root.theme.accent
+                    enabled: !root.refreshing
                     onClicked: {
                         root.fnSwapActive = checked
                         root.applyFnInversion()
@@ -258,9 +323,17 @@ Item {
                 Button {
                     text: "Refresh from device"
                     font { family: uiState.fontFamily; pixelSize: 12 }
+                    enabled: !root.refreshing
                     onClicked: root.refreshFromDevice()
                 }
             }
         }
+    }
+
+    // React to capability changes (device connect/disconnect, host switch)
+    Connections {
+        target: backend
+        function onKeyboardBacklightSupportedChanged() { root.refreshFromDevice() }
+        function onKeyboardFnInversionSupportedChanged() { root.refreshFromDevice() }
     }
 }
