@@ -94,6 +94,12 @@ try:
 except Exception:
     LEDEffectsHandler = None
 
+# 009.20: WirelessChannelHandler import (guarded)
+try:
+    from core.devices.wireless_channel_handler import WirelessChannelHandler
+except Exception:
+    WirelessChannelHandler = None
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -1153,6 +1159,36 @@ class Engine:
             _fallback, effect, params
         )
 
+    # 009.20: thin public Wireless Channel wrappers (host-side only, temporary)
+    def read_wireless_channel(self):
+        """Read current wireless channel. Host-side only, temporary."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "read_wireless_channel"):
+                return hg.read_wireless_channel()
+            return None
+
+        self._maybe_attach_wireless_channel_handler()
+        return self._delegate_or_fallback(
+            "_wireless_channel_device", "wireless_channel", "handle_read",
+            _fallback
+        )
+
+    def set_wireless_channel(self, channel_value: int):
+        """Set wireless channel. Host-side only, temporary. Returns success."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "set_wireless_channel"):
+                return hg.set_wireless_channel(channel_value)
+            print("[Engine] set_wireless_channel: No HID++ connection — not applied")
+            return False
+
+        self._maybe_attach_wireless_channel_handler()
+        return self._delegate_or_fallback(
+            "_wireless_channel_device", "wireless_channel", "handle_write",
+            _fallback, channel_value
+        )
+
     # ------------------------------------------------------------------
     # Litra Beam basic illumination (008.2 skeleton, host-side only, temporary)
     # ------------------------------------------------------------------
@@ -1431,6 +1467,28 @@ class Engine:
             )
             if dev:
                 self._led_effects_device = dev
+
+    # 009.20: minimal lazy attachment for WirelessChannelHandler (same pattern)
+    def _maybe_attach_wireless_channel_handler(self):
+        if not (WirelessChannelHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_wireless_channel_idx", None) is None:
+            return
+
+        if not hasattr(self, "_wireless_channel_device") or self._wireless_channel_device is None:
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=WirelessChannelHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_wireless_channel_idx",
+                handler_name="wireless_channel",
+            )
+            if dev:
+                self._wireless_channel_device = dev
 
     # 009.7: tiny reusable helper for the common “delegate or fallback” pattern
     def _delegate_or_fallback(self, device_attr: str, handler_name: str, handler_method: str, fallback_callable, *args, **kwargs):
