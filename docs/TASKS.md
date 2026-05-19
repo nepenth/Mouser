@@ -215,6 +215,9 @@ Mechanical completion of the `is_supported()` harvest. Updated `LitraIlluminatio
 **Implementation Note (TASK-009 micro-chunk 009.12)**  
 Introduced lightweight `SimpleDelegationHandler` base that provides default `handle_read()` / `handle_write()` forwarding via `_read_method_name` / `_write_method_name` class attributes. Updated `ReportRateHandler` and `LitraIlluminationHandler` to inherit from it (removes duplicated forwarding boilerplate). The other four handlers can be updated mechanically later. Small, high-value improvement to the handler base with zero behavioral change. Passed Code Review + AC validation. Commit: 7d9fd0a.
 
+**Implementation Note (TASK-009 micro-chunk 009.13)**  
+Mechanical completion of the `SimpleDelegationHandler` harvest. Updated `SmartShiftHandler`, `BatteryHandler`, `DPIHandler`, and `OnboardProfilesHandler` to inherit from the new base and remove duplicated forwarding methods (declaring the appropriate `_read_method_name` / `_write_method_name` attributes). All six extracted handlers now consistently use the reusable base class. Zero behavioral change. Passed Code Review + AC validation. Commit: 3f4e54f.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
