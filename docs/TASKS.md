@@ -166,6 +166,9 @@ First functional control for the Litra Beam. Added `FEAT_LITRA_ILLUMINATION` det
 **Implementation Note (TASK-008 micro-chunk 008.3)**  
 Thin Backend exposure for Litra Beam illumination. Added `setLitraIllumination()` and `readLitraIllumination()` as thin delegates on `Backend` (following the exact pattern used for keyboard middle-path methods in 006.3). Clear docstrings stating the controls are host-side only and temporary, plus safe defaults when no engine is present. No new logic or state. Passed Code Review + AC validation. Commit: 592ee38.
 
+**Implementation Note (TASK-008 micro-chunk 008.4)**  
+Minimal test + debug surface for Litra Beam illumination. Added `LitraIlluminationBackendTests` (two focused tests covering safe no-engine defaults and correct delegation). Confirmed the new Backend methods are directly callable from the existing debug surface of the application. Completes the “via debug methods at minimum” requirement from the original task definition. Passed Code Review + AC validation. Commit: d87a252.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
