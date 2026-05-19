@@ -17,9 +17,10 @@ if TYPE_CHECKING:
 
 
 class DeviceTypeHandler(UltraThinHandler):
-    """Host-side Device Type / Product Type read (read-only). Temporary (lost on reconnect/host switch).
+    """Host-side Device Type / Product Type (additional identity/capability fields) read (read-only). Temporary (lost on reconnect/host switch).
 
-    009.35/009.38: Uses UltraThinHandler (the ultra-light base for the absolute simplest pure thin cases).
+    009.35 / 009.47: Extended to surface further labeled fields (sub_type, capability_flags, etc.) when the listener provides them.
+    Uses UltraThinHandler (the ultra-light base for the absolute simplest pure thin cases).
     """
 
     def __init__(self, device: "LogitechDevice", listener: Any):

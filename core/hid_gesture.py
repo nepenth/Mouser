@@ -1297,14 +1297,25 @@ class HidGestureListener:
         """Set the user-settable Friendly Name. Host-side only, temporary. Returns success."""
         return self.set_device_name(name)
 
-    # 009.35: Basic Device Type / Product Type skeleton (host-side only, temporary; read-only)
+    # 009.35 / 009.47: Basic Device Type / Product Type (additional identity/capability fields) — host-side only, temporary; read-only
     def read_device_type(self):
-        """Returns current device type / product type value or None. Host-side only, temporary."""
+        """Returns current device type / product type value (raw + additional fields when available) or None. Host-side only, temporary."""
         if self._device_type_idx is None or self._dev is None:
             return None
         resp = self._request(self._device_type_idx, 0x00, [])
         if resp and resp[4]:
-            return resp[4][0] if resp[4] else None
+            raw = list(resp[4])
+            result = {"raw": raw}
+            # 009.35: Basic type value (first byte or the single value returned)
+            if raw:
+                result["type"] = raw[0]
+            # 009.47: Further additional cleanly available fields when the response is longer
+            # (common in extended Device Type / capability responses)
+            if len(raw) >= 2:
+                result["sub_type"] = raw[1]
+            if len(raw) >= 3:
+                result["capability_flags"] = raw[2]
+            return result
         return None
 
     # 009.37 / 009.42 / 009.45: Basic Power Management (beyond Sleep Timeout / Wireless Power / Battery) — host-side only, temporary
