@@ -298,20 +298,40 @@ class BaseMouseHook:
 
         return extra
 
-    # Placeholder handlers for the two MX Mechanical Mini backlight keys (007.2 skeleton)
-    # These will later be wired to real mappable events in 007.3+.
+    # 007.3: Dispatch the diverted backlight key events so they are visible to the existing
+    # action/mapping system. When diversion is active for the device, these produce
+    # recognizable events (currently surfaced via the gesture callback + debug logging).
     def _on_hid_keyboard_backlight_up_down(self):
-        print("[MouseHook] Backlight Up key (diverted, opt-in) pressed")
-        # Future: dispatch a recognizable event the mapping system can use
+        print("[MouseHook] Dispatched diverted backlight up key (down)")
+        if hasattr(self, "_gesture_callback") and self._gesture_callback:
+            try:
+                self._gesture_callback("keyboard_backlight_up_down")
+            except Exception:
+                pass
 
     def _on_hid_keyboard_backlight_up_up(self):
-        print("[MouseHook] Backlight Up key (diverted, opt-in) released")
+        print("[MouseHook] Dispatched diverted backlight up key (up)")
+        if hasattr(self, "_gesture_callback") and self._gesture_callback:
+            try:
+                self._gesture_callback("keyboard_backlight_up_up")
+            except Exception:
+                pass
 
     def _on_hid_keyboard_backlight_down_down(self):
-        print("[MouseHook] Backlight Down key (diverted, opt-in) pressed")
+        print("[MouseHook] Dispatched diverted backlight down key (down)")
+        if hasattr(self, "_gesture_callback") and self._gesture_callback:
+            try:
+                self._gesture_callback("keyboard_backlight_down_down")
+            except Exception:
+                pass
 
     def _on_hid_keyboard_backlight_down_up(self):
-        print("[MouseHook] Backlight Down key (diverted, opt-in) released")
+        print("[MouseHook] Dispatched diverted backlight down key (up)")
+        if hasattr(self, "_gesture_callback") and self._gesture_callback:
+            try:
+                self._gesture_callback("keyboard_backlight_down_up")
+            except Exception:
+                pass
 
     def _start_hid_listener(self):
         platform_module = getattr(self.__class__, "_platform_module", None)
