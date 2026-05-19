@@ -29,8 +29,5 @@ class DeviceIdentityHandler(ThinDelegationHandler):
             feature_index_attr="_device_identity_idx",
             read_method="read_device_identity"
         )
-
-    # All behavior (is_supported + handle_read) comes from ThinDelegationHandler.
-    # handle_write remains a no-op because this feature is read-only.
-    def handle_write(self, *args, **kwargs) -> bool:
-        return False
+        # 009.32: declarative marker (replaces manual safe override)
+        self._mark_as_read_only()

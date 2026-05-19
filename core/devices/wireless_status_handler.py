@@ -31,8 +31,5 @@ class WirelessStatusHandler(ThinDelegationHandler):
             feature_index_attr="_wireless_status_idx",
             read_method="read_wireless_status"
         )
-
-    # All behavior (is_supported + handle_read) comes from ThinDelegationHandler.
-    # We keep a minimal safe override for the read-only case.
-    def handle_write(self, *args, **kwargs) -> bool:
-        return False
+        # 009.32: declarative marker (replaces manual safe override)
+        self._mark_as_read_only()

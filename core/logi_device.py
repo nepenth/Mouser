@@ -69,6 +69,20 @@ class FeatureHandler:
             listener = self
         return getattr(listener, attr_name, default)
 
+    # 009.32: small declarative support for read-only / write-only handlers
+    _read_only: bool = False
+    _write_only: bool = False
+
+    def _mark_as_read_only(self) -> None:
+        """Mark this handler as read-only (009.32). handle_write will use a safe default."""
+        self._read_only = True
+        self._write_only = False
+
+    def _mark_as_write_only(self) -> None:
+        """Mark this handler as write-only (009.32). handle_read will use a safe default."""
+        self._write_only = True
+        self._read_only = False
+
 
 class SimpleDelegationHandler(FeatureHandler):
     """Lightweight base for handlers that are essentially thin wrappers around listener methods (009.12).
@@ -86,6 +100,9 @@ class SimpleDelegationHandler(FeatureHandler):
     _write_method_name: str | None = None
 
     def handle_read(self, *args, **kwargs) -> Any:
+        if getattr(self, "_write_only", False):
+            # 009.32: safe default for write-only handlers
+            return None
         if self._read_method_name is None:
             raise NotImplementedError("SimpleDelegationHandler: _read_method_name not set and handle_read() not overridden")
         method = self._get_listener_attr(self._read_method_name)
@@ -94,6 +111,9 @@ class SimpleDelegationHandler(FeatureHandler):
         return method(*args, **kwargs)
 
     def handle_write(self, *args, **kwargs) -> Any:
+        if getattr(self, "_read_only", False):
+            # 009.32: safe default for read-only handlers
+            return False
         if self._write_method_name is None:
             raise NotImplementedError("SimpleDelegationHandler: _write_method_name not set and handle_write() not overridden")
         method = self._get_listener_attr(self._write_method_name)
