@@ -272,6 +272,9 @@ Mechanical follow-through on the `DefaultThinHandler` harvest. Updated the remai
 **Implementation Note (TASK-009 micro-chunk 009.31)**  
 Sixteenth extraction / completion (Device Friendly Name / user-settable name). Added thin listener aliases `read_device_friendly_name()` / `set_device_friendly_name()` (delegating to the existing 0x0005 Device Name path). Extended `DeviceNameHandler` with friendly-name read/write methods. Wired thin public wrappers on Engine with full fallback. Completes the Device Name / Friendly Name family (hardware name + identity + user-settable Friendly Name) as a full read+write capability behind the handler model. Passed Code Review + AC validation. Commit: 6cb8dab.
 
+**Implementation Note (TASK-009 micro-chunk 009.32)**  
+Introduced declarative read-only / write-only marker (`_read_only` / `_write_only` class attributes + `_mark_as_read_only()` / `_mark_as_write_only()` helpers) on `FeatureHandler`. Updated `ThinDelegationHandler` / `DefaultThinHandler` defaults to automatically provide safe behavior when the flags are set. Migrated `WirelessStatusHandler` and `DeviceIdentityHandler` as demonstrations (replacing manual safe overrides). Small, high-value safety and consistency improvement with zero behavioral change. Passed Code Review + AC validation. Commit: 660859a.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
