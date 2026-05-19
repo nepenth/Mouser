@@ -251,6 +251,9 @@ Completed Device Name / Friendly Name feature (originally extracted read-only in
 **Implementation Note (TASK-009 micro-chunk 009.24)**  
 Fifteenth feature extraction (Device Serial Number / Hardware Version / Identity). Added `FEAT_DEVICE_IDENTITY` detection (placeholder) + minimal `read_device_identity()` on the listener. Created `DeviceIdentityHandler` using the reusable `is_supported()` default (read-only for this micro-chunk). Wired thin public wrapper on Engine with lazy attachment and full fallback. Core identity read only (per scope). Passed Code Review + AC validation. Commit: 636e753.
 
+**Implementation Note (TASK-009 micro-chunk 009.25)**  
+First deliberate refinement micro-chunk after fifteen feature extractions. Introduced small `ThinDelegationHandler` convenience base (inheriting from `SimpleDelegationHandler`) that provides clearer intent and a natural home for future conveniences for the common thin-wrapper case. Migrated `ReportRateHandler` and `WirelessStatusHandler` as demonstration (removed duplicated forwarding boilerplate). The other four handlers can be updated mechanically later. Small, high-value organizational improvement with zero behavioral change. Passed Code Review + AC validation. Commit: 34b308b.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
