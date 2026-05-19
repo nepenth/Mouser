@@ -142,6 +142,9 @@ First user-visible part of per-device settings. Added thin `getDeviceKeyboardMid
 **Implementation Note (TASK-006 micro-chunk 006.4)**  
 KVM robustness polish. Made the two permission toggles on `KeyboardPage.qml` automatically refresh when the connected device changes (using Connections on `deviceInfoChanged` and `hidFeaturesReadyChanged`). The toggles now correctly reflect the new device's settings without requiring the user to leave and re-enter the page. Passed Code Review + AC validation. Commit: 2735fa1.
 
+**Implementation Note (TASK-007 micro-chunk 007.1)**  
+Start of safe, opt-in key diversion work for the MX Mechanical Mini. Extended the per-device `keyboard_middle_path` config with `allow_diversion_backlight` (default `false`). Added a third toggle in the existing "Host Control Permissions" section on `KeyboardPage.qml` ("Allow diversion of Backlight Up/Down keys") with the required cautionary text. The toggle is fully functional for persistence and reactive to device changes. No actual diversion logic implemented yet (reserved for 007.2). Passed Code Review + AC validation. Commit: a235707.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
