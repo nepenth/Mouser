@@ -58,6 +58,12 @@ try:
 except Exception:
     ReportRateHandler = None
 
+# 009.9: OnboardProfilesHandler import (guarded)
+try:
+    from core.devices.onboard_profiles_handler import OnboardProfilesHandler
+except Exception:
+    OnboardProfilesHandler = None
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -952,6 +958,35 @@ class Engine:
             _fallback
         )
 
+    # 009.9: thin public Onboard Profiles wrappers (delegation + full fallback)
+    def read_onboard_profile(self):
+        """Read current onboard profile index. Host-side only, temporary."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "read_onboard_profile"):
+                return hg.read_onboard_profile()
+            return None
+
+        self._maybe_attach_onboard_profiles_handler()
+        return self._delegate_or_fallback(
+            "_onboard_profiles_device", "onboard_profiles", "handle_read",
+            _fallback
+        )
+
+    def switch_onboard_profile(self, profile_index: int):
+        """Switch to the given onboard profile index. Host-side only, temporary."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "switch_onboard_profile"):
+                return hg.switch_onboard_profile(profile_index)
+            return False
+
+        self._maybe_attach_onboard_profiles_handler()
+        return self._delegate_or_fallback(
+            "_onboard_profiles_device", "onboard_profiles", "handle_write",
+            _fallback, profile_index
+        )
+
     # ------------------------------------------------------------------
     # Litra Beam basic illumination (008.2 skeleton, host-side only, temporary)
     # ------------------------------------------------------------------
@@ -1098,6 +1133,28 @@ class Engine:
             )
             if dev:
                 self._report_rate_device = dev
+
+    # 009.9: minimal lazy attachment for OnboardProfilesHandler (same pattern)
+    def _maybe_attach_onboard_profiles_handler(self):
+        if not (OnboardProfilesHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_onboard_profiles_idx", None) is None:
+            return
+
+        if not hasattr(self, "_onboard_profiles_device") or self._onboard_profiles_device is None:
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=OnboardProfilesHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_onboard_profiles_idx",
+                handler_name="onboard_profiles",
+            )
+            if dev:
+                self._onboard_profiles_device = dev
 
     # 009.7: tiny reusable helper for the common “delegate or fallback” pattern
     def _delegate_or_fallback(self, device_attr: str, handler_name: str, handler_method: str, fallback_callable, *args, **kwargs):
