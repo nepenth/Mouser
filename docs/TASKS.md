@@ -248,6 +248,9 @@ Fourteenth feature extraction (Wireless Status). Added `FEAT_WIRELESS_STATUS` de
 **Implementation Note (TASK-009 micro-chunk 009.23)**  
 Completed Device Name / Friendly Name feature (originally extracted read-only in 009.15). Added minimal `set_device_name()` on the listener (chunked write). Implemented `handle_write()` in DeviceNameHandler. Wired thin public `set_device_name()` wrapper on Engine with lazy attachment and full fallback. The feature is now a complete, gated read+write capability. Passed Code Review + AC validation. Commit: d0832f3.
 
+**Implementation Note (TASK-009 micro-chunk 009.24)**  
+Fifteenth feature extraction (Device Serial Number / Hardware Version / Identity). Added `FEAT_DEVICE_IDENTITY` detection (placeholder) + minimal `read_device_identity()` on the listener. Created `DeviceIdentityHandler` using the reusable `is_supported()` default (read-only for this micro-chunk). Wired thin public wrapper on Engine with lazy attachment and full fallback. Core identity read only (per scope). Passed Code Review + AC validation. Commit: 636e753.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
