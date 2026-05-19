@@ -203,6 +203,9 @@ First consolidation step after five feature extractions. Added small reusable he
 **Implementation Note (TASK-009 micro-chunk 009.8)**  
 Applied the delegate-or-fallback helper to the remaining extracted features (SmartShift and Report Rate updated; Battery and DPI already followed the equivalent pattern). The public `Engine` surface is now consistent across all five features (Litra, Battery, SmartShift, DPI, Report Rate). Purely mechanical refactoring with zero behavioral change. Passed Code Review + AC validation. Commit: 2dd2f7a.
 
+**Implementation Note (TASK-009 micro-chunk 009.9)**  
+Sixth feature extraction (Onboard Profiles). Created `OnboardProfilesHandler`. Wired delegation in Engine via thin public wrappers (`read_onboard_profile` / `switch_onboard_profile`) with lazy attachment and full fallback to the original listener path. Higher-level profile management remains in Engine (per explicit scope). Public Engine profile-related API and all existing behavior remain 100% unchanged. Extraction performed on a significant, commonly discussed capability. Passed Code Review + AC validation. Commit: 42b18c8.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
