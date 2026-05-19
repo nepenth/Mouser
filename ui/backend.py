@@ -1647,6 +1647,23 @@ class Backend(QObject):
         """True when the connected device exposes K375S FN inversion (host-side, temporary)."""
         return self._engine.has_fn_inversion_control() if self._engine else False
 
+    # Thin delegation for Litra Beam illumination (008.3)
+    @Slot(bool, int, result=bool)
+    def setLitraIllumination(self, enabled, brightness=-1):
+        """Host-side Litra Beam illumination control (on/off + brightness 0-100).
+        Temporary (lost on reconnect/host switch). Delegates to Engine."""
+        if self._engine:
+            return self._engine.set_litra_illumination(bool(enabled), brightness)
+        return False
+
+    @Slot(result=list)
+    def readLitraIllumination(self):
+        """Returns [enabled, brightness] or [None, None]. Host-side only, temporary."""
+        if self._engine:
+            enabled, brightness = self._engine.read_litra_illumination()
+            return [enabled, brightness]
+        return [None, None]
+
     def _onEngineConnectionChange(self, connected):
         """Called from engine/hook thread — posts to Qt main thread."""
         self._connectionChangeRequest.emit(connected)
