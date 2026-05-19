@@ -83,6 +83,22 @@ class FeatureHandler:
         self._write_only = True
         self._read_only = False
 
+    # 009.40: small protected helper for standardized logging of unsupported operations
+    def _log_unsupported(self, operation: str, **context) -> None:
+        """Standardized logging for unsupported read/write attempts on a handler.
+
+        Replaces ad-hoc print statements across handlers with a consistent format.
+        Usage examples:
+            self._log_unsupported("write")
+            self._log_unsupported("read", device=self.device)
+        """
+        msg = f"[{self.__class__.__name__}] {operation} not supported for this device"
+        if context:
+            # Keep it simple and safe; do not assume any particular context keys
+            extra = " ".join(f"{k}={v}" for k, v in context.items())
+            msg = f"{msg} ({extra})"
+        print(msg)
+
 
 class SimpleDelegationHandler(FeatureHandler):
     """Lightweight base for handlers that are essentially thin wrappers around listener methods (009.12).
@@ -101,7 +117,8 @@ class SimpleDelegationHandler(FeatureHandler):
 
     def handle_read(self, *args, **kwargs) -> Any:
         if getattr(self, "_write_only", False):
-            # 009.32: safe default for write-only handlers
+            # 009.32/009.40: safe default + standardized logging for write-only handlers
+            self._log_unsupported("read")
             return None
         if self._read_method_name is None:
             raise NotImplementedError("SimpleDelegationHandler: _read_method_name not set and handle_read() not overridden")
@@ -112,7 +129,8 @@ class SimpleDelegationHandler(FeatureHandler):
 
     def handle_write(self, *args, **kwargs) -> Any:
         if getattr(self, "_read_only", False):
-            # 009.32: safe default for read-only handlers
+            # 009.32/009.40: safe default + standardized logging for read-only handlers
+            self._log_unsupported("write")
             return False
         if self._write_method_name is None:
             raise NotImplementedError("SimpleDelegationHandler: _write_method_name not set and handle_write() not overridden")
