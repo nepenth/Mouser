@@ -100,6 +100,12 @@ try:
 except Exception:
     WirelessChannelHandler = None
 
+# 009.21: SleepTimeoutHandler import (guarded)
+try:
+    from core.devices.sleep_timeout_handler import SleepTimeoutHandler
+except Exception:
+    SleepTimeoutHandler = None
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -1189,6 +1195,36 @@ class Engine:
             _fallback, channel_value
         )
 
+    # 009.21: thin public Sleep Timeout wrappers (host-side only, temporary)
+    def read_sleep_timeout(self):
+        """Read current sleep/power-save timeout value. Host-side only, temporary."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "read_sleep_timeout"):
+                return hg.read_sleep_timeout()
+            return None
+
+        self._maybe_attach_sleep_timeout_handler()
+        return self._delegate_or_fallback(
+            "_sleep_timeout_device", "sleep_timeout", "handle_read",
+            _fallback
+        )
+
+    def set_sleep_timeout(self, timeout_value: int):
+        """Set sleep/power-save timeout. Host-side only, temporary. Returns success."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "set_sleep_timeout"):
+                return hg.set_sleep_timeout(timeout_value)
+            print("[Engine] set_sleep_timeout: No HID++ connection — not applied")
+            return False
+
+        self._maybe_attach_sleep_timeout_handler()
+        return self._delegate_or_fallback(
+            "_sleep_timeout_device", "sleep_timeout", "handle_write",
+            _fallback, timeout_value
+        )
+
     # ------------------------------------------------------------------
     # Litra Beam basic illumination (008.2 skeleton, host-side only, temporary)
     # ------------------------------------------------------------------
@@ -1489,6 +1525,28 @@ class Engine:
             )
             if dev:
                 self._wireless_channel_device = dev
+
+    # 009.21: minimal lazy attachment for SleepTimeoutHandler (same pattern)
+    def _maybe_attach_sleep_timeout_handler(self):
+        if not (SleepTimeoutHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_sleep_timeout_idx", None) is None:
+            return
+
+        if not hasattr(self, "_sleep_timeout_device") or self._sleep_timeout_device is None:
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=SleepTimeoutHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_sleep_timeout_idx",
+                handler_name="sleep_timeout",
+            )
+            if dev:
+                self._sleep_timeout_device = dev
 
     # 009.7: tiny reusable helper for the common “delegate or fallback” pattern
     def _delegate_or_fallback(self, device_attr: str, handler_name: str, handler_method: str, fallback_callable, *args, **kwargs):
