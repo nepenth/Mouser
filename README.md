@@ -117,6 +117,7 @@ This is the authoritative running log of completed and **accepted** work. Tasks 
 - TASK-009 micro-chunk 009.15 accepted and committed: Extracted basic Device Name / Friendly Name support into DeviceNameHandler (seventh extraction). Wired thin public `read_device_name()` wrapper on Engine with full fallback. Handler is read-only for this micro-chunk (per scope). Passed Code Review + AC validation.
 - TASK-009 micro-chunk 009.16 accepted and committed: Extracted basic mouse LED control (on/off + brightness) into LEDHandler (eighth extraction). Wired thin public `set_led_state()` / `read_led_state()` wrappers on Engine with full fallback. Core functionality only (no complex effects/zones/color per scope). Passed Code Review + AC validation.
 - TASK-009 micro-chunk 009.17 accepted and committed: Extracted basic Device Mode / Wireless Mode into DeviceModeHandler (ninth extraction). Wired thin public `read_device_mode()` / `set_device_mode()` wrappers on Engine with full fallback. Core mode value read/write only (per scope). Passed Code Review + AC validation.
+- TASK-009 micro-chunk 009.18 accepted and committed: Extracted basic Wireless Power / RF Power Management into WirelessPowerHandler (tenth extraction). Wired thin public `read_wireless_power()` / `set_wireless_power()` wrappers on Engine with full fallback. Core power level/mode read/write only (per scope). Passed Code Review + AC validation.
 For the detailed current task board, see [docs/TASKS.md](docs/TASKS.md).  
 For overall status and roadmap, see [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).
 

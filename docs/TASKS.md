@@ -230,6 +230,9 @@ Eighth feature extraction (common mouse LED control). Added `FEAT_LED_CONTROL` d
 **Implementation Note (TASK-009 micro-chunk 009.17)**  
 Ninth feature extraction (Device Mode / Wireless Mode). Added `FEAT_DEVICE_MODE` detection (placeholder) + minimal `read_device_mode()` / `set_device_mode()` on the listener. Created `DeviceModeHandler` using the reusable `is_supported()` default. Wired thin public wrappers on Engine with lazy attachment and full fallback. Core mode value read/write only (higher-level management left in Engine per scope). Passed Code Review + AC validation. Commit: b84bc85.
 
+**Implementation Note (TASK-009 micro-chunk 009.18)**  
+Tenth feature extraction (Wireless Power / RF Power Management). Added `FEAT_WIRELESS_POWER` detection (placeholder) + minimal `read_wireless_power()` / `set_wireless_power()` on the listener. Created `WirelessPowerHandler` using the reusable `is_supported()` default. Wired thin public wrappers on Engine with lazy attachment and full fallback. Core power level/mode read/write only (per scope). Passed Code Review + AC validation. Commit: c317075.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
