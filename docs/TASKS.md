@@ -163,6 +163,9 @@ Official start of Litra Beam support. Added early “litra” name heuristic in 
 **Implementation Note (TASK-008 micro-chunk 008.2)**  
 First functional control for the Litra Beam. Added `FEAT_LITRA_ILLUMINATION` detection + `_litra_illumination_idx` in the listener. Implemented host-side `set_litra_illumination()` / `read_litra_illumination()` (on/off + brightness 0-100). Added thin public wrappers on `Engine` following the exact keyboard middle-path pattern from 004.1. All changes are clearly temporary/host-side only, with safe no-op behavior for non-Litra devices. Passed Code Review + AC validation. Commit: 2372a68.
 
+**Implementation Note (TASK-008 micro-chunk 008.3)**  
+Thin Backend exposure for Litra Beam illumination. Added `setLitraIllumination()` and `readLitraIllumination()` as thin delegates on `Backend` (following the exact pattern used for keyboard middle-path methods in 006.3). Clear docstrings stating the controls are host-side only and temporary, plus safe defaults when no engine is present. No new logic or state. Passed Code Review + AC validation. Commit: 592ee38.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
