@@ -133,6 +133,9 @@ Made the quick-access `KeyboardControls` footer context-aware. The footer is now
 **Implementation Note (TASK-006 micro-chunk 006.1)**  
 First step into per-device middle-path settings. Added `devices` top-level section in config with `keyboard_middle_path` per device key, containing `allow_host_backlight` and `allow_fn_inversion` (defaults `true`). Added `get_keyboard_middle_path_settings()` and `set_keyboard_middle_path_setting()` helpers in `core/config.py`. Settings persist correctly. No wiring into control paths yet. Passed Code Review + AC validation. Commit: 74cd899.
 
+**Implementation Note (TASK-006 micro-chunk 006.2)**  
+First behavioral enforcement. Added guards inside `Engine.set_backlight()` and `set_fn_inversion()` that consult the per-device settings from 006.1. When the corresponding `allow_host_*` flag is `False`, the call is refused (logged + returns `False`) before any HID++ interaction. Reads remain unaffected. Passed Code Review + AC validation. Commit: c44e4b3.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
