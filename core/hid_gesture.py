@@ -1357,6 +1357,16 @@ class HidGestureListener:
                 result["extra_setting_5"] = raw[6]
             if len(raw) >= 8:
                 result["extra_setting_6"] = raw[7]
+            # 009.46 (in this message): Even further additional cleanly available settings when the response is longer
+            if len(raw) >= 9:
+                result["extra_setting_7"] = raw[8]
+            if len(raw) >= 10:
+                result["extra_setting_8"] = raw[9]
+            # 009.47 (in this message): Even further additional cleanly available settings when the response is longer
+            if len(raw) >= 11:
+                result["extra_setting_9"] = raw[10]
+            if len(raw) >= 12:
+                result["extra_setting_10"] = raw[11]
             return result
         return None
 
@@ -1376,6 +1386,10 @@ class HidGestureListener:
                 settings.get("extra_setting_4", 0),
                 settings.get("extra_setting_5", 0),
                 settings.get("extra_setting_6", 0),
+                settings.get("extra_setting_7", 0),
+                settings.get("extra_setting_8", 0),
+                settings.get("extra_setting_9", 0),
+                settings.get("extra_setting_10", 0),
             ]
         elif isinstance(settings, (list, tuple)):
             payload = list(settings)
