@@ -254,6 +254,9 @@ Fifteenth feature extraction (Device Serial Number / Hardware Version / Identity
 **Implementation Note (TASK-009 micro-chunk 009.25)**  
 First deliberate refinement micro-chunk after fifteen feature extractions. Introduced small `ThinDelegationHandler` convenience base (inheriting from `SimpleDelegationHandler`) that provides clearer intent and a natural home for future conveniences for the common thin-wrapper case. Migrated `ReportRateHandler` and `WirelessStatusHandler` as demonstration (removed duplicated forwarding boilerplate). The other four handlers can be updated mechanically later. Small, high-value organizational improvement with zero behavioral change. Passed Code Review + AC validation. Commit: 34b308b.
 
+**Implementation Note (TASK-009 micro-chunk 009.26)**  
+Mechanical follow-through on the `ThinDelegationHandler` harvest. Updated the remaining four handlers (SmartShiftHandler, BatteryHandler, DPIHandler, OnboardProfilesHandler) to inherit from `ThinDelegationHandler`. Appropriate `_read_method_name` / `_write_method_name` attributes declared. Duplicated pure-forwarding methods removed only where the default applies (custom logic retained in SmartShift, Battery, and DPI). All six extracted handlers now consistently use the convenience base where the forwarding pattern applies. Zero behavioral change. Passed Code Review + AC validation. Commit: 118cd25.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
