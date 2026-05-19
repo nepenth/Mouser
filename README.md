@@ -87,6 +87,7 @@ This is the authoritative running log of completed and **accepted** work. Tasks 
 - TASK-006 micro-chunk 006.1 accepted and committed: Added per-device `devices.<key>.keyboard_middle_path` structure in config + helper functions (`get_keyboard_middle_path_settings`, `set_keyboard_middle_path_setting`). Safe defaults favoring host enhancements. No behavior change yet. Passed Code Review + AC validation.
 - TASK-006 micro-chunk 006.2 accepted and committed: Added guards in `Engine.set_backlight()` and `set_fn_inversion()` that respect the new per-device `allow_host_*` flags. Blocked calls are logged and refused. First behavioral enforcement of per-device policy. Passed Code Review + AC validation.
 - TASK-006 micro-chunk 006.3 accepted and committed: Exposed the two per-device settings via thin Backend methods and added "Host Control Permissions" toggles on KeyboardPage.qml. First complete end-to-end per-device middle-path feature (config + enforcement + UI control). Passed Code Review + AC validation.
+- TASK-006 micro-chunk 006.4 accepted and committed: Made the permission toggles reactive — they now automatically update when the connected keyboard changes while the KeyboardPage is open (KVM usability improvement). Passed Code Review + AC validation.
 
 For the detailed current task board, see [docs/TASKS.md](docs/TASKS.md).  
 For overall status and roadmap, see [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).

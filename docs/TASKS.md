@@ -139,6 +139,9 @@ First behavioral enforcement. Added guards inside `Engine.set_backlight()` and `
 **Implementation Note (TASK-006 micro-chunk 006.3)**  
 First user-visible part of per-device settings. Added thin `getDeviceKeyboardMiddlePathSetting` / `setDeviceKeyboardMiddlePathSetting` methods in `ui/backend.py`. Added "Host Control Permissions" section with two Switches on `KeyboardPage.qml` (only visible for supported keyboards). Toggles read current values and persist immediately. Completes the first full loop (config 006.1 → enforcement 006.2 → UI 006.3). Passed Code Review + AC validation. Commit: 42c4cb2.
 
+**Implementation Note (TASK-006 micro-chunk 006.4)**  
+KVM robustness polish. Made the two permission toggles on `KeyboardPage.qml` automatically refresh when the connected device changes (using Connections on `deviceInfoChanged` and `hidFeaturesReadyChanged`). The toggles now correctly reflect the new device's settings without requiring the user to leave and re-enter the page. Passed Code Review + AC validation. Commit: 2735fa1.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
