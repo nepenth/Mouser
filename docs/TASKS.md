@@ -278,6 +278,9 @@ Introduced declarative read-only / write-only marker (`_read_only` / `_write_onl
 **Implementation Note (TASK-009 micro-chunk 009.33)**  
 Culminating ergonomic refinement after the previous harvests. Introduced `RecommendedThinHandler` convenience base (inheriting from `DefaultThinHandler`) that bundles all the reusable patterns: `is_supported()` default, delegation, `_get_listener_attr`, `_declare_attributes`, and read-only/write-only support. Includes a detailed class docstring that clearly states the recommended usage pattern for future thin handlers. Migrated `OnboardProfilesHandler` as demonstration of the near-zero-boilerplate path. Small, high-value improvement that makes the accumulated refinements immediately usable and visible. Passed Code Review + AC validation. Commit: 8c57878.
 
+**Implementation Note (TASK-009 micro-chunk 009.34)**  
+Added clear “Recommended Usage” section to the `RecommendedThinHandler` class docstring (pure documentation / example). Shows the near-zero-boilerplate pattern for new thin handlers (inheritance + one `super().__init__` call with the three attributes, plus the read-only variant and a note about custom overrides). Small, high-value documentation improvement with zero behavioral or API change. Passed Code Review + AC validation. Commit: 5e17101.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
