@@ -314,6 +314,9 @@ Further extended the prior Power Management extraction (009.37/009.39/009.42) wi
 **Implementation Note (TASK-009 micro-chunk 009.46)**  
 Introduced small protected helper `_get_operation_label(operation)` on `FeatureHandler` that returns human-readable labels for common operations (e.g., "Read Report Rate", "Set LED Effect"), using the `_friendly_name` from 009.43 when available. Integrated into `_log_unsupported(...)` so all one-way handlers automatically use consistent, friendly operation labels in unsupported-operation logs. Small, high-value consistency and maintainability improvement with zero behavioral change. Passed Code Review + AC validation. Commit: de18844.
 
+**Implementation Note (TASK-009 micro-chunk 009.47)**  
+Further extended the prior Device Type extraction (009.35) with additional identity/capability fields (sub_type, capability_flags, etc.) returned in an even richer structure while preserving the basic type value and raw list for full backward compatibility. Small further enhancement to `read_device_type()` in the listener + docstring update in the handler. The existing thin Engine wrapper automatically benefits. Passed Code Review + AC validation. Commit: f4fad5a.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
