@@ -26,14 +26,16 @@ class DPIHandler(ThinDelegationHandler):
     The custom handle_write (clamping note) is intentionally kept.
     """
 
-    _feature_index_attr = "_dpi_idx"
-    _read_method_name = "read_dpi"
-    _write_method_name = "set_dpi"
-
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
         self.listener = listener
+        # 009.27/009.28: single-line declarative style
+        self._declare_attributes(
+            feature_index_attr="_dpi_idx",
+            read_method="read_dpi",
+            write_method="set_dpi"
+        )
 
     # Custom handle_write retained (per 009.4 scope comment).
         if not self.is_supported() or self._listener._dev is None:

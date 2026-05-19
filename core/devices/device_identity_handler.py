@@ -10,33 +10,27 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, List, Optional
 
-from core.logi_device import FeatureHandler
+from core.logi_device import FeatureHandler, ThinDelegationHandler
 
 if TYPE_CHECKING:
     from core.logi_device import LogitechDevice
 
 
-class DeviceIdentityHandler(FeatureHandler):
+class DeviceIdentityHandler(ThinDelegationHandler):
     """Host-side Device Serial Number / Hardware Version / Identity read (read-only). Temporary (lost on reconnect/host switch)."""
 
     # 009.10/009.11: use the reusable default is_supported() from the base
-    _feature_index_attr = "_device_identity_idx"
-
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
         self.listener = listener
+        # 009.27/009.28: single-line declarative style (read-only)
+        self._declare_attributes(
+            feature_index_attr="_device_identity_idx",
+            read_method="read_device_identity"
+        )
 
-    # (is_supported() inherited from FeatureHandler base)
-
-    def handle_read(self) -> Optional[List[int]]:
-        """Return current device identity values (raw parameters) or None."""
-        if not self.is_supported():
-            return None
-        if hasattr(self._listener, "read_device_identity"):
-            return self._listener.read_device_identity()
-        return None
-
+    # All behavior (is_supported + handle_read) comes from ThinDelegationHandler.
+    # handle_write remains a no-op because this feature is read-only.
     def handle_write(self, *args, **kwargs) -> bool:
-        """Write not supported for this read-only feature in this micro-chunk."""
         return False

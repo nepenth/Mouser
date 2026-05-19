@@ -22,14 +22,15 @@ class WirelessStatusHandler(ThinDelegationHandler):
     009.25: Migrated to ThinDelegationHandler for minimal boilerplate.
     """
 
-    _feature_index_attr = "_wireless_status_idx"
-    _read_method_name = "read_wireless_status"
-    # read-only — no _write_method_name
-
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
         self.listener = listener
+        # 009.27/009.28: single-line declarative style (read-only)
+        self._declare_attributes(
+            feature_index_attr="_wireless_status_idx",
+            read_method="read_wireless_status"
+        )
 
     # All behavior (is_supported + handle_read) comes from ThinDelegationHandler.
     # We keep a minimal safe override for the read-only case.

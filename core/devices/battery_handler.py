@@ -24,13 +24,15 @@ class BatteryHandler(ThinDelegationHandler):
     The custom handle_read (with normalization) is intentionally kept.
     """
 
-    _feature_index_attr = "_battery_idx"
-    _read_method_name = "read_battery"
-
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
         self.listener = listener
+        # 009.27/009.28: single-line declarative style
+        self._declare_attributes(
+            feature_index_attr="_battery_idx",
+            read_method="read_battery"
+        )
 
     # Custom handle_read (normalization logic) retained — not pure delegation.
         if not self.is_supported() or self._listener._dev is None:

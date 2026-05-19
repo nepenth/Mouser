@@ -26,13 +26,15 @@ class SmartShiftHandler(ThinDelegationHandler):
     with extra parameters are intentionally kept because they contain additional logic).
     """
 
-    _feature_index_attr = "_smart_shift_idx"
-    _read_method_name = "read_smart_shift"
-    _write_method_name = "set_smart_shift"
-
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
         self.listener = listener
+        # 009.27/009.28: single-line declarative style
+        self._declare_attributes(
+            feature_index_attr="_smart_shift_idx",
+            read_method="read_smart_shift",
+            write_method="set_smart_shift"
+        )
 
     # Custom handle_read/handle_write retained (different signature + guards) — they are not pure delegation.
