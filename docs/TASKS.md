@@ -157,6 +157,9 @@ Made the four diverted backlight key events first-class mappable buttons. Regist
 **Implementation Note (TASK-007 micro-chunk 007.5)**  
 Light polish pass to make the diversion feature feel first-class. Introduced cleaner canonical names (`backlight_up` / `backlight_down`) with friendly “(diverted)” labels in the button/action lists. Added dual-name mapping support in the Engine (friendly names work even if the hook dispatches internal strings). Improved debug logging for diverted backlight key events. Small, high-value usability improvement. Passed Code Review + AC validation. Commit: 63faeb0.
 
+**Implementation Note (TASK-008 micro-chunk 008.1)**  
+Official start of Litra Beam support. Added early “litra” name heuristic in `classify_device_kind` so Litra Beam devices are reliably classified as “other” (non-mouse, non-keyboard). Added clear, specific logging at all three classification sites when a Litra Beam is detected. Establishes the safe discovery/classification foundation with zero impact on existing mouse or keyboard paths. Passed Code Review + AC validation. Commit: 17163d8.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
