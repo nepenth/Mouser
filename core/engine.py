@@ -45,6 +45,12 @@ try:
 except Exception:
     SmartShiftHandler = None
 
+# 009.4: DPIHandler import (guarded)
+try:
+    from core.devices.dpi_handler import DPIHandler
+except Exception:
+    DPIHandler = None
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -776,7 +782,15 @@ class Engine:
         dpi = clamp_dpi(dpi_value, self.connected_device)
         self.cfg.setdefault("settings", {})["dpi"] = dpi
         save_config(self.cfg)
-        # Try via the hook's HidGestureListener
+
+        # 009.4: optional delegation to DPIHandler (full backward compatibility fallback)
+        self._maybe_attach_dpi_handler()
+        if DPIHandler is not None and hasattr(self, "_dpi_device") and self._dpi_device:
+            handler = self._dpi_device.get_handler("dpi")
+            if handler:
+                return handler.handle_write(dpi)
+
+        # Try via the hook's HidGestureListener (original path)
         hg = self.hook._hid_gesture
         if hg:
             return hg.set_dpi(dpi)
@@ -995,6 +1009,24 @@ class Engine:
             self._smart_shift_device = LogitechDevice(pid, name, key)
             handler = SmartShiftHandler(self._smart_shift_device, hg)
             self._smart_shift_device.add_handler("smart_shift", handler)
+
+    # 009.4: minimal lazy attachment for DPIHandler (same pattern)
+    def _maybe_attach_dpi_handler(self):
+        if not (DPIHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_dpi_idx", None) is None:
+            return
+
+        if not hasattr(self, "_dpi_device") or self._dpi_device is None:
+            dev = getattr(hg, "connected_device", None)
+            pid = getattr(dev, "product_id", 0) if dev else 0
+            name = getattr(dev, "name", "Device") if dev else "Device"
+            key = getattr(dev, "key", None) if dev else str(pid)
+
+            self._dpi_device = LogitechDevice(pid, name, key)
+            handler = DPIHandler(self._dpi_device, hg)
+            self._dpi_device.add_handler("dpi", handler)
 
     def reload_mappings(self):
         """
