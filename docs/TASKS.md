@@ -218,6 +218,9 @@ Introduced lightweight `SimpleDelegationHandler` base that provides default `han
 **Implementation Note (TASK-009 micro-chunk 009.13)**  
 Mechanical completion of the `SimpleDelegationHandler` harvest. Updated `SmartShiftHandler`, `BatteryHandler`, `DPIHandler`, and `OnboardProfilesHandler` to inherit from the new base and remove duplicated forwarding methods (declaring the appropriate `_read_method_name` / `_write_method_name` attributes). All six extracted handlers now consistently use the reusable base class. Zero behavioral change. Passed Code Review + AC validation. Commit: 3f4e54f.
 
+**Implementation Note (TASK-009 micro-chunk 009.14)**  
+Small robustness refinement on the handler base. Added protected helper `_get_listener_attr(self, attr_name, default=None)` on `FeatureHandler` for safe listener attribute access. Updated `SimpleDelegationHandler` defaults to use the helper instead of direct `getattr`. Demonstrates the pattern internally with zero behavioral change. Passed Code Review + AC validation. Commit: 929f30d.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
