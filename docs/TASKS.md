@@ -221,6 +221,9 @@ Mechanical completion of the `SimpleDelegationHandler` harvest. Updated `SmartSh
 **Implementation Note (TASK-009 micro-chunk 009.14)**  
 Small robustness refinement on the handler base. Added protected helper `_get_listener_attr(self, attr_name, default=None)` on `FeatureHandler` for safe listener attribute access. Updated `SimpleDelegationHandler` defaults to use the helper instead of direct `getattr`. Demonstrates the pattern internally with zero behavioral change. Passed Code Review + AC validation. Commit: 929f30d.
 
+**Implementation Note (TASK-009 micro-chunk 009.15)**  
+Seventh feature extraction (Device Name / Friendly Name). Added detection of FEAT_DEVICE_NAME (0x0005) + clean `read_device_name()` wrapper on the listener. Created `DeviceNameHandler` (read-only for this micro-chunk) using the reusable `is_supported()` default. Wired thin public `read_device_name()` wrapper on Engine with lazy attachment (via the shared helper) and full fallback to the original listener path. Public Engine API remains 100% compatible. Passed Code Review + AC validation. Commit: f760743.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
