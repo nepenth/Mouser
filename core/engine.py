@@ -70,6 +70,12 @@ try:
 except Exception:
     DeviceNameHandler = None
 
+# 009.16: LEDHandler import (guarded)
+try:
+    from core.devices.led_handler import LEDHandler
+except Exception:
+    LEDHandler = None
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -1008,6 +1014,37 @@ class Engine:
             _fallback
         )
 
+    # 009.16: thin public LED wrappers (host-side only, temporary)
+    def set_led_state(self, enabled, brightness=-1):
+        """Host-side mouse LED on/off + brightness (0-100). Temporary (lost on reconnect/host switch)."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg:
+                lvl = None if brightness < 0 else brightness
+                return hg.set_led_state(bool(enabled), lvl)
+            print("[Engine] set_led_state: No HID++ connection — not applied")
+            return False
+
+        self._maybe_attach_led_handler()
+        return self._delegate_or_fallback(
+            "_led_device", "led", "handle_write",
+            _fallback, bool(enabled), None if brightness < 0 else brightness
+        )
+
+    def read_led_state(self):
+        """Returns (enabled, brightness) or (None, None). Host-side only, temporary."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg:
+                return hg.read_led_state()
+            return None, None
+
+        self._maybe_attach_led_handler()
+        return self._delegate_or_fallback(
+            "_led_device", "led", "handle_read",
+            _fallback
+        )
+
     # ------------------------------------------------------------------
     # Litra Beam basic illumination (008.2 skeleton, host-side only, temporary)
     # ------------------------------------------------------------------
@@ -1198,6 +1235,28 @@ class Engine:
             )
             if dev:
                 self._device_name_device = dev
+
+    # 009.16: minimal lazy attachment for LEDHandler (same pattern)
+    def _maybe_attach_led_handler(self):
+        if not (LEDHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_led_control_idx", None) is None:
+            return
+
+        if not hasattr(self, "_led_device") or self._led_device is None:
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=LEDHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_led_control_idx",
+                handler_name="led",
+            )
+            if dev:
+                self._led_device = dev
 
     # 009.7: tiny reusable helper for the common “delegate or fallback” pattern
     def _delegate_or_fallback(self, device_attr: str, handler_name: str, handler_method: str, fallback_callable, *args, **kwargs):
