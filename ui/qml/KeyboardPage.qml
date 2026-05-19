@@ -189,5 +189,19 @@ Item {
         }
 
         Item { Layout.fillHeight: true }
+
+        // Make permission toggles reactive to device changes (KVM use case, 006.4)
+        function refreshPermissionToggles() {
+            if (backend.keyboardBacklightSupported || backend.keyboardFnInversionSupported) {
+                allowBacklightSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_host_backlight")
+                allowFnSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_fn_inversion")
+            }
+        }
+
+        Connections {
+            target: backend
+            function onDeviceInfoChanged() { refreshPermissionToggles() }
+            function onHidFeaturesReadyChanged() { refreshPermissionToggles() }
+        }
     }
 }
