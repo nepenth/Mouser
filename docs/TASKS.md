@@ -180,6 +180,9 @@ Polish & robustness pass on the Litra Beam controls card (modeled on the keyboar
 - 350 ms debounce on the brightness slider to reduce device traffic.
 The card now feels as solid and KVM-friendly as the polished keyboard controls. Passed Code Review + AC validation. Commit: bc6d39d.
 
+**Implementation Note (TASK-009 micro-chunk 009.1)**  
+Official start of the cleaner architecture work. Created minimal `LogitechDevice` + `FeatureHandler` base classes. Extracted Litra illumination into `LitraIlluminationHandler`. Wired `Engine` to optionally delegate to the handler for Litra devices, with full fallback to the original listener path. Public `Engine` API and all existing behavior remain 100% unchanged. First disciplined step toward the `LogitechDevice` / `FeatureHandler` model. Passed Code Review + AC validation. Commit: 437cd99.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
