@@ -13,29 +13,25 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from core.logi_device import FeatureHandler, ThinDelegationHandler
+from core.logi_device import FeatureHandler, DefaultThinHandler
 
 if TYPE_CHECKING:
     from core.logi_device import LogitechDevice
 
 
-class DPIHandler(ThinDelegationHandler):
+class DPIHandler(DefaultThinHandler):
     """Core DPI set/read handling for devices that support ADJUSTABLE_DPI (0x2201).
 
-    009.25/009.26: Inherits from ThinDelegationHandler.
+    009.25/009.26/009.30: Uses DefaultThinHandler.
     The custom handle_write (clamping note) is intentionally kept.
     """
 
     def __init__(self, device: "LogitechDevice", listener: Any):
-        super().__init__(device)
+        super().__init__(device, listener,
+                         feature_index_attr="_dpi_idx",
+                         read_method="read_dpi",
+                         write_method="set_dpi")
         self._listener = listener
-        self.listener = listener
-        # 009.27/009.28: single-line declarative style
-        self._declare_attributes(
-            feature_index_attr="_dpi_idx",
-            read_method="read_dpi",
-            write_method="set_dpi"
-        )
 
     # Custom handle_write retained (per 009.4 scope comment).
         if not self.is_supported() or self._listener._dev is None:

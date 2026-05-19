@@ -10,28 +10,23 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from core.logi_device import FeatureHandler, ThinDelegationHandler
+from core.logi_device import FeatureHandler, DefaultThinHandler
 
 if TYPE_CHECKING:
     from core.logi_device import LogitechDevice
 
 
-class OnboardProfilesHandler(ThinDelegationHandler):
+class OnboardProfilesHandler(DefaultThinHandler):
     """Basic onboard profile read/switch handling for devices that support 0x8100.
 
-    009.25/009.26/009.27: Uses ThinDelegationHandler + the declarative helper
-    for the most concise possible thin-handler declaration.
+    009.25/009.26/009.27/009.30: Uses DefaultThinHandler.
     """
 
     def __init__(self, device: "LogitechDevice", listener: Any):
-        super().__init__(device)
+        super().__init__(device, listener,
+                         feature_index_attr="_onboard_profiles_idx",
+                         read_method="read_onboard_profile",
+                         write_method="switch_onboard_profile")
         self._listener = listener
-        self.listener = listener
-        # 009.27: single-line declarative style for the three standard attributes
-        self._declare_attributes(
-            feature_index_attr="_onboard_profiles_idx",
-            read_method="read_onboard_profile",
-            write_method="switch_onboard_profile"
-        )
 
-    # All behavior (is_supported + handle_read + handle_write) comes from ThinDelegationHandler.
+    # All behavior (is_supported + handle_read + handle_write) comes from DefaultThinHandler.

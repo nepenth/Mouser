@@ -11,35 +11,26 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional, Tuple
 
-from core.logi_device import FeatureHandler, ThinDelegationHandler
+from core.logi_device import FeatureHandler, DefaultThinHandler
 
 if TYPE_CHECKING:
     from core.logi_device import LogitechDevice
 
 
-class BatteryHandler(ThinDelegationHandler):
+class BatteryHandler(DefaultThinHandler):
     """Battery read handling for devices that support UNIFIED_BATTERY or the older battery feature.
 
-    009.25/009.26: Inherits from ThinDelegationHandler.
+    009.25/009.26/009.30: Uses DefaultThinHandler.
     The custom handle_read (with normalization) is intentionally kept.
     """
 
     def __init__(self, device: "LogitechDevice", listener: Any):
-        super().__init__(device)
+        super().__init__(device, listener,
+                         feature_index_attr="_battery_idx",
+                         read_method="read_battery")
         self._listener = listener
-        self.listener = listener
-        # 009.27/009.28: single-line declarative style
-        self._declare_attributes(
-            feature_index_attr="_battery_idx",
-            read_method="read_battery"
-        )
 
     # Custom handle_read (normalization logic) retained — not pure delegation.
-        if not self.is_supported() or self._listener._dev is None:
-            return None
-
-        # Delegate to the listener's existing battery read implementation
-        # (the listener already has the full logic for different battery features).
         # We call the internal method that does the actual HID++ request.
         # If the listener later refactors its battery code, this single call site is easy to update.
         try:
