@@ -127,6 +127,9 @@ First structural expansion of the keyboard experience. Created `ui/qml/KeyboardP
 **Implementation Note (TASK-005 micro-chunk 005.4)**  
 Added a small, clean device status block to `KeyboardPage.qml` (shown only when a supported keyboard is connected). Displays device display name, connection type/transport, and battery level (with graceful fallback). Reused only existing backend properties (`deviceDisplayName`, `connectionType`, `batteryLevel`, and the middle-path capability flags). No changes to any other files. Passed Code Review + AC validation. Commit: 80850ad.
 
+**Implementation Note (TASK-005 micro-chunk 005.5)**  
+Made the quick-access `KeyboardControls` footer context-aware. The footer is now hidden when the user is on the dedicated Keyboard page (page 2), while continuing to appear normally on the Mouse and Scroll pages when a supported keyboard is connected. Single small change in `Main.qml`. Passed Code Review + AC validation. Commit: 8fb5aad.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
