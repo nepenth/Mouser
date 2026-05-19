@@ -115,6 +115,7 @@ This is the authoritative running log of completed and **accepted** work. Tasks 
 - TASK-009 micro-chunk 009.13 accepted and committed: Updated the remaining four handlers (SmartShift, Battery, DPI, Onboard Profiles) to inherit from `SimpleDelegationHandler` and remove duplicated forwarding methods. All six handlers now consistently use the reusable base class. Zero behavioral change. Passed Code Review + AC validation.
 - TASK-009 micro-chunk 009.14 accepted and committed: Introduced protected helper `_get_listener_attr(...)` on `FeatureHandler` for safe listener attribute access. Updated `SimpleDelegationHandler` defaults to use it. Small, high-value robustness improvement with zero behavioral change. Passed Code Review + AC validation.
 - TASK-009 micro-chunk 009.15 accepted and committed: Extracted basic Device Name / Friendly Name support into DeviceNameHandler (seventh extraction). Wired thin public `read_device_name()` wrapper on Engine with full fallback. Handler is read-only for this micro-chunk (per scope). Passed Code Review + AC validation.
+- TASK-009 micro-chunk 009.16 accepted and committed: Extracted basic mouse LED control (on/off + brightness) into LEDHandler (eighth extraction). Wired thin public `set_led_state()` / `read_led_state()` wrappers on Engine with full fallback. Core functionality only (no complex effects/zones/color per scope). Passed Code Review + AC validation.
 For the detailed current task board, see [docs/TASKS.md](docs/TASKS.md).  
 For overall status and roadmap, see [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).
 
