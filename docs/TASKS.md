@@ -302,6 +302,9 @@ Extended the prior Wireless Status extraction (009.22) with additional link heal
 **Implementation Note (TASK-009 micro-chunk 009.42)**  
 Extended the prior Power Management extraction (009.37/009.39) with additional settings (profile, save_mode, etc.) in richer structures (`{"raw": [...], "profile": ..., "save_mode": ...}`) while preserving the raw list for full backward compatibility. Enhanced both `read_power_management()` and `set_power_management()` in the listener (accepts richer dicts for write) + docstring update in the handler. The existing thin Engine wrappers automatically benefit. Passed Code Review + AC validation. Commit: 500d8db.
 
+**Implementation Note (TASK-009 micro-chunk 009.43)**  
+Introduced optional `_friendly_name` class attribute + `_get_friendly_name()` helper on `FeatureHandler`. Integrated into `_log_unsupported(...)` so all one-way handlers automatically use a human-readable label in unsupported-operation logs. Migrated `ReportRateHandler` (`"Report Rate"`) and `LitraIlluminationHandler` (`"Litra Illumination"`) as demonstrations (one-line declarations). Small, high-value consistency and maintainability improvement with zero behavioral change. Passed Code Review + AC validation. Commit: 5769d15.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
