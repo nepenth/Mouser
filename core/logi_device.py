@@ -83,7 +83,7 @@ class FeatureHandler:
         self._write_only = True
         self._read_only = False
 
-    # 009.40: small protected helper for standardized logging of unsupported operations
+    # 009.40/009.46: small protected helper for standardized logging of unsupported operations
     def _log_unsupported(self, operation: str, **context) -> None:
         """Standardized logging for unsupported read/write attempts on a handler.
 
@@ -92,8 +92,8 @@ class FeatureHandler:
             self._log_unsupported("write")
             self._log_unsupported("read", device=self.device)
         """
-        friendly = self._get_friendly_name()
-        msg = f"[{friendly}] {operation} not supported for this device"
+        label = self._get_operation_label(operation) if hasattr(self, "_get_operation_label") else f"{operation} {self._get_friendly_name()}"
+        msg = f"[{label}] not supported for this device"
         if context:
             # Keep it simple and safe; do not assume any particular context keys
             extra = " ".join(f"{k}={v}" for k, v in context.items())
@@ -117,6 +117,19 @@ class FeatureHandler:
         # Insert spaces before uppercase letters (simple camelCase → Title Case)
         friendly = "".join(" " + c if c.isupper() and i > 0 else c for i, c in enumerate(name))
         return friendly.strip() or name
+
+    # 009.46: small helper for standardized friendly labels for successful operations / debug
+    def _get_operation_label(self, operation: str) -> str:
+        """Return a human-readable label for a common operation on this handler (for logging/debug/future UI).
+
+        Examples:
+            handler._get_operation_label("read") → "Read Report Rate"
+            handler._get_operation_label("set")  → "Set LED Effect"
+        Uses the already-declared friendly name (from 009.43) when available.
+        """
+        friendly = self._get_friendly_name()
+        op = operation.strip().capitalize() if operation else "Operation"
+        return f"{op} {friendly}"
 
 
 class SimpleDelegationHandler(FeatureHandler):
