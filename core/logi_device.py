@@ -102,6 +102,30 @@ class SimpleDelegationHandler(FeatureHandler):
         return method(*args, **kwargs)
 
 
+class ThinDelegationHandler(SimpleDelegationHandler):
+    """Convenience base for the most common thin delegation handlers (009.25).
+
+    The majority of our extracted handlers are simple read/write (or read-only)
+    wrappers around a listener method. This class makes the declaration even more
+    concise while still inheriting all the reusable defaults from
+    SimpleDelegationHandler and FeatureHandler (_feature_index_attr support,
+    is_supported(), _get_listener_attr, etc.).
+
+    Typical usage for a new thin handler:
+
+        class MyFeatureHandler(ThinDelegationHandler):
+            _feature_index_attr = "_my_feature_idx"
+            _read_method_name = "read_my_feature"
+            _write_method_name = "set_my_feature"   # or None for read-only
+
+    Existing handlers can continue to inherit directly from SimpleDelegationHandler
+    or FeatureHandler if they need custom logic.
+    """
+    # No additional methods required — the value is documentation + future
+    # extensibility (e.g. auto-registration, nicer error messages, etc.).
+    pass
+
+
 class LogitechDevice:
     """Very lightweight base for a Logitech HID++ device.
 

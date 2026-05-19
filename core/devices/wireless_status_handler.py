@@ -10,33 +10,28 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, List, Optional
 
-from core.logi_device import FeatureHandler
+from core.logi_device import FeatureHandler, ThinDelegationHandler
 
 if TYPE_CHECKING:
     from core.logi_device import LogitechDevice
 
 
-class WirelessStatusHandler(FeatureHandler):
-    """Host-side Wireless Status (link quality / RSSI) read. Temporary (lost on reconnect/host switch)."""
+class WirelessStatusHandler(ThinDelegationHandler):
+    """Host-side Wireless Status (link quality / RSSI) read (read-only). Temporary (lost on reconnect/host switch).
 
-    # 009.10/009.11: use the reusable default is_supported() from the base
+    009.25: Migrated to ThinDelegationHandler for minimal boilerplate.
+    """
+
     _feature_index_attr = "_wireless_status_idx"
+    _read_method_name = "read_wireless_status"
+    # read-only — no _write_method_name
 
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
         self.listener = listener
 
-    # (is_supported() inherited from FeatureHandler base)
-
-    def handle_read(self) -> Optional[List[int]]:
-        """Return current wireless status values (raw parameters) or None."""
-        if not self.is_supported():
-            return None
-        if hasattr(self._listener, "read_wireless_status"):
-            return self._listener.read_wireless_status()
-        return None
-
+    # All behavior (is_supported + handle_read) comes from ThinDelegationHandler.
+    # We keep a minimal safe override for the read-only case.
     def handle_write(self, *args, **kwargs) -> bool:
-        """Write not supported for this read-only feature in this micro-chunk."""
         return False
