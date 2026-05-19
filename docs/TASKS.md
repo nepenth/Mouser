@@ -290,6 +290,9 @@ Expanded the “Recommended Usage” section in the `RecommendedThinHandler` cla
 **Implementation Note (TASK-009 micro-chunk 009.37)**  
 Eighteenth feature extraction (Power Management beyond Sleep Timeout / Wireless Power / Battery). Added `FEAT_POWER_MANAGEMENT` detection (placeholder 0x1C01) + minimal `read_power_management()` / `set_power_management()` on the listener. Created `PowerManagementHandler` using the reusable `is_supported()` default. Wired thin public wrappers on Engine with lazy attachment and full fallback. Core power management read/write only (per scope). Passed Code Review + AC validation. Commit: d85079d.
 
+**Implementation Note (TASK-009 micro-chunk 009.38)**  
+Introduced `UltraThinHandler` ultra-light convenience base (inheriting from `RecommendedThinHandler`) for the absolute simplest pure thin-delegation cases (the most common pattern). Includes a clear class docstring illustrating the even more concise usage pattern for brand-new ultra-simple handlers. Migrated `DeviceTypeHandler` as demonstration. Small, high-value ergonomic improvement with zero behavioral change. Passed Code Review + AC validation. Commit: 9e28965.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
