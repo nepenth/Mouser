@@ -11,13 +11,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional, Tuple
 
-from core.logi_device import FeatureHandler
+from core.logi_device import FeatureHandler, SimpleDelegationHandler
 
 if TYPE_CHECKING:
     from core.logi_device import LogitechDevice
 
 
-class BatteryHandler(FeatureHandler):
+class BatteryHandler(SimpleDelegationHandler):
     """Battery read handling for devices that support UNIFIED_BATTERY or the older battery feature.
 
     The handler is responsible for:
@@ -28,13 +28,19 @@ class BatteryHandler(FeatureHandler):
     # 009.10: use the reusable default is_supported() from the base
     _feature_index_attr = "_battery_idx"
 
+    # 009.13: declare the listener method names for the SimpleDelegationHandler defaults
+    # (Battery is primarily read-heavy; write is less common, so we declare only read here
+    #  and let any write path stay in the original Engine logic for this micro-chunk.)
+    _read_method_name = "read_battery"  # placeholder — actual listener method may differ; adjust in follow-up if needed
+
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
-        # Also expose listener for the default is_supported() implementation (009.10)
+        # Also expose listener for the default is_supported() implementation and delegation
         self.listener = listener
 
-    # (is_supported() now inherited from FeatureHandler base — no override needed)
+    # (is_supported() inherited from FeatureHandler base)
+    # (handle_read inherited from SimpleDelegationHandler where the method name matches)
 
     def handle_read(self) -> Optional[dict]:
         """Return a normalized battery dict (or None on failure).

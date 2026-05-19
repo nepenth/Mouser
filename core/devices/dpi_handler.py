@@ -13,22 +13,30 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from core.logi_device import FeatureHandler
+from core.logi_device import FeatureHandler, SimpleDelegationHandler
 
 if TYPE_CHECKING:
     from core.logi_device import LogitechDevice
 
 
-class DPIHandler(FeatureHandler):
+class DPIHandler(SimpleDelegationHandler):
     """Core DPI set/read handling for devices that support ADJUSTABLE_DPI (0x2201)."""
 
-    # 009.11: use the reusable default is_supported() from the base
+    # 009.10/009.11: use the reusable default is_supported() from the base
     _feature_index_attr = "_dpi_idx"
+
+    # 009.13: declare the listener method names for the SimpleDelegationHandler defaults
+    _read_method_name = "read_dpi"
+    _write_method_name = "set_dpi"
 
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
-        # Also expose listener for the default is_supported() implementation (009.11)
+        # Also expose listener for the default is_supported() implementation and delegation
+        self.listener = listener
+
+    # (is_supported() inherited from FeatureHandler base)
+    # (handle_read / handle_write inherited from SimpleDelegationHandler)
         self.listener = listener
 
     # (is_supported() now inherited from FeatureHandler base — no override needed)
