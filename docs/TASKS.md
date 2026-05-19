@@ -198,6 +198,9 @@ Fifth feature extraction (Report Rate). Created `ReportRateHandler`. Wired deleg
 **Implementation Note (TASK-009 micro-chunk 009.6)**  
 First consolidation step after five feature extractions. Added small reusable helper `maybe_attach_handler(...)` in `core/logi_device.py` that encapsulates the common lazy attachment boilerplate. Refactored the five `_maybe_attach_*_handler()` methods (Litra, Battery, SmartShift, DPI, Report Rate) to use the shared helper. Significant reduction in obvious duplication with zero behavioral change. Passed Code Review + AC validation. Commit: a9160b2.
 
+**Implementation Note (TASK-009 micro-chunk 009.7)**  
+Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
