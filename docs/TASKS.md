@@ -186,6 +186,9 @@ Official start of the cleaner architecture work. Created minimal `LogitechDevice
 **Implementation Note (TASK-009 micro-chunk 009.2)**  
 Second feature extraction (Battery). Created `BatteryHandler`. Added minimal placeholder parse helper in the listener. Wired delegation in `Engine._battery_poll_loop` with lazy attachment and full fallback to the original `hg.read_battery()` path. Public Engine battery API and all callbacks remain 100% unchanged. Extraction performed on an established, cross-device feature while keeping changes minimal. Passed Code Review + AC validation. Commit: 05aa06b.
 
+**Implementation Note (TASK-009 micro-chunk 009.3)**  
+Third feature extraction (SmartShift). Created `SmartShiftHandler`. Wired delegation in `Engine.set_smart_shift()` and the new `read_smart_shift()` with lazy attachment and full fallback to the original listener path. Higher-level toggle (`_toggle_smart_shift`) and switch (`_switch_scroll_mode`) helpers automatically benefit via the public API. Public Engine SmartShift API and all callbacks remain 100% unchanged. Extraction performed on a stateful, read+write, multi-parameter capability. Passed Code Review + AC validation. Commit: 7a53b69.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
