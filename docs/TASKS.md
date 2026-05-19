@@ -192,6 +192,9 @@ Third feature extraction (SmartShift). Created `SmartShiftHandler`. Wired delega
 **Implementation Note (TASK-009 micro-chunk 009.4)**  
 Fourth feature extraction (DPI). Created `DPIHandler`. Wired delegation in `Engine.set_dpi()` with lazy attachment and full fallback to the original listener path. `_cycle_dpi` and preset logic remain in Engine (per explicit scope). Public Engine DPI API and all related behavior (including cycling and presets) remain 100% unchanged. Extraction performed on a core, high-frequency, read+write mouse capability. Passed Code Review + AC validation. Commit: 2cf5f75.
 
+**Implementation Note (TASK-009 micro-chunk 009.5)**  
+Fifth feature extraction (Report Rate). Created `ReportRateHandler`. Wired delegation in Engine via thin public wrappers (`set_report_rate` / `read_report_rate`) with lazy attachment and full fallback to the original listener path. Public Engine Report Rate API and all existing behavior remain 100% unchanged. Extraction performed on a clean, cross-device capability. Passed Code Review + AC validation. Commit: 7bc5d59.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
