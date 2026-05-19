@@ -154,6 +154,9 @@ First functional dispatch for the diverted keys. Replaced the placeholder handle
 **Implementation Note (TASK-007 micro-chunk 007.4)**  
 Made the four diverted backlight key events first-class mappable buttons. Registered them in `BUTTON_NAMES`, `PROFILE_BUTTON_NAMES`, and `BUTTON_TO_EVENTS` (with clear “(diverted)” labels). Extended Engine gesture event handling to route the incoming diverted events to the active profile’s mappings and execute any assigned action. Users can now assign normal Mouser actions to the opted-in diverted Backlight Up/Down keys through the existing action system. The feature remains fully gated behind the per-device `allow_diversion_backlight` flag. Passed Code Review + AC validation. Commit: b3b1da0.
 
+**Implementation Note (TASK-007 micro-chunk 007.5)**  
+Light polish pass to make the diversion feature feel first-class. Introduced cleaner canonical names (`backlight_up` / `backlight_down`) with friendly “(diverted)” labels in the button/action lists. Added dual-name mapping support in the Engine (friendly names work even if the hook dispatches internal strings). Improved debug logging for diverted backlight key events. Small, high-value usability improvement. Passed Code Review + AC validation. Commit: 63faeb0.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
