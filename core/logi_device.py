@@ -92,12 +92,31 @@ class FeatureHandler:
             self._log_unsupported("write")
             self._log_unsupported("read", device=self.device)
         """
-        msg = f"[{self.__class__.__name__}] {operation} not supported for this device"
+        friendly = self._get_friendly_name()
+        msg = f"[{friendly}] {operation} not supported for this device"
         if context:
             # Keep it simple and safe; do not assume any particular context keys
             extra = " ".join(f"{k}={v}" for k, v in context.items())
             msg = f"{msg} ({extra})"
         print(msg)
+
+    # 009.43: small optional friendly display name for handlers (used in logging, debug, future UI)
+    _friendly_name: str | None = None
+
+    def _get_friendly_name(self) -> str:
+        """Return a human-readable name for this handler (for logging/debug/future UI).
+
+        If `_friendly_name` is set on the class, use it. Otherwise derive a reasonable default
+        from the class name (e.g., "ReportRateHandler" → "Report Rate").
+        """
+        if self._friendly_name:
+            return self._friendly_name
+        name = self.__class__.__name__
+        if name.endswith("Handler"):
+            name = name[:-7]
+        # Insert spaces before uppercase letters (simple camelCase → Title Case)
+        friendly = "".join(" " + c if c.isupper() and i > 0 else c for i, c in enumerate(name))
+        return friendly.strip() or name
 
 
 class SimpleDelegationHandler(FeatureHandler):

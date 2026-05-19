@@ -24,6 +24,8 @@ class LitraIlluminationHandler(ThinDelegationHandler):
     The custom handle_read/handle_write are intentionally kept.
     """
 
+    _friendly_name = "Litra Illumination"  # 009.43: friendly display name for logging/debug/future UI
+
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener

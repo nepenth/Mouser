@@ -23,6 +23,8 @@ class ReportRateHandler(DefaultThinHandler):
     convenience base that combines all the harvested patterns).
     """
 
+    _friendly_name = "Report Rate"  # 009.43: friendly display name for logging/debug/future UI
+
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device, listener,
                          feature_index_attr="_report_rate_idx",
