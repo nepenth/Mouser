@@ -257,6 +257,9 @@ First deliberate refinement micro-chunk after fifteen feature extractions. Intro
 **Implementation Note (TASK-009 micro-chunk 009.26)**  
 Mechanical follow-through on the `ThinDelegationHandler` harvest. Updated the remaining four handlers (SmartShiftHandler, BatteryHandler, DPIHandler, OnboardProfilesHandler) to inherit from `ThinDelegationHandler`. Appropriate `_read_method_name` / `_write_method_name` attributes declared. Duplicated pure-forwarding methods removed only where the default applies (custom logic retained in SmartShift, Battery, and DPI). All six extracted handlers now consistently use the convenience base where the forwarding pattern applies. Zero behavioral change. Passed Code Review + AC validation. Commit: 118cd25.
 
+**Implementation Note (TASK-009 micro-chunk 009.27)**  
+Introduced small protected helper `_declare_attributes(...)` on `ThinDelegationHandler` that allows the three standard attributes (`_feature_index_attr`, `_read_method_name`, `_write_method_name`) to be declared in a single, clear statement. Updated `ReportRateHandler` and `OnboardProfilesHandler` as demonstration (the most concise possible thin-handler declaration). The helper is optional; direct assignment still works. The other handlers can be updated mechanically later. Small, high-value ergonomic improvement with zero behavioral change. Passed Code Review + AC validation. Commit: 3a70682.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
