@@ -148,6 +148,9 @@ Start of safe, opt-in key diversion work for the MX Mechanical Mini. Extended th
 **Implementation Note (TASK-007 micro-chunk 007.2)**  
 First real gated diversion wiring in the hook layer. Extended `_build_extra_diverts` (and the listener creation path) to conditionally register the two safest MX Mechanical Mini backlight CIDs (0x00C5 / 0x00C6 for Backlight Up/Down) **only when** `allow_diversion_backlight` is explicitly `true` for that device. When the flag is `false` (the default), those keys are not diverted at all — onboard behavior is completely preserved. Added clear decision logging and placeholder handlers for future event dispatch. Passed Code Review + AC validation. Commit: aa2b93c.
 
+**Implementation Note (TASK-007 micro-chunk 007.3)**  
+First functional dispatch for the diverted keys. Replaced the placeholder handlers with real logic that turns physical Backlight Up/Down presses (when diversion is opted in) into recognizable host-visible events (`keyboard_backlight_up_down/up`, `keyboard_backlight_down_down/up`) via the existing gesture callback path. Events are now visible to the mapping/debug infrastructure. Clear logging when dispatched. No UI mapping yet (reserved for 007.4+). Passed Code Review + AC validation. Commit: d9a7617.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
