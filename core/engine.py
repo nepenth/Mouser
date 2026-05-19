@@ -88,6 +88,12 @@ try:
 except Exception:
     WirelessPowerHandler = None
 
+# 009.19: LEDEffectsHandler import (guarded)
+try:
+    from core.devices.led_effects_handler import LEDEffectsHandler
+except Exception:
+    LEDEffectsHandler = None
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -1117,6 +1123,36 @@ class Engine:
             _fallback, power_value
         )
 
+    # 009.19: thin public LED Effects wrappers (host-side only, temporary)
+    def read_led_effect(self):
+        """Read current LED effect state/parameters. Host-side only, temporary."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "read_led_effect"):
+                return hg.read_led_effect()
+            return None
+
+        self._maybe_attach_led_effects_handler()
+        return self._delegate_or_fallback(
+            "_led_effects_device", "led_effects", "handle_read",
+            _fallback
+        )
+
+    def set_led_effect(self, effect: int, params: list | None = None):
+        """Set LED effect and optional parameters. Host-side only, temporary. Returns success."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "set_led_effect"):
+                return hg.set_led_effect(effect, params)
+            print("[Engine] set_led_effect: No HID++ connection — not applied")
+            return False
+
+        self._maybe_attach_led_effects_handler()
+        return self._delegate_or_fallback(
+            "_led_effects_device", "led_effects", "handle_write",
+            _fallback, effect, params
+        )
+
     # ------------------------------------------------------------------
     # Litra Beam basic illumination (008.2 skeleton, host-side only, temporary)
     # ------------------------------------------------------------------
@@ -1373,6 +1409,28 @@ class Engine:
             )
             if dev:
                 self._wireless_power_device = dev
+
+    # 009.19: minimal lazy attachment for LEDEffectsHandler (same pattern)
+    def _maybe_attach_led_effects_handler(self):
+        if not (LEDEffectsHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_led_effects_idx", None) is None:
+            return
+
+        if not hasattr(self, "_led_effects_device") or self._led_effects_device is None:
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=LEDEffectsHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_led_effects_idx",
+                handler_name="led_effects",
+            )
+            if dev:
+                self._led_effects_device = dev
 
     # 009.7: tiny reusable helper for the common “delegate or fallback” pattern
     def _delegate_or_fallback(self, device_attr: str, handler_name: str, handler_method: str, fallback_callable, *args, **kwargs):
