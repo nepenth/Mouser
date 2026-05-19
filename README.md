@@ -107,6 +107,7 @@ This is the authoritative running log of completed and **accepted** work. Tasks 
 - TASK-009 micro-chunk 009.6 accepted and committed: Introduced small reusable helper `maybe_attach_handler(...)` in `core/logi_device.py` and refactored the five attachment methods to use it (significant duplication reduction, zero behavioral change). First consolidation step after five feature extractions. Passed Code Review + AC validation.
 - TASK-009 micro-chunk 009.7 accepted and committed: Introduced shared helper `_delegate_or_fallback(...)` in Engine for the common delegate-or-fallback pattern in public methods. Refactored `set_litra_illumination` as the demonstration case (the other four follow the identical mechanical pattern). Significant reduction in repetitive boilerplate with zero behavioral change. Passed Code Review + AC validation.
 
+- TASK-009 micro-chunk 009.8 accepted and committed: Applied the delegate-or-fallback helper to the remaining extracted features (SmartShift and Report Rate updated; Battery and DPI already followed the equivalent pattern). The public `Engine` surface is now consistent across all five features (Litra, Battery, SmartShift, DPI, Report Rate). Purely mechanical refactoring with zero behavioral change. Passed Code Review + AC validation.
 For the detailed current task board, see [docs/TASKS.md](docs/TASKS.md).  
 For overall status and roadmap, see [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).
 
