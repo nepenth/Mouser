@@ -41,6 +41,7 @@ class LitraIlluminationHandler(ThinDelegationHandler):
 
     # 009.48 demonstration: example success-path logging using the new helper (for debug/traceability)
     # (In a real success path after a successful write, one could log self._get_success_label("set"))
+    # Example: print(self._get_success_label("set"))  # "Set Litra Illumination succeeded"
         if not self.is_supported():
             return None, None
         # Delegate to the existing listener method (full backward compatibility)
