@@ -709,6 +709,12 @@ def classify_device_kind(
 
     if has_backlight:
         return "keyboard"
+
+    # Litra Beam (and other Logitech lights) — treat as non-mouse, non-keyboard "other"
+    # This prevents it from triggering mouse gesture / RawXY paths or keyboard short-circuits.
+    if "litra" in name:
+        return "other"
+
     return "unknown"
 
 
@@ -2121,6 +2127,9 @@ class HidGestureListener:
                     if kind == "keyboard":
                         print(f"[HidGesture] Treating device as KeyboardDevice ({hidpp_name or product}) "
                               f"— skipping mouse gesture paths.")
+                    if kind == "other" and "litra" in (product or "").lower():
+                        print(f"[HidGesture] Litra Beam detected and classified as other/light device "
+                              f"(PID=0x{int(pid or 0):04X}) — skipping mouse/keyboard paths.")
                         self._discover_common_features()
                         # Kbd path: common features only (battery, backlight, fn inversion etc.).
                         # No reprog walk, no gesture candidates/divert. Return success so kbd is
@@ -2169,6 +2178,9 @@ class HidGestureListener:
                     # used it; the mouse path now reuses it too (no re-computation, same heuristic).
                     print(f"[HidGesture] Early device kind classification (REPROG path): {kind} "
                           f"(PID=0x{int(pid or 0):04X} devIdx=0x{idx:02X})")
+                    if kind == "other" and "litra" in (product or "").lower():
+                        print(f"[HidGesture] Litra Beam detected and classified as other/light device "
+                              f"(PID=0x{int(pid or 0):04X}) — skipping mouse/keyboard paths.")
 
                     if self._divert():
                         self._divert_extras()
@@ -2234,6 +2246,9 @@ class HidGestureListener:
                     kind = classify_device_kind(pid, product, hidpp_name, light_feats)
                     print(f"[HidGesture] Early device kind classification (no-REPROG fallback): {kind} "
                           f"(PID=0x{int(pid or 0):04X})")
+                    if kind == "other" and "litra" in (product or "").lower():
+                        print(f"[HidGesture] Litra Beam detected and classified as other/light device "
+                              f"(PID=0x{int(pid or 0):04X}) — skipping mouse/keyboard paths.")
 
                     has_useful_features = bool(
                         self._dpi_idx
