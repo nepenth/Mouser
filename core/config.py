@@ -69,6 +69,7 @@ BUTTON_TO_EVENTS = {
 DEFAULT_CONFIG = {
     "version": 9,
     "active_profile": "default",
+    "devices": {},   # per-device settings, e.g. {"B367": {"keyboard_middle_path": {"allow_host_backlight": True, "allow_fn_inversion": True}}}
     "profiles": {
         "default": {
             "label": "Default (All Apps)",
@@ -240,6 +241,35 @@ def delete_profile(cfg, name):
     return cfg
 
 
+# ------------------------------------------------------------------
+# Per-device keyboard middle-path settings (TASK-006)
+# ------------------------------------------------------------------
+
+def get_keyboard_middle_path_settings(cfg, device_key):
+    """Return the keyboard middle-path settings for a device, with safe defaults."""
+    devices = cfg.setdefault("devices", {})
+    dev = devices.setdefault(device_key, {})
+    kmp = dev.setdefault("keyboard_middle_path", {})
+    kmp.setdefault("allow_host_backlight", True)
+    kmp.setdefault("allow_fn_inversion", True)
+    return {
+        "allow_host_backlight": bool(kmp.get("allow_host_backlight", True)),
+        "allow_fn_inversion": bool(kmp.get("allow_fn_inversion", True)),
+    }
+
+
+def set_keyboard_middle_path_setting(cfg, device_key, key, value):
+    """Set a single keyboard middle-path setting for a device and persist."""
+    if key not in ("allow_host_backlight", "allow_fn_inversion"):
+        return False
+    devices = cfg.setdefault("devices", {})
+    dev = devices.setdefault(device_key, {})
+    kmp = dev.setdefault("keyboard_middle_path", {})
+    kmp[key] = bool(value)
+    save_config(cfg)
+    return True
+
+
 def resolve_app_for_config(spec: str):
     """Resolve an app identifier/path into a catalog entry with aliases."""
     return app_catalog.resolve_app_spec(spec)
@@ -339,6 +369,8 @@ def _migrate(cfg):
     cfg["settings"].setdefault("ignore_trackpad", True)
     cfg["settings"].setdefault("check_for_updates", True)
     cfg["settings"].setdefault("update_check_state", {})
+
+    cfg.setdefault("devices", {})
 
     # Always migrate old wmplayer.exe → Microsoft.Media.Player.exe in profile apps
     for pdata in cfg.get("profiles", {}).values():
