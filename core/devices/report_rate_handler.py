@@ -19,12 +19,16 @@ if TYPE_CHECKING:
 class ReportRateHandler(FeatureHandler):
     """Report Rate read/set handling for devices that support 0x8060."""
 
+    # 009.10: use the reusable default is_supported() from the base
+    _feature_index_attr = "_report_rate_idx"
+
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
+        # Also expose listener for the default is_supported() implementation
+        self.listener = listener
 
-    def is_supported(self) -> bool:
-        return getattr(self._listener, "_report_rate_idx", None) is not None
+    # (is_supported() now inherited from FeatureHandler base — no override needed)
 
     def handle_read(self) -> Optional[int]:
         """Read current report rate from the device, or None on failure."""

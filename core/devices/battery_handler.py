@@ -25,15 +25,16 @@ class BatteryHandler(FeatureHandler):
     - handle_read() that performs the actual HID++ read and returns the normalized result.
     """
 
+    # 009.10: use the reusable default is_supported() from the base
+    _feature_index_attr = "_battery_idx"
+
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
+        # Also expose listener for the default is_supported() implementation (009.10)
+        self.listener = listener
 
-    def is_supported(self) -> bool:
-        return (
-            getattr(self._listener, "_battery_idx", None) is not None
-            and getattr(self._listener, "_battery_feature_id", None) is not None
-        )
+    # (is_supported() now inherited from FeatureHandler base — no override needed)
 
     def handle_read(self) -> Optional[dict]:
         """Return a normalized battery dict (or None on failure).

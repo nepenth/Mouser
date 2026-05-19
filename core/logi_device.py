@@ -18,14 +18,35 @@ class FeatureHandler:
 
     Concrete handlers implement the actual read/write logic for one feature
     (e.g., Litra illumination, Battery, SmartShift, etc.).
+
+    009.10: Added a reusable default `is_supported()` implementation based on
+    a class attribute `_feature_index_attr` (the name of the listener attribute
+    that holds the feature index). Handlers can still override if they need
+    custom logic.
     """
+
+    # Optional: name of the listener attribute that holds the feature index
+    # (e.g. "_report_rate_idx", "_battery_idx"). If set, the default
+    # is_supported() implementation will use it.
+    _feature_index_attr: str | None = None
 
     def __init__(self, device: "LogitechDevice"):
         self.device = device
 
     def is_supported(self) -> bool:
-        """Return True if this feature is present on the device."""
-        raise NotImplementedError
+        """Return True if this feature is present on the device.
+
+        Default implementation (009.10): checks whether the listener attribute
+        named in `_feature_index_attr` is not None. Override for custom logic.
+        """
+        if self._feature_index_attr is None:
+            # No default attribute declared — subclasses must override.
+            return False
+        listener = getattr(self, "listener", None) or getattr(self.device, "_listener", None)
+        if listener is None:
+            # Fallback: look for the attribute on self (some handlers store it directly)
+            listener = self
+        return getattr(listener, self._feature_index_attr, None) is not None
 
     def handle_read(self, *args, **kwargs) -> Any:
         """Perform a read operation for this feature."""
