@@ -245,7 +245,7 @@ class RecommendedThinHandler(DefaultThinHandler):
                                  read_method="read_my",
                                  write_method="set_my")
 
-    For a read-only handler:
+    For a read-only handler (using the declarative marker):
 
         class MyReadOnlyHandler(RecommendedThinHandler):
             def __init__(self, device, listener):
@@ -253,6 +253,19 @@ class RecommendedThinHandler(DefaultThinHandler):
                                  feature_index_attr="_my_idx",
                                  read_method="read_my")
                 self._mark_as_read_only()
+
+    Using the declarative helper (alternative style):
+
+        class MyFeatureHandler(RecommendedThinHandler):
+            def __init__(self, device, listener):
+                super().__init__(device, listener)
+                self._declare_attributes(
+                    feature_index_attr="_my_idx",
+                    read_method="read_my",
+                    write_method="set_my"
+                )
+
+    Handlers can still override methods if custom logic is needed.
     """
 
     # No additional implementation required — the value is the clear
