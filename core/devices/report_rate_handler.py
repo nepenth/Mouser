@@ -19,17 +19,19 @@ if TYPE_CHECKING:
 class ReportRateHandler(ThinDelegationHandler):
     """Report Rate read/set handling for devices that support 0x8060.
 
-    009.12/009.25: Inherits from ThinDelegationHandler (which builds on
-    SimpleDelegationHandler) for minimal-boilerplate delegation.
+    009.12/009.25/009.27: Uses ThinDelegationHandler + the declarative helper
+    for the most concise possible thin-handler declaration.
     """
-
-    _feature_index_attr = "_report_rate_idx"
-    _read_method_name = "read_report_rate"
-    _write_method_name = "set_report_rate"
 
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
         self.listener = listener
+        # 009.27: single-line declarative style for the three standard attributes
+        self._declare_attributes(
+            feature_index_attr="_report_rate_idx",
+            read_method="read_report_rate",
+            write_method="set_report_rate"
+        )
 
     # All behavior (is_supported, handle_read, handle_write) comes from ThinDelegationHandler / SimpleDelegationHandler

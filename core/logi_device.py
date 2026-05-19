@@ -120,10 +120,24 @@ class ThinDelegationHandler(SimpleDelegationHandler):
 
     Existing handlers can continue to inherit directly from SimpleDelegationHandler
     or FeatureHandler if they need custom logic.
+
+    009.27: Added optional _declare_attributes(...) helper for even more concise
+    single-statement declaration of the three standard attributes.
     """
-    # No additional methods required — the value is documentation + future
-    # extensibility (e.g. auto-registration, nicer error messages, etc.).
-    pass
+
+    def _declare_attributes(self, feature_index_attr: str | None = None,
+                            read_method: str | None = None,
+                            write_method: str | None = None) -> None:
+        """Small declarative helper (009.27) for the three standard thin-handler attributes.
+
+        This is optional. Handlers may still assign the attributes directly.
+        """
+        if feature_index_attr is not None:
+            self._feature_index_attr = feature_index_attr
+        if read_method is not None:
+            self._read_method_name = read_method
+        if write_method is not None:
+            self._write_method_name = write_method
 
 
 class LogitechDevice:

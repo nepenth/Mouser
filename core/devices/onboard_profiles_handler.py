@@ -19,16 +19,19 @@ if TYPE_CHECKING:
 class OnboardProfilesHandler(ThinDelegationHandler):
     """Basic onboard profile read/switch handling for devices that support 0x8100.
 
-    009.25/009.26: Inherits from ThinDelegationHandler (pure thin delegation case).
+    009.25/009.26/009.27: Uses ThinDelegationHandler + the declarative helper
+    for the most concise possible thin-handler declaration.
     """
-
-    _feature_index_attr = "_onboard_profiles_idx"
-    _read_method_name = "read_onboard_profile"
-    _write_method_name = "switch_onboard_profile"
 
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
         self.listener = listener
+        # 009.27: single-line declarative style for the three standard attributes
+        self._declare_attributes(
+            feature_index_attr="_onboard_profiles_idx",
+            read_method="read_onboard_profile",
+            write_method="switch_onboard_profile"
+        )
 
     # All behavior (is_supported + handle_read + handle_write) comes from ThinDelegationHandler.
