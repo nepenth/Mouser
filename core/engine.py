@@ -39,6 +39,12 @@ try:
 except Exception:
     BatteryHandler = None
 
+# 009.3: SmartShiftHandler import (guarded)
+try:
+    from core.devices.smart_shift_handler import SmartShiftHandler
+except Exception:
+    SmartShiftHandler = None
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -788,6 +794,16 @@ class Engine:
         settings["smart_shift_enabled"] = smart_shift_enabled
         settings["smart_shift_threshold"] = threshold
         save_config(self.cfg)
+
+        # 009.3: optional delegation to SmartShiftHandler (full backward compatibility fallback)
+        self._maybe_attach_smart_shift_handler()
+        if SmartShiftHandler is not None and hasattr(self, "_smart_shift_device") and self._smart_shift_device:
+            handler = self._smart_shift_device.get_handler("smart_shift")
+            if handler:
+                result = handler.handle_write(mode, smart_shift_enabled, threshold)
+                print(f"[Engine] set_smart_shift -> {'OK' if result else 'FAILED'}")
+                return result
+
         hg = self.hook._hid_gesture
         if hg:
             result = hg.set_smart_shift(mode, smart_shift_enabled, threshold)
@@ -800,6 +816,20 @@ class Engine:
     def smart_shift_supported(self):
         hg = self.hook._hid_gesture
         return hg.smart_shift_supported if hg else False
+
+    def read_smart_shift(self):
+        """Read current SmartShift state from device."""
+        # 009.3: optional delegation to SmartShiftHandler (full backward compatibility fallback)
+        self._maybe_attach_smart_shift_handler()
+        if SmartShiftHandler is not None and hasattr(self, "_smart_shift_device") and self._smart_shift_device:
+            handler = self._smart_shift_device.get_handler("smart_shift")
+            if handler:
+                return handler.handle_read()
+
+        hg = self.hook._hid_gesture
+        if hg:
+            return hg.read_smart_shift()
+        return None
 
     # ------------------------------------------------------------------
     # Keyboard middle-path (MX Mechanical Mini etc.) — host-side only, temporary
@@ -947,6 +977,24 @@ class Engine:
             self._battery_device = LogitechDevice(pid, name, key)
             handler = BatteryHandler(self._battery_device, hg)
             self._battery_device.add_handler("battery", handler)
+
+    # 009.3: minimal lazy attachment for SmartShiftHandler (same pattern)
+    def _maybe_attach_smart_shift_handler(self):
+        if not (SmartShiftHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_smart_shift_idx", None) is None:
+            return
+
+        if not hasattr(self, "_smart_shift_device") or self._smart_shift_device is None:
+            dev = getattr(hg, "connected_device", None)
+            pid = getattr(dev, "product_id", 0) if dev else 0
+            name = getattr(dev, "name", "Device") if dev else "Device"
+            key = getattr(dev, "key", None) if dev else str(pid)
+
+            self._smart_shift_device = LogitechDevice(pid, name, key)
+            handler = SmartShiftHandler(self._smart_shift_device, hg)
+            self._smart_shift_device.add_handler("smart_shift", handler)
 
     def reload_mappings(self):
         """
