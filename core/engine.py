@@ -850,6 +850,27 @@ class Engine:
             return getattr(hg, "_fn_inversion_idx", None) is not None
         return False
 
+    # ------------------------------------------------------------------
+    # Litra Beam basic illumination (008.2 skeleton, host-side only, temporary)
+    # ------------------------------------------------------------------
+
+    def set_litra_illumination(self, enabled, brightness=-1):
+        """Host-side Litra Beam illumination control (on/off + brightness 0-100).
+        Temporary (lost on reconnect/host switch)."""
+        hg = self.hook._hid_gesture
+        if hg:
+            lvl = None if brightness < 0 else brightness
+            return hg.set_litra_illumination(bool(enabled), lvl)
+        print("[Engine] set_litra_illumination: No HID++ connection — not applied")
+        return False
+
+    def read_litra_illumination(self):
+        """Returns (enabled, brightness) or (None, None). Host-side only, temporary."""
+        hg = self.hook._hid_gesture
+        if hg:
+            return hg.read_litra_illumination()
+        return None, None
+
     def reload_mappings(self):
         """
         Called by the UI when the user changes a mapping.

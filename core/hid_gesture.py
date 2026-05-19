@@ -622,6 +622,9 @@ FEAT_BACKLIGHT2           = 0x1982   # Backlight control (V2 on MX Mechanical Mi
 FEAT_K375S_FN_INVERSION   = 0x40A3   # FN / Fx swap (common on MX Mechanical family)
 FEAT_DEVICE_NAME    = 0x0005      # Device Name & Type
 FEAT_BATTERY_STATUS = 0x1000      # Battery Status (fallback)
+
+# Litra Beam (and similar Logitech lights) illumination control
+FEAT_LITRA_ILLUMINATION = 0x1A00  # Placeholder — replace with actual Litra illumination feature ID from device dump
 DEFAULT_GESTURE_CID = DEFAULT_GESTURE_CIDS[0]
 
 MY_SW          = 0x0A        # arbitrary software-id used in our requests
@@ -796,6 +799,7 @@ class HidGestureListener:
         self._report_rate_idx = None        # 0x8060 - report rate control
         self._backlight2_idx = None         # 0x1982 - BACKLIGHT2 (MX Mechanical Mini etc.)
         self._fn_inversion_idx = None       # 0x40A3 - K375S FN inversion
+        self._litra_illumination_idx = None # 0x1A00 - Litra Beam illumination (placeholder ID)
         self._pending_smart_shift = None
         self._smart_shift_result = None
         self._smart_shift_call_lock = threading.Lock()
@@ -1247,6 +1251,12 @@ class HidGestureListener:
         if bl_fi:
             self._backlight2_idx = bl_fi
             print(f"[HidGesture] Found BACKLIGHT2 @0x{bl_fi:02X}")
+
+        # Litra Beam illumination (first functional control slice)
+        litra_fi = self._find_feature(FEAT_LITRA_ILLUMINATION)
+        if litra_fi:
+            self._litra_illumination_idx = litra_fi
+            print(f"[HidGesture] Found Litra illumination @0x{litra_fi:02X}")
 
         fn_fi = self._find_feature(FEAT_K375S_FN_INVERSION)
         if fn_fi:
@@ -1834,6 +1844,37 @@ class HidGestureListener:
         resp = self._request(self._fn_inversion_idx, 0x10, payload)
         success = resp is not None
         self._fn_result = success
+
+    # ------------------------------------------------------------------
+    # Litra Beam basic illumination control (008.2 skeleton, host-side only)
+    # ------------------------------------------------------------------
+
+    def set_litra_illumination(self, enabled: bool, brightness: int | None = None):
+        """Host-side Litra Beam illumination control (on/off + optional brightness 0-100).
+        Temporary (lost on reconnect/host switch). No-op for non-Litra devices."""
+        if self._litra_illumination_idx is None or self._dev is None:
+            print("[HidGesture] set_litra_illumination: Litra illumination not available — not applied")
+            return False
+        # Minimal payload: [enabled (1/0), brightness (0-100 or 0 for off)]
+        lvl = 0 if not enabled else (brightness if brightness is not None else 50)
+        payload = [1 if enabled else 0, max(0, min(100, lvl))]
+        resp = self._request(self._litra_illumination_idx, 0x10, payload)
+        success = resp is not None
+        print(f"[HidGesture] Litra illumination set (host-side, temporary): enabled={enabled}, brightness={lvl} -> {'OK' if success else 'FAILED'}")
+        return success
+
+    def read_litra_illumination(self):
+        """Returns (enabled: bool | None, brightness: int | None) for Litra Beam.
+        Host-side only, temporary. Returns (None, None) for non-Litra devices."""
+        if self._litra_illumination_idx is None or self._dev is None:
+            return None, None
+        resp = self._request(self._litra_illumination_idx, 0x00, [])
+        if resp and resp[4]:
+            params = resp[4]
+            enabled = bool(params[0]) if len(params) > 0 else None
+            brightness = params[1] if len(params) > 1 else None
+            return enabled, brightness
+        return None, None
         if success:
             print(f"[HidGesture] FN inversion set (host-side, temporary): swap_fx={swap_fx}")
         else:
@@ -2007,6 +2048,7 @@ class HidGestureListener:
             self._report_rate_idx = None
             self._backlight2_idx = None
             self._fn_inversion_idx = None
+            self._litra_illumination_idx = None
             self._gesture_cid = DEFAULT_GESTURE_CID
             self._gesture_candidates = list(
                 getattr(device_spec, "gesture_cids", ()) or DEFAULT_GESTURE_CIDS
@@ -2393,6 +2435,7 @@ class HidGestureListener:
             self._report_rate_idx = None
             self._backlight2_idx = None
             self._fn_inversion_idx = None
+            self._litra_illumination_idx = None
             self._pending_battery = None
             self._pending_dpi = None
             self._dpi_result = None
