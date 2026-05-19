@@ -37,3 +37,6 @@ class ReportRateHandler(DefaultThinHandler):
     # 009.48 demonstration: example success-path logging using the new helper (for debug/traceability)
     # (In a real success path after a successful read, one could log self._get_success_label("read"))
     # Example: print(self._get_success_label("read"))  # "Read Report Rate succeeded"
+
+    # 009.49 demonstration: use standardized device key in logging
+    # Example: print(f"[{self._get_device_key_for_log()}] handling report rate")

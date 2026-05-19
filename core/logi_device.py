@@ -93,7 +93,8 @@ class FeatureHandler:
             self._log_unsupported("read", device=self.device)
         """
         label = self._get_operation_label(operation) if hasattr(self, "_get_operation_label") else f"{operation} {self._get_friendly_name()}"
-        msg = f"[{label}] not supported for this device"
+        device_key = self._get_device_key_for_log()
+        msg = f"[{label}] not supported for device {device_key}"
         if context:
             # Keep it simple and safe; do not assume any particular context keys
             extra = " ".join(f"{k}={v}" for k, v in context.items())
@@ -190,6 +191,20 @@ class FeatureHandler:
         """
         op_label = self._get_operation_label(operation) if hasattr(self, "_get_operation_label") else f"{operation} {self._get_friendly_name()}"
         return f"{op_label} succeeded"
+
+    # 009.49: small protected helper for standardized device identifier in logging/debug
+    def _get_device_key_for_log(self) -> str:
+        """Return a best-effort stable identifier for this handler's device (for logging and debug).
+
+        Prefers the device's .key if present, then falls back to product_id, then "unknown".
+        This centralizes ad-hoc getattr(device, "key") / product_id patterns across handlers.
+        """
+        if self.device is None:
+            return "unknown"
+        key = getattr(self.device, "key", None)
+        if key:
+            return str(key)
+        return str(getattr(self.device, "product_id", "unknown"))
 
 
 class SimpleDelegationHandler(FeatureHandler):
