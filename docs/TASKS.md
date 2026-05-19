@@ -236,6 +236,9 @@ Tenth feature extraction (Wireless Power / RF Power Management). Added `FEAT_WIR
 **Implementation Note (TASK-009 micro-chunk 009.19)**  
 Eleventh feature extraction (LED Effects). Added `FEAT_LED_EFFECTS` detection (placeholder) + minimal `read_led_effect()` / `set_led_effect()` on the listener. Created `LEDEffectsHandler` using the reusable `is_supported()` default. Wired thin public wrappers on Engine with lazy attachment and full fallback. Core effect read/write with optional parameters only (per scope). Passed Code Review + AC validation. Commit: e779cdb.
 
+**Implementation Note (TASK-009 micro-chunk 009.20)**  
+Twelfth feature extraction (Wireless Channel / RF Channel). Added `FEAT_WIRELESS_CHANNEL` detection (placeholder) + minimal `read_wireless_channel()` / `set_wireless_channel()` on the listener. Created `WirelessChannelHandler` using the reusable `is_supported()` default. Wired thin public wrappers on Engine with lazy attachment and full fallback. Core channel value read/write only (per scope). Passed Code Review + AC validation. Commit: 7ff36e2.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
