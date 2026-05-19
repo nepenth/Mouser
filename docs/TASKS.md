@@ -212,6 +212,9 @@ First refinement on the handler base itself. Added optional `_feature_index_attr
 **Implementation Note (TASK-009 micro-chunk 009.11)**  
 Mechanical completion of the `is_supported()` harvest. Updated `LitraIlluminationHandler`, `SmartShiftHandler`, `DPIHandler`, and `OnboardProfilesHandler` to use the reusable default via `_feature_index_attr` (removed their custom implementations). All six extracted handlers now consistently use the base-class default. Zero behavioral change. Passed Code Review + AC validation. Commit: e850868.
 
+**Implementation Note (TASK-009 micro-chunk 009.12)**  
+Introduced lightweight `SimpleDelegationHandler` base that provides default `handle_read()` / `handle_write()` forwarding via `_read_method_name` / `_write_method_name` class attributes. Updated `ReportRateHandler` and `LitraIlluminationHandler` to inherit from it (removes duplicated forwarding boilerplate). The other four handlers can be updated mechanically later. Small, high-value improvement to the handler base with zero behavioral change. Passed Code Review + AC validation. Commit: 7d9fd0a.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
