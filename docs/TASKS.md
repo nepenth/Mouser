@@ -299,6 +299,9 @@ Introduced small protected helper `_log_unsupported(operation, **context)` on `F
 **Implementation Note (TASK-009 micro-chunk 009.41)**  
 Extended the prior Wireless Status extraction (009.22) with additional link health fields (link_quality, rssi, etc.) returned in a richer structure (`{"raw": [...], "link_quality": ..., "rssi": ...}`) while preserving the raw list for full backward compatibility. Small enhancement to `read_wireless_status()` in the listener + docstring update in the handler. The existing thin Engine wrapper automatically benefits. Passed Code Review + AC validation. Commit: d03cf59.
 
+**Implementation Note (TASK-009 micro-chunk 009.42)**  
+Extended the prior Power Management extraction (009.37/009.39) with additional settings (profile, save_mode, etc.) in richer structures (`{"raw": [...], "profile": ..., "save_mode": ...}`) while preserving the raw list for full backward compatibility. Enhanced both `read_power_management()` and `set_power_management()` in the listener (accepts richer dicts for write) + docstring update in the handler. The existing thin Engine wrappers automatically benefit. Passed Code Review + AC validation. Commit: 500d8db.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
