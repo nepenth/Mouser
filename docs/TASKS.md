@@ -242,6 +242,9 @@ Twelfth feature extraction (Wireless Channel / RF Channel). Added `FEAT_WIRELESS
 **Implementation Note (TASK-009 micro-chunk 009.21)**  
 Thirteenth feature extraction (Sleep Timeout / Power Save Timeout). Added `FEAT_SLEEP_TIMEOUT` detection (placeholder) + minimal `read_sleep_timeout()` / `set_sleep_timeout()` on the listener. Created `SleepTimeoutHandler` using the reusable `is_supported()` default. Wired thin public wrappers on Engine with lazy attachment and full fallback. Core timeout value read/write only (per scope). Passed Code Review + AC validation. Commit: 6c7d2da.
 
+**Implementation Note (TASK-009 micro-chunk 009.22)**  
+Fourteenth feature extraction (Wireless Status). Added `FEAT_WIRELESS_STATUS` detection (placeholder) + minimal `read_wireless_status()` on the listener. Created `WirelessStatusHandler` using the reusable `is_supported()` default (read-only for this micro-chunk). Wired thin public wrapper on Engine with lazy attachment and full fallback. Core status read only (per scope). Passed Code Review + AC validation. Commit: 74a025c.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
