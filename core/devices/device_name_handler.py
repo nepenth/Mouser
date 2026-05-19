@@ -38,8 +38,9 @@ class DeviceNameHandler(FeatureHandler):
         return None
 
     def handle_write(self, name: str) -> bool:
-        """Set device name. Currently a no-op stub (listener write support not present in this micro-chunk)."""
-        # Per scope: only implement write if the listener already supports it cleanly.
-        # For 009.15 we keep the handler read-only / stub for write.
-        print("[DeviceNameHandler] Write not supported in this micro-chunk (listener does not expose clean name write yet).")
+        """Set device/friendly name. Returns success."""
+        if not self.is_supported():
+            return False
+        if hasattr(self._listener, "set_device_name"):
+            return self._listener.set_device_name(name)
         return False

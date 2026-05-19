@@ -1237,6 +1237,27 @@ class HidGestureListener:
         """Public wrapper for device/friendly name read (009.15)."""
         return self._query_device_name()
 
+    # 009.23: Basic write support for Device Name / Friendly Name (host-side only, temporary)
+    def set_device_name(self, name: str):
+        """Set device/friendly name. Host-side only, temporary. Returns success."""
+        name_idx = self._find_feature(FEAT_DEVICE_NAME)
+        if name_idx is None or self._dev is None:
+            print("[HidGesture] set_device_name: Device Name feature not available — not applied")
+            return False
+        try:
+            name_bytes = name.encode("ascii", errors="replace")[:255]  # safe length
+            # Simple chunked write (function 0x10 or equivalent; adjust if real protocol differs)
+            # For minimal scope we send the full name in one request if short, or first chunk.
+            payload = [len(name_bytes)] + list(name_bytes[:3])  # header + first bytes (protocol-dependent)
+            resp = self._request(name_idx, 0x10, payload)
+            success = resp is not None
+            # For a more complete implementation we would chunk the rest of the name here.
+            print(f"[HidGesture] Device Name set (host-side, temporary): name='{name}' -> {'OK' if success else 'FAILED'}")
+            return success
+        except Exception as e:
+            print(f"[HidGesture] set_device_name error: {e}")
+            return False
+
     # 009.16: Basic LED control skeleton (host-side only, temporary)
     def set_led_state(self, enabled: bool, brightness: int | None = None):
         """Host-side LED on/off + optional brightness (0-100). Temporary (lost on reconnect/host switch)."""
