@@ -247,17 +247,26 @@ ApplicationWindow {
             }
         }
 
-        StackLayout {
-            id: contentStack
+        ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            currentIndex: root.currentPage
+            spacing: 0
 
-            MousePage {}
-            Loader {
-                active: root.currentPage === 1 || item
-                source: "ScrollPage.qml"
+            StackLayout {
+                id: contentStack
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                currentIndex: root.currentPage
+
+                MousePage {}
+                Loader {
+                    active: root.currentPage === 1 || item
+                    source: "ScrollPage.qml"
+                }
             }
+
+            // First real exposure of keyboard middle-path controls (TASK-005 005.1)
+            KeyboardControls {}
         }
     }
 
