@@ -25,6 +25,14 @@ from core.linux_permissions import (
 )
 from core.logi_devices import clamp_dpi
 
+# 009.1: minimal LogitechDevice / FeatureHandler imports (only used when a handler is attached)
+try:
+    from core.logi_device import LogitechDevice
+    from core.devices.litra_illumination_handler import LitraIlluminationHandler
+except Exception:
+    LogitechDevice = None
+    LitraIlluminationHandler = None
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -857,6 +865,15 @@ class Engine:
     def set_litra_illumination(self, enabled, brightness=-1):
         """Host-side Litra Beam illumination control (on/off + brightness 0-100).
         Temporary (lost on reconnect/host switch)."""
+        # 009.1: lazy attachment of FeatureHandler (only for Litra devices, zero impact otherwise)
+        self._maybe_attach_litra_handler()
+
+        if LitraIlluminationHandler is not None and hasattr(self, "_litra_device") and self._litra_device:
+            handler = self._litra_device.get_handler("litra_illumination")
+            if handler:
+                lvl = None if brightness < 0 else brightness
+                return handler.handle_write(bool(enabled), lvl)
+
         hg = self.hook._hid_gesture
         if hg:
             lvl = None if brightness < 0 else brightness
@@ -866,10 +883,37 @@ class Engine:
 
     def read_litra_illumination(self):
         """Returns (enabled, brightness) or (None, None). Host-side only, temporary."""
+        # 009.1: lazy attachment of FeatureHandler (only for Litra devices, zero impact otherwise)
+        self._maybe_attach_litra_handler()
+
+        if LitraIlluminationHandler is not None and hasattr(self, "_litra_device") and self._litra_device:
+            handler = self._litra_device.get_handler("litra_illumination")
+            if handler:
+                return handler.handle_read()
+
         hg = self.hook._hid_gesture
         if hg:
             return hg.read_litra_illumination()
         return None, None
+
+    def _maybe_attach_litra_handler(self):
+        """009.1: tiny helper to lazily create a minimal LogitechDevice + Litra handler.
+        Does nothing (and has zero cost) for non-Litra devices."""
+        if not (LitraIlluminationHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_litra_illumination_idx", None) is None:
+            return  # not a Litra or feature not detected
+
+        if not hasattr(self, "_litra_device") or self._litra_device is None:
+            dev = getattr(hg, "connected_device", None)
+            pid = getattr(dev, "product_id", 0) if dev else 0
+            name = getattr(dev, "name", "Litra") if dev else "Litra"
+            key = getattr(dev, "key", None) if dev else str(pid)
+
+            self._litra_device = LogitechDevice(pid, name, key)
+            handler = LitraIlluminationHandler(self._litra_device, hg)
+            self._litra_device.add_handler("litra_illumination", handler)
 
     def reload_mappings(self):
         """
