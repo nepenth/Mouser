@@ -172,6 +172,14 @@ Minimal test + debug surface for Litra Beam illumination. Added `LitraIlluminati
 **Implementation Note (TASK-008 micro-chunk 008.5)**  
 First minimal user-facing Litra Beam experience. Added tiny `hasLitraBeam` read-only property in Backend (derived from device display name). Created `LitraControls.qml` (small self-contained card with On/Off switch + brightness slider, prominent “Host-side only — temporary” warning, and Refresh button). Wired to the existing Backend illumination methods. Placed as a conditional sibling after the context-aware `KeyboardControls` footer in `Main.qml` (following the exact incremental pattern used for the keyboard card in 005.1). Passed Code Review + AC validation. Commit: ecaf8e8.
 
+**Implementation Note (TASK-008 micro-chunk 008.6)**  
+Polish & robustness pass on the Litra Beam controls card (modeled on the keyboard controls polish in 006.4). Added:
+- Reactivity to device changes via `Connections` on `deviceInfoChanged` and `hasLitraBeamChanged`.
+- Refreshing state with disabled controls + “Refreshing…” indicator during reads.
+- Non-intrusive, auto-clearing error feedback on failed `setLitraIllumination` calls.
+- 350 ms debounce on the brightness slider to reduce device traffic.
+The card now feels as solid and KVM-friendly as the polished keyboard controls. Passed Code Review + AC validation. Commit: bc6d39d.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
