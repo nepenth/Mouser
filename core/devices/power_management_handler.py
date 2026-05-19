@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 class PowerManagementHandler(FeatureHandler):
     """Host-side Power Management (beyond Sleep Timeout / Wireless Power / Battery) read/write. Temporary (lost on reconnect/host switch).
 
-    009.37 / 009.42: Extended to surface labeled fields (profile, save_mode, etc.) when the listener provides them.
+    009.37 / 009.42 / 009.45: Extended to surface further labeled fields (extra_setting_1, extra_setting_2, etc.) when the listener provides them.
     """
 
     # 009.10/009.11: use the reusable default is_supported() from the base

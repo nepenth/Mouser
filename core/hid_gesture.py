@@ -1307,7 +1307,7 @@ class HidGestureListener:
             return resp[4][0] if resp[4] else None
         return None
 
-    # 009.37 / 009.42: Basic Power Management (beyond Sleep Timeout / Wireless Power / Battery) — host-side only, temporary
+    # 009.37 / 009.42 / 009.45: Basic Power Management (beyond Sleep Timeout / Wireless Power / Battery) — host-side only, temporary
     def read_power_management(self):
         """Returns current power management settings / profile (raw + labeled fields when available). Host-side only, temporary."""
         if self._power_management_idx is None or self._dev is None:
@@ -1321,6 +1321,11 @@ class HidGestureListener:
                 result["profile"] = raw[0]
             if len(raw) >= 2:
                 result["save_mode"] = raw[1]
+            # 009.45: Further additional fields when the response is longer (common in extended Power Management responses)
+            if len(raw) >= 3:
+                result["extra_setting_1"] = raw[2]
+            if len(raw) >= 4:
+                result["extra_setting_2"] = raw[3]
             return result
         return None
 
@@ -1331,7 +1336,12 @@ class HidGestureListener:
             return False
         # Accept either raw list or richer dict (for convenience); send appropriate payload
         if isinstance(settings, dict):
-            payload = [settings.get("profile", 0), settings.get("save_mode", 0)]
+            payload = [
+                settings.get("profile", 0),
+                settings.get("save_mode", 0),
+                settings.get("extra_setting_1", 0),
+                settings.get("extra_setting_2", 0),
+            ]
         elif isinstance(settings, (list, tuple)):
             payload = list(settings)
         else:
