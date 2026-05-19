@@ -268,7 +268,11 @@ ApplicationWindow {
             }
 
             // First real exposure of keyboard middle-path controls (TASK-005 005.1)
-            KeyboardControls {}
+            // Hidden on the dedicated Keyboard page (005.5) to avoid duplication
+            KeyboardControls {
+                visible: (backend.keyboardBacklightSupported || backend.keyboardFnInversionSupported)
+                         && root.currentPage !== 2
+            }
         }
     }
 
