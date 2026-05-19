@@ -62,6 +62,43 @@ Item {
             Item { Layout.fillWidth: true }
         }
 
+        // Device status block (005.4) — only for supported middle-path keyboards
+        Column {
+            visible: backend.keyboardBacklightSupported || backend.keyboardFnInversionSupported
+            Layout.fillWidth: true
+            spacing: 2
+            Layout.topMargin: 4
+
+            Text {
+                text: "Device: " + backend.deviceDisplayName
+                font {
+                    family: uiState.fontFamily
+                    pixelSize: 13
+                }
+                color: keyboardPage.theme.textSecondary
+            }
+
+            Text {
+                text: "Connection: " + backend.connectionType
+                font {
+                    family: uiState.fontFamily
+                    pixelSize: 13
+                }
+                color: keyboardPage.theme.textSecondary
+            }
+
+            Text {
+                text: backend.batteryLevel >= 0
+                      ? "Battery: " + backend.batteryLevel + "%"
+                      : "Battery: Not reported"
+                font {
+                    family: uiState.fontFamily
+                    pixelSize: 13
+                }
+                color: keyboardPage.theme.textSecondary
+            }
+        }
+
         // Helpful subtitle when no supported keyboard is present
         Text {
             visible: !(backend.keyboardBacklightSupported || backend.keyboardFnInversionSupported)
