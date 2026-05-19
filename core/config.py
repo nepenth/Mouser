@@ -252,15 +252,17 @@ def get_keyboard_middle_path_settings(cfg, device_key):
     kmp = dev.setdefault("keyboard_middle_path", {})
     kmp.setdefault("allow_host_backlight", True)
     kmp.setdefault("allow_fn_inversion", True)
+    kmp.setdefault("allow_diversion_backlight", False)
     return {
         "allow_host_backlight": bool(kmp.get("allow_host_backlight", True)),
         "allow_fn_inversion": bool(kmp.get("allow_fn_inversion", True)),
+        "allow_diversion_backlight": bool(kmp.get("allow_diversion_backlight", False)),
     }
 
 
 def set_keyboard_middle_path_setting(cfg, device_key, key, value):
     """Set a single keyboard middle-path setting for a device and persist."""
-    if key not in ("allow_host_backlight", "allow_fn_inversion"):
+    if key not in ("allow_host_backlight", "allow_fn_inversion", "allow_diversion_backlight"):
         return False
     devices = cfg.setdefault("devices", {})
     dev = devices.setdefault(device_key, {})

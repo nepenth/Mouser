@@ -167,6 +167,35 @@ Item {
                     }
                 }
             }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Allow diversion of Backlight Up/Down keys"
+                    font { family: uiState.fontFamily; pixelSize: 13 }
+                    color: keyboardPage.theme.textPrimary
+                }
+
+                Switch {
+                    id: allowDiversionSwitch
+                    checked: backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_backlight")
+                    Material.accent: keyboardPage.theme.accent
+                    onClicked: {
+                        backend.setDeviceKeyboardMiddlePathSetting("allow_diversion_backlight", checked)
+                    }
+                }
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: "Host-side only. Changes are temporary. Requires explicit opt-in."
+                font { family: uiState.fontFamily; pixelSize: 10; italic: true }
+                color: keyboardPage.theme.textSecondary
+                wrapMode: Text.WordWrap
+            }
         }
 
         // Helpful subtitle when no supported keyboard is present
@@ -195,6 +224,7 @@ Item {
             if (backend.keyboardBacklightSupported || backend.keyboardFnInversionSupported) {
                 allowBacklightSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_host_backlight")
                 allowFnSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_fn_inversion")
+                allowDiversionSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_backlight")
             }
         }
 

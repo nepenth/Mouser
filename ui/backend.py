@@ -1629,6 +1629,7 @@ class Backend(QObject):
         key_map = {
             "allow_host_backlight": "allow_host_backlight",
             "allow_fn_inversion": "allow_fn_inversion",
+            "allow_diversion_backlight": "allow_diversion_backlight",
         }
         cfg_key = key_map.get(settingName)
         if not cfg_key:
