@@ -189,6 +189,9 @@ Second feature extraction (Battery). Created `BatteryHandler`. Added minimal pla
 **Implementation Note (TASK-009 micro-chunk 009.3)**  
 Third feature extraction (SmartShift). Created `SmartShiftHandler`. Wired delegation in `Engine.set_smart_shift()` and the new `read_smart_shift()` with lazy attachment and full fallback to the original listener path. Higher-level toggle (`_toggle_smart_shift`) and switch (`_switch_scroll_mode`) helpers automatically benefit via the public API. Public Engine SmartShift API and all callbacks remain 100% unchanged. Extraction performed on a stateful, read+write, multi-parameter capability. Passed Code Review + AC validation. Commit: 7a53b69.
 
+**Implementation Note (TASK-009 micro-chunk 009.4)**  
+Fourth feature extraction (DPI). Created `DPIHandler`. Wired delegation in `Engine.set_dpi()` with lazy attachment and full fallback to the original listener path. `_cycle_dpi` and preset logic remain in Engine (per explicit scope). Public Engine DPI API and all related behavior (including cycling and presets) remain 100% unchanged. Extraction performed on a core, high-frequency, read+write mouse capability. Passed Code Review + AC validation. Commit: 2cf5f75.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
