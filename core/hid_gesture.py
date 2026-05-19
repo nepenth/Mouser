@@ -621,6 +621,7 @@ FEAT_REPORT_RATE    = 0x8060      # Report rate control (gaming mice)
 FEAT_BACKLIGHT2           = 0x1982   # Backlight control (V2 on MX Mechanical Mini)
 FEAT_K375S_FN_INVERSION   = 0x40A3   # FN / Fx swap (common on MX Mechanical family)
 FEAT_DEVICE_NAME    = 0x0005      # Device Name & Type
+FEAT_DEVICE_IDENTITY = 0x0003     # Device Serial Number / Hardware Version / Identity (placeholder)
 FEAT_BATTERY_STATUS = 0x1000      # Battery Status (fallback)
 
 # Litra Beam (and similar Logitech lights) illumination control
@@ -808,6 +809,7 @@ class HidGestureListener:
         self._fn_inversion_idx = None       # 0x40A3 - K375S FN inversion
         self._litra_illumination_idx = None # 0x1A00 - Litra Beam illumination (placeholder ID)
         self._device_name_idx = None        # 0x0005 - Device Name / Friendly Name
+        self._device_identity_idx = None    # 0x0003 - Device Serial / Hardware Version / Identity (placeholder)
         self._led_control_idx = None        # 0x1A01 - Common mouse LED control (placeholder)
         self._led_effects_idx = None        # 0x1A02 - LED Effects (placeholder)
         self._device_mode_idx = None        # 0x1B00 - Device Mode / Wireless Mode (placeholder)
@@ -924,6 +926,8 @@ class HidGestureListener:
             features.append({"feature_id": FEAT_K375S_FN_INVERSION, "index": self._fn_inversion_idx})
         if self._device_name_idx is not None:
             features.append({"feature_id": FEAT_DEVICE_NAME, "index": self._device_name_idx})
+        if self._device_identity_idx is not None:
+            features.append({"feature_id": FEAT_DEVICE_IDENTITY, "index": self._device_identity_idx})
         if self._led_control_idx is not None:
             features.append({"feature_id": FEAT_LED_CONTROL, "index": self._led_control_idx})
         if self._device_mode_idx is not None:
@@ -976,6 +980,8 @@ class HidGestureListener:
             features["K375S_FN_INVERSION (0x40A3)"] = f"index 0x{self._fn_inversion_idx:02X}"
         if self._device_name_idx is not None:
             features["DEVICE_NAME (0x0005)"] = f"index 0x{self._device_name_idx:02X}"
+        if self._device_identity_idx is not None:
+            features["DEVICE_IDENTITY (0x0003)"] = f"index 0x{self._device_identity_idx:02X}"
         if self._led_control_idx is not None:
             features["LED_CONTROL (0x1A01)"] = f"index 0x{self._led_control_idx:02X}"
         if self._device_mode_idx is not None:
@@ -1237,6 +1243,18 @@ class HidGestureListener:
         """Public wrapper for device/friendly name read (009.15)."""
         return self._query_device_name()
 
+    # 009.24: Basic Device Serial Number / Hardware Version / Identity read (host-side only, temporary)
+    def read_device_identity(self):
+        """Return basic device identity info (serial / hardware version) or None. Host-side only, temporary."""
+        if self._device_identity_idx is None or self._dev is None:
+            return None
+        # Minimal implementation: request function 0x00 (or equivalent) and return raw params for now.
+        resp = self._request(self._device_identity_idx, 0x00, [])
+        if resp and resp[4]:
+            # Return raw bytes/params; higher layers or future handler can parse.
+            return list(resp[4])
+        return None
+
     # 009.23: Basic write support for Device Name / Friendly Name (host-side only, temporary)
     def set_device_name(self, name: str):
         """Set device/friendly name. Host-side only, temporary. Returns success."""
@@ -1477,6 +1495,12 @@ class HidGestureListener:
         if dn_fi:
             self._device_name_idx = dn_fi
             print(f"[HidGesture] Found DEVICE_NAME @0x{dn_fi:02X}")
+
+        # Device Serial Number / Hardware Version / Identity — 009.24
+        di_fi = self._find_feature(FEAT_DEVICE_IDENTITY)
+        if di_fi:
+            self._device_identity_idx = di_fi
+            print(f"[HidGesture] Found DEVICE_IDENTITY @0x{di_fi:02X}")
 
         # Common mouse LED control (on/off + brightness) — 009.16
         led_fi = self._find_feature(FEAT_LED_CONTROL)
@@ -2320,6 +2344,7 @@ class HidGestureListener:
             self._fn_inversion_idx = None
             self._litra_illumination_idx = None
             self._device_name_idx = None
+            self._device_identity_idx = None
             self._led_control_idx = None
             self._led_effects_idx = None
             self._device_mode_idx = None
@@ -2715,6 +2740,7 @@ class HidGestureListener:
             self._fn_inversion_idx = None
             self._litra_illumination_idx = None
             self._device_name_idx = None
+            self._device_identity_idx = None
             self._led_control_idx = None
             self._led_effects_idx = None
             self._device_mode_idx = None

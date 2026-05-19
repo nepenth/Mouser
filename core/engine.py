@@ -112,6 +112,12 @@ try:
 except Exception:
     WirelessStatusHandler = None
 
+# 009.24: DeviceIdentityHandler import (guarded)
+try:
+    from core.devices.device_identity_handler import DeviceIdentityHandler
+except Exception:
+    DeviceIdentityHandler = None
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -1262,6 +1268,21 @@ class Engine:
             _fallback
         )
 
+    # 009.24: thin public Device Identity wrapper (host-side only, temporary; read-only)
+    def read_device_identity(self):
+        """Read basic device serial number / hardware version / identity. Host-side only, temporary."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "read_device_identity"):
+                return hg.read_device_identity()
+            return None
+
+        self._maybe_attach_device_identity_handler()
+        return self._delegate_or_fallback(
+            "_device_identity_device", "device_identity", "handle_read",
+            _fallback
+        )
+
     # ------------------------------------------------------------------
     # Litra Beam basic illumination (008.2 skeleton, host-side only, temporary)
     # ------------------------------------------------------------------
@@ -1606,6 +1627,28 @@ class Engine:
             )
             if dev:
                 self._wireless_status_device = dev
+
+    # 009.24: minimal lazy attachment for DeviceIdentityHandler (same pattern)
+    def _maybe_attach_device_identity_handler(self):
+        if not (DeviceIdentityHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_device_identity_idx", None) is None:
+            return
+
+        if not hasattr(self, "_device_identity_device") or self._device_identity_device is None:
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=DeviceIdentityHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_device_identity_idx",
+                handler_name="device_identity",
+            )
+            if dev:
+                self._device_identity_device = dev
 
     # 009.7: tiny reusable helper for the common “delegate or fallback” pattern
     def _delegate_or_fallback(self, device_attr: str, handler_name: str, handler_method: str, fallback_callable, *args, **kwargs):
