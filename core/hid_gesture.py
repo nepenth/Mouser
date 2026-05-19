@@ -631,6 +631,7 @@ FEAT_LED_CONTROL        = 0x1A01  # Placeholder for common mouse LED control (on
 FEAT_LED_EFFECTS        = 0x1A02  # Placeholder for LED Effects (patterns/modes beyond basic on/off + brightness); replace with real ID from device dumps
 FEAT_DEVICE_MODE        = 0x1B00  # Placeholder for Device Mode / Wireless Mode; replace with real ID from device dumps
 FEAT_WIRELESS_POWER     = 0x1C00  # Placeholder for Wireless Power / RF Power Management; replace with real ID from device dumps
+FEAT_POWER_MANAGEMENT   = 0x1C01  # Placeholder for Power Management (beyond Sleep Timeout / Wireless Power); replace with real ID from device dumps
 FEAT_WIRELESS_CHANNEL   = 0x1D00  # Placeholder for Wireless Channel / RF Channel; replace with real ID from device dumps
 FEAT_WIRELESS_STATUS    = 0x1F00  # Placeholder for Wireless Status (link quality / RSSI); replace with real ID from device dumps
 FEAT_SLEEP_TIMEOUT      = 0x1E00  # Placeholder for Sleep Timeout / Power Save Timeout; replace with real ID from device dumps
@@ -816,6 +817,7 @@ class HidGestureListener:
         self._led_effects_idx = None        # 0x1A02 - LED Effects (placeholder)
         self._device_mode_idx = None        # 0x1B00 - Device Mode / Wireless Mode (placeholder)
         self._wireless_power_idx = None     # 0x1C00 - Wireless Power / RF Power (placeholder)
+        self._power_management_idx = None   # 0x1C01 - Power Management (beyond Sleep Timeout) (placeholder)
         self._wireless_channel_idx = None   # 0x1D00 - Wireless Channel / RF Channel (placeholder)
         self._sleep_timeout_idx = None      # 0x1E00 - Sleep Timeout / Power Save Timeout (placeholder)
         self._wireless_status_idx = None    # 0x1F00 - Wireless Status (placeholder)
@@ -940,6 +942,8 @@ class HidGestureListener:
             features.append({"feature_id": FEAT_LED_EFFECTS, "index": self._led_effects_idx})
         if self._wireless_power_idx is not None:
             features.append({"feature_id": FEAT_WIRELESS_POWER, "index": self._wireless_power_idx})
+        if self._power_management_idx is not None:
+            features.append({"feature_id": FEAT_POWER_MANAGEMENT, "index": self._power_management_idx})
         if self._wireless_channel_idx is not None:
             features.append({"feature_id": FEAT_WIRELESS_CHANNEL, "index": self._wireless_channel_idx})
         if self._sleep_timeout_idx is not None:
@@ -996,6 +1000,8 @@ class HidGestureListener:
             features["LED_EFFECTS (0x1A02)"] = f"index 0x{self._led_effects_idx:02X}"
         if self._wireless_power_idx is not None:
             features["WIRELESS_POWER (0x1C00)"] = f"index 0x{self._wireless_power_idx:02X}"
+        if self._power_management_idx is not None:
+            features["POWER_MANAGEMENT (0x1C01)"] = f"index 0x{self._power_management_idx:02X}"
         if self._wireless_channel_idx is not None:
             features["WIRELESS_CHANNEL (0x1D00)"] = f"index 0x{self._wireless_channel_idx:02X}"
         if self._sleep_timeout_idx is not None:
@@ -1301,6 +1307,28 @@ class HidGestureListener:
             return resp[4][0] if resp[4] else None
         return None
 
+    # 009.37: Basic Power Management (beyond Sleep Timeout) skeleton (host-side only, temporary)
+    def read_power_management(self):
+        """Returns current power management settings / profile or None. Host-side only, temporary."""
+        if self._power_management_idx is None or self._dev is None:
+            return None
+        resp = self._request(self._power_management_idx, 0x00, [])
+        if resp and resp[4]:
+            return list(resp[4])  # raw parameters for now
+        return None
+
+    def set_power_management(self, settings):
+        """Set power management settings / profile. Host-side only, temporary. Returns success."""
+        if self._power_management_idx is None or self._dev is None:
+            print("[HidGesture] set_power_management: Power Management not available — not applied")
+            return False
+        # Minimal implementation: send the settings payload (exact format depends on real feature)
+        payload = settings if isinstance(settings, (list, tuple)) else [settings]
+        resp = self._request(self._power_management_idx, 0x10, payload)
+        success = resp is not None
+        print(f"[HidGesture] Power Management set (host-side, temporary) -> {'OK' if success else 'FAILED'}")
+        return success
+
     # 009.16: Basic LED control skeleton (host-side only, temporary)
     def set_led_state(self, enabled: bool, brightness: int | None = None):
         """Host-side LED on/off + optional brightness (0-100). Temporary (lost on reconnect/host switch)."""
@@ -1556,6 +1584,12 @@ class HidGestureListener:
         if wp_fi:
             self._wireless_power_idx = wp_fi
             print(f"[HidGesture] Found WIRELESS_POWER @0x{wp_fi:02X}")
+
+        # Power Management (beyond Sleep Timeout / Wireless Power) — 009.37
+        pm_fi = self._find_feature(FEAT_POWER_MANAGEMENT)
+        if pm_fi:
+            self._power_management_idx = pm_fi
+            print(f"[HidGesture] Found POWER_MANAGEMENT @0x{pm_fi:02X}")
 
         # Wireless Channel / RF Channel — 009.20
         wc_fi = self._find_feature(FEAT_WIRELESS_CHANNEL)
@@ -2381,6 +2415,7 @@ class HidGestureListener:
             self._led_effects_idx = None
             self._device_mode_idx = None
             self._wireless_power_idx = None
+            self._power_management_idx = None
             self._wireless_channel_idx = None
             self._sleep_timeout_idx = None
             self._wireless_status_idx = None
@@ -2778,6 +2813,7 @@ class HidGestureListener:
             self._led_effects_idx = None
             self._device_mode_idx = None
             self._wireless_power_idx = None
+            self._power_management_idx = None
             self._wireless_channel_idx = None
             self._sleep_timeout_idx = None
             self._wireless_status_idx = None

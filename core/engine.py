@@ -124,6 +124,12 @@ try:
 except Exception:
     DeviceTypeHandler = None
 
+# 009.37: PowerManagementHandler import (guarded)
+try:
+    from core.devices.power_management_handler import PowerManagementHandler
+except Exception:
+    PowerManagementHandler = None
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -1334,6 +1340,36 @@ class Engine:
             _fallback
         )
 
+    # 009.37: thin public Power Management wrappers (host-side only, temporary)
+    def read_power_management(self):
+        """Read current power management settings / profile. Host-side only, temporary."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "read_power_management"):
+                return hg.read_power_management()
+            return None
+
+        self._maybe_attach_power_management_handler()
+        return self._delegate_or_fallback(
+            "_power_management_device", "power_management", "handle_read",
+            _fallback
+        )
+
+    def set_power_management(self, settings):
+        """Set power management settings / profile. Host-side only, temporary. Returns success."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "set_power_management"):
+                return hg.set_power_management(settings)
+            print("[Engine] set_power_management: No HID++ connection — not applied")
+            return False
+
+        self._maybe_attach_power_management_handler()
+        return self._delegate_or_fallback(
+            "_power_management_device", "power_management", "handle_write",
+            _fallback, settings
+        )
+
     # ------------------------------------------------------------------
     # Litra Beam basic illumination (008.2 skeleton, host-side only, temporary)
     # ------------------------------------------------------------------
@@ -1722,6 +1758,28 @@ class Engine:
             )
             if dev:
                 self._device_type_device = dev
+
+    # 009.37: minimal lazy attachment for PowerManagementHandler (same pattern)
+    def _maybe_attach_power_management_handler(self):
+        if not (PowerManagementHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_power_management_idx", None) is None:
+            return
+
+        if not hasattr(self, "_power_management_device") or self._power_management_device is None:
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=PowerManagementHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_power_management_idx",
+                handler_name="power_management",
+            )
+            if dev:
+                self._power_management_device = dev
 
     # 009.7: tiny reusable helper for the common “delegate or fallback” pattern
     def _delegate_or_fallback(self, device_attr: str, handler_name: str, handler_method: str, fallback_callable, *args, **kwargs):
