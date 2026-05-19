@@ -413,6 +413,7 @@ class RecommendedThinHandler(DefaultThinHandler):
             #   self._get_friendly_name()
             #   self._get_operation_label("read")
             #   self._get_success_label("read")
+            #   self._get_device_key_for_log()     # stable device identifier for logs
             #   self._log_unsupported("write")
 
     Existing handlers can continue to inherit directly from `DefaultThinHandler`,
