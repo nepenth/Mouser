@@ -57,3 +57,43 @@ class LogitechDevice:
 
     def has_handler(self, name: str) -> bool:
         return name in self._handlers
+
+
+def maybe_attach_handler(
+    listener: Any,
+    handler_cls: type,
+    cfg: Optional[dict],
+    device_key_fallback: Optional[str] = None,
+    device_name_fallback: Optional[str] = None,
+    product_id_fallback: Optional[int] = None,
+    feature_attr: str = "_xxx_idx",   # e.g. "_litra_illumination_idx"
+    handler_name: str = "xxx",        # e.g. "litra_illumination"
+) -> Optional["LogitechDevice"]:
+    """Tiny reusable helper for lazy FeatureHandler attachment (009.6).
+
+    Returns the (possibly newly created) LogitechDevice with the handler attached,
+    or None if attachment was not possible / not needed.
+    """
+    if not (handler_cls and listener and cfg is not None):
+        return None
+
+    # Check if the feature is present on this listener
+    if getattr(listener, feature_attr, None) is None:
+        return None
+
+    # Build a minimal device key / identity
+    dev = getattr(listener, "connected_device", None)
+    pid = getattr(dev, "product_id", 0) if dev else (product_id_fallback or 0)
+    name = getattr(dev, "name", device_name_fallback or "Device") if dev else (device_name_fallback or "Device")
+    key = getattr(dev, "key", None) if dev else device_key_fallback or str(pid)
+
+    # Create or reuse a device object on the listener for attachment bookkeeping
+    # (Engine will cache the device; here we just create a transient one for the handler)
+    device = LogitechDevice(pid, name, key)
+
+    try:
+        handler = handler_cls(device, listener)
+        device.add_handler(handler_name, handler)
+        return device
+    except Exception:
+        return None

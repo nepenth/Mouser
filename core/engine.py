@@ -25,13 +25,14 @@ from core.linux_permissions import (
 )
 from core.logi_devices import clamp_dpi
 
-# 009.1: minimal LogitechDevice / FeatureHandler imports (only used when a handler is attached)
+# 009.1/009.6: minimal LogitechDevice / FeatureHandler imports (only used when a handler is attached)
 try:
-    from core.logi_device import LogitechDevice
+    from core.logi_device import LogitechDevice, maybe_attach_handler
     from core.devices.litra_illumination_handler import LitraIlluminationHandler
 except Exception:
     LogitechDevice = None
     LitraIlluminationHandler = None
+    maybe_attach_handler = None
 
 # 009.2: BatteryHandler import (guarded)
 try:
@@ -990,23 +991,26 @@ class Engine:
         return None, None
 
     def _maybe_attach_litra_handler(self):
-        """009.1: tiny helper to lazily create a minimal LogitechDevice + Litra handler.
-        Does nothing (and has zero cost) for non-Litra devices."""
+        """009.1/009.6: use the common helper for lazy attachment."""
         if not (LitraIlluminationHandler and hasattr(self, "hook")):
             return
         hg = getattr(self.hook, "_hid_gesture", None)
         if not hg or getattr(hg, "_litra_illumination_idx", None) is None:
-            return  # not a Litra or feature not detected
+            return
 
         if not hasattr(self, "_litra_device") or self._litra_device is None:
-            dev = getattr(hg, "connected_device", None)
-            pid = getattr(dev, "product_id", 0) if dev else 0
-            name = getattr(dev, "name", "Litra") if dev else "Litra"
-            key = getattr(dev, "key", None) if dev else str(pid)
-
-            self._litra_device = LogitechDevice(pid, name, key)
-            handler = LitraIlluminationHandler(self._litra_device, hg)
-            self._litra_device.add_handler("litra_illumination", handler)
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=LitraIlluminationHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Litra",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_litra_illumination_idx",
+                handler_name="litra_illumination",
+            )
+            if dev:
+                self._litra_device = dev
 
     # 009.2: minimal lazy attachment for BatteryHandler (same pattern as Litra)
     def _maybe_attach_battery_handler(self):
@@ -1017,14 +1021,18 @@ class Engine:
             return
 
         if not hasattr(self, "_battery_device") or self._battery_device is None:
-            dev = getattr(hg, "connected_device", None)
-            pid = getattr(dev, "product_id", 0) if dev else 0
-            name = getattr(dev, "name", "Device") if dev else "Device"
-            key = getattr(dev, "key", None) if dev else str(pid)
-
-            self._battery_device = LogitechDevice(pid, name, key)
-            handler = BatteryHandler(self._battery_device, hg)
-            self._battery_device.add_handler("battery", handler)
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=BatteryHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_battery_idx",
+                handler_name="battery",
+            )
+            if dev:
+                self._battery_device = dev
 
     # 009.3: minimal lazy attachment for SmartShiftHandler (same pattern)
     def _maybe_attach_smart_shift_handler(self):
@@ -1035,14 +1043,18 @@ class Engine:
             return
 
         if not hasattr(self, "_smart_shift_device") or self._smart_shift_device is None:
-            dev = getattr(hg, "connected_device", None)
-            pid = getattr(dev, "product_id", 0) if dev else 0
-            name = getattr(dev, "name", "Device") if dev else "Device"
-            key = getattr(dev, "key", None) if dev else str(pid)
-
-            self._smart_shift_device = LogitechDevice(pid, name, key)
-            handler = SmartShiftHandler(self._smart_shift_device, hg)
-            self._smart_shift_device.add_handler("smart_shift", handler)
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=SmartShiftHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_smart_shift_idx",
+                handler_name="smart_shift",
+            )
+            if dev:
+                self._smart_shift_device = dev
 
     # 009.4: minimal lazy attachment for DPIHandler (same pattern)
     def _maybe_attach_dpi_handler(self):
@@ -1053,14 +1065,18 @@ class Engine:
             return
 
         if not hasattr(self, "_dpi_device") or self._dpi_device is None:
-            dev = getattr(hg, "connected_device", None)
-            pid = getattr(dev, "product_id", 0) if dev else 0
-            name = getattr(dev, "name", "Device") if dev else "Device"
-            key = getattr(dev, "key", None) if dev else str(pid)
-
-            self._dpi_device = LogitechDevice(pid, name, key)
-            handler = DPIHandler(self._dpi_device, hg)
-            self._dpi_device.add_handler("dpi", handler)
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=DPIHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_dpi_idx",
+                handler_name="dpi",
+            )
+            if dev:
+                self._dpi_device = dev
 
     # 009.5: minimal lazy attachment for ReportRateHandler (same pattern)
     def _maybe_attach_report_rate_handler(self):
@@ -1071,14 +1087,18 @@ class Engine:
             return
 
         if not hasattr(self, "_report_rate_device") or self._report_rate_device is None:
-            dev = getattr(hg, "connected_device", None)
-            pid = getattr(dev, "product_id", 0) if dev else 0
-            name = getattr(dev, "name", "Device") if dev else "Device"
-            key = getattr(dev, "key", None) if dev else str(pid)
-
-            self._report_rate_device = LogitechDevice(pid, name, key)
-            handler = ReportRateHandler(self._report_rate_device, hg)
-            self._report_rate_device.add_handler("report_rate", handler)
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=ReportRateHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_report_rate_idx",
+                handler_name="report_rate",
+            )
+            if dev:
+                self._report_rate_device = dev
 
     def reload_mappings(self):
         """
