@@ -622,6 +622,7 @@ FEAT_BACKLIGHT2           = 0x1982   # Backlight control (V2 on MX Mechanical Mi
 FEAT_K375S_FN_INVERSION   = 0x40A3   # FN / Fx swap (common on MX Mechanical family)
 FEAT_DEVICE_NAME    = 0x0005      # Device Name & Type
 FEAT_DEVICE_IDENTITY = 0x0003     # Device Serial Number / Hardware Version / Identity (placeholder)
+FEAT_DEVICE_TYPE        = 0x0002     # Device Type / Product Type (placeholder; replace with real ID from device dumps)
 FEAT_BATTERY_STATUS = 0x1000      # Battery Status (fallback)
 
 # Litra Beam (and similar Logitech lights) illumination control
@@ -810,6 +811,7 @@ class HidGestureListener:
         self._litra_illumination_idx = None # 0x1A00 - Litra Beam illumination (placeholder ID)
         self._device_name_idx = None        # 0x0005 - Device Name / Friendly Name
         self._device_identity_idx = None    # 0x0003 - Device Serial / Hardware Version / Identity (placeholder)
+        self._device_type_idx = None        # 0x0002 - Device Type / Product Type (placeholder)
         self._led_control_idx = None        # 0x1A01 - Common mouse LED control (placeholder)
         self._led_effects_idx = None        # 0x1A02 - LED Effects (placeholder)
         self._device_mode_idx = None        # 0x1B00 - Device Mode / Wireless Mode (placeholder)
@@ -928,6 +930,8 @@ class HidGestureListener:
             features.append({"feature_id": FEAT_DEVICE_NAME, "index": self._device_name_idx})
         if self._device_identity_idx is not None:
             features.append({"feature_id": FEAT_DEVICE_IDENTITY, "index": self._device_identity_idx})
+        if self._device_type_idx is not None:
+            features.append({"feature_id": FEAT_DEVICE_TYPE, "index": self._device_type_idx})
         if self._led_control_idx is not None:
             features.append({"feature_id": FEAT_LED_CONTROL, "index": self._led_control_idx})
         if self._device_mode_idx is not None:
@@ -982,6 +986,8 @@ class HidGestureListener:
             features["DEVICE_NAME (0x0005)"] = f"index 0x{self._device_name_idx:02X}"
         if self._device_identity_idx is not None:
             features["DEVICE_IDENTITY (0x0003)"] = f"index 0x{self._device_identity_idx:02X}"
+        if self._device_type_idx is not None:
+            features["DEVICE_TYPE (0x0002)"] = f"index 0x{self._device_type_idx:02X}"
         if self._led_control_idx is not None:
             features["LED_CONTROL (0x1A01)"] = f"index 0x{self._led_control_idx:02X}"
         if self._device_mode_idx is not None:
@@ -1285,6 +1291,16 @@ class HidGestureListener:
         """Set the user-settable Friendly Name. Host-side only, temporary. Returns success."""
         return self.set_device_name(name)
 
+    # 009.35: Basic Device Type / Product Type skeleton (host-side only, temporary; read-only)
+    def read_device_type(self):
+        """Returns current device type / product type value or None. Host-side only, temporary."""
+        if self._device_type_idx is None or self._dev is None:
+            return None
+        resp = self._request(self._device_type_idx, 0x00, [])
+        if resp and resp[4]:
+            return resp[4][0] if resp[4] else None
+        return None
+
     # 009.16: Basic LED control skeleton (host-side only, temporary)
     def set_led_state(self, enabled: bool, brightness: int | None = None):
         """Host-side LED on/off + optional brightness (0-100). Temporary (lost on reconnect/host switch)."""
@@ -1510,6 +1526,12 @@ class HidGestureListener:
         if di_fi:
             self._device_identity_idx = di_fi
             print(f"[HidGesture] Found DEVICE_IDENTITY @0x{di_fi:02X}")
+
+        # Device Type / Product Type — 009.35
+        dt_fi = self._find_feature(FEAT_DEVICE_TYPE)
+        if dt_fi:
+            self._device_type_idx = dt_fi
+            print(f"[HidGesture] Found DEVICE_TYPE @0x{dt_fi:02X}")
 
         # Common mouse LED control (on/off + brightness) — 009.16
         led_fi = self._find_feature(FEAT_LED_CONTROL)
@@ -2354,6 +2376,7 @@ class HidGestureListener:
             self._litra_illumination_idx = None
             self._device_name_idx = None
             self._device_identity_idx = None
+            self._device_type_idx = None
             self._led_control_idx = None
             self._led_effects_idx = None
             self._device_mode_idx = None
@@ -2750,6 +2773,7 @@ class HidGestureListener:
             self._litra_illumination_idx = None
             self._device_name_idx = None
             self._device_identity_idx = None
+            self._device_type_idx = None
             self._led_control_idx = None
             self._led_effects_idx = None
             self._device_mode_idx = None
