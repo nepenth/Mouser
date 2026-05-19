@@ -99,6 +99,76 @@ Item {
             }
         }
 
+        // Per-device host control permissions (006.3)
+        Column {
+            visible: backend.keyboardBacklightSupported || backend.keyboardFnInversionSupported
+            Layout.fillWidth: true
+            spacing: 8
+            Layout.topMargin: 12
+
+            Text {
+                text: "Host Control Permissions"
+                font {
+                    family: uiState.fontFamily
+                    pixelSize: 14
+                    bold: true
+                }
+                color: keyboardPage.theme.textPrimary
+            }
+
+            Text {
+                text: "These preferences are stored per-device and survive host switches."
+                font {
+                    family: uiState.fontFamily
+                    pixelSize: 11
+                }
+                color: keyboardPage.theme.textSecondary
+                wrapMode: Text.WordWrap
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Allow host backlight control"
+                    font { family: uiState.fontFamily; pixelSize: 13 }
+                    color: keyboardPage.theme.textPrimary
+                }
+
+                Switch {
+                    id: allowBacklightSwitch
+                    checked: backend.getDeviceKeyboardMiddlePathSetting("allow_host_backlight")
+                    Material.accent: keyboardPage.theme.accent
+                    onClicked: {
+                        backend.setDeviceKeyboardMiddlePathSetting("allow_host_backlight", checked)
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Allow host FN inversion"
+                    font { family: uiState.fontFamily; pixelSize: 13 }
+                    color: keyboardPage.theme.textPrimary
+                }
+
+                Switch {
+                    id: allowFnSwitch
+                    checked: backend.getDeviceKeyboardMiddlePathSetting("allow_fn_inversion")
+                    Material.accent: keyboardPage.theme.accent
+                    onClicked: {
+                        backend.setDeviceKeyboardMiddlePathSetting("allow_fn_inversion", checked)
+                    }
+                }
+            }
+        }
+
         // Helpful subtitle when no supported keyboard is present
         Text {
             visible: !(backend.keyboardBacklightSupported || backend.keyboardFnInversionSupported)

@@ -20,6 +20,7 @@ from core.config import (
     BUTTON_NAMES, load_config, save_config, get_active_mappings,
     PROFILE_BUTTON_NAMES, set_mapping, create_profile, delete_profile,
     get_icon_for_exe,
+    get_keyboard_middle_path_settings, set_keyboard_middle_path_setting,
 )
 from core import app_catalog
 from core.device_layouts import get_device_layout, get_manual_layout_choices
@@ -1594,6 +1595,45 @@ class Backend(QObject):
         if self._engine:
             return self._engine.set_fn_inversion(bool(swap))
         return False
+
+    # Per-device keyboard middle-path settings exposure (006.3)
+    @Slot(str, result=bool)
+    def getDeviceKeyboardMiddlePathSetting(self, settingName):
+        """Returns the current per-device value for the named setting, or True if unavailable."""
+        if not self._engine:
+            return True
+        device = getattr(self._engine, "connected_device", None)
+        device_key = getattr(device, "key", None) if device else None
+        if not device_key and device:
+            device_key = str(getattr(device, "product_id", "unknown"))
+        if not device_key:
+            return True
+        settings = get_keyboard_middle_path_settings(self._cfg, device_key)
+        if settingName == "allow_host_backlight":
+            return settings.get("allow_host_backlight", True)
+        if settingName == "allow_fn_inversion":
+            return settings.get("allow_fn_inversion", True)
+        return True
+
+    @Slot(str, bool, result=bool)
+    def setDeviceKeyboardMiddlePathSetting(self, settingName, value):
+        """Sets and persists the per-device middle-path setting. Returns success."""
+        if not self._engine:
+            return False
+        device = getattr(self._engine, "connected_device", None)
+        device_key = getattr(device, "key", None) if device else None
+        if not device_key and device:
+            device_key = str(getattr(device, "product_id", "unknown"))
+        if not device_key:
+            return False
+        key_map = {
+            "allow_host_backlight": "allow_host_backlight",
+            "allow_fn_inversion": "allow_fn_inversion",
+        }
+        cfg_key = key_map.get(settingName)
+        if not cfg_key:
+            return False
+        return set_keyboard_middle_path_setting(self._cfg, device_key, cfg_key, bool(value))
 
     # Read-only capability flags for future Keyboard UI (thin delegates)
     @Property(bool, notify=hidFeaturesReadyChanged)
