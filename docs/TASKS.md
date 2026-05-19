@@ -308,6 +308,9 @@ Introduced optional `_friendly_name` class attribute + `_get_friendly_name()` he
 **Implementation Note (TASK-009 micro-chunk 009.44)**  
 Further extended the prior Wireless Status extraction (009.22/009.41) with additional link health fields (signal_quality, channel, etc.) returned in an even richer structure while preserving the raw list for full backward compatibility. Small further enhancement to `read_wireless_status()` in the listener + docstring update in the handler. The existing thin Engine wrapper automatically benefits. Passed Code Review + AC validation. Commit: 3e6a917.
 
+**Implementation Note (TASK-009 micro-chunk 009.45)**  
+Further extended the prior Power Management extraction (009.37/009.39/009.42) with additional settings (extra_setting_1, extra_setting_2, etc.) in an even richer structure while preserving the raw list for full backward compatibility. Enhanced both `read_power_management()` and `set_power_management()` in the listener (accepts richer dicts containing the further fields for write) + docstring update in the handler. The existing thin Engine wrappers automatically benefit. Passed Code Review + AC validation. Commit: 4b01556.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
