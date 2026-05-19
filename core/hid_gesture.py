@@ -626,6 +626,7 @@ FEAT_BATTERY_STATUS = 0x1000      # Battery Status (fallback)
 # Litra Beam (and similar Logitech lights) illumination control
 FEAT_LITRA_ILLUMINATION = 0x1A00  # Placeholder — replace with actual Litra illumination feature ID from device dump
 FEAT_LED_CONTROL        = 0x1A01  # Placeholder for common mouse LED control (on/off + brightness); replace with real ID from device dumps
+FEAT_DEVICE_MODE        = 0x1B00  # Placeholder for Device Mode / Wireless Mode; replace with real ID from device dumps
 DEFAULT_GESTURE_CID = DEFAULT_GESTURE_CIDS[0]
 
 MY_SW          = 0x0A        # arbitrary software-id used in our requests
@@ -803,6 +804,7 @@ class HidGestureListener:
         self._litra_illumination_idx = None # 0x1A00 - Litra Beam illumination (placeholder ID)
         self._device_name_idx = None        # 0x0005 - Device Name / Friendly Name
         self._led_control_idx = None        # 0x1A01 - Common mouse LED control (placeholder)
+        self._device_mode_idx = None        # 0x1B00 - Device Mode / Wireless Mode (placeholder)
         self._pending_smart_shift = None
         self._smart_shift_result = None
         self._smart_shift_call_lock = threading.Lock()
@@ -914,6 +916,8 @@ class HidGestureListener:
             features.append({"feature_id": FEAT_DEVICE_NAME, "index": self._device_name_idx})
         if self._led_control_idx is not None:
             features.append({"feature_id": FEAT_LED_CONTROL, "index": self._led_control_idx})
+        if self._device_mode_idx is not None:
+            features.append({"feature_id": FEAT_DEVICE_MODE, "index": self._device_mode_idx})
         return tuple(features)
 
     def dump_device_info(self):
@@ -954,6 +958,8 @@ class HidGestureListener:
             features["DEVICE_NAME (0x0005)"] = f"index 0x{self._device_name_idx:02X}"
         if self._led_control_idx is not None:
             features["LED_CONTROL (0x1A01)"] = f"index 0x{self._led_control_idx:02X}"
+        if self._device_mode_idx is not None:
+            features["DEVICE_MODE (0x1B00)"] = f"index 0x{self._device_mode_idx:02X}"
 
         controls = []
         for c in self._last_controls:
@@ -1226,6 +1232,27 @@ class HidGestureListener:
             return enabled, brightness
         return None, None
 
+    # 009.17: Basic Device Mode (Wireless Mode) skeleton (host-side only, temporary)
+    def read_device_mode(self):
+        """Returns current device mode value or None. Host-side only, temporary."""
+        if self._device_mode_idx is None or self._dev is None:
+            return None
+        resp = self._request(self._device_mode_idx, 0x00, [])
+        if resp and resp[4]:
+            return resp[4][0] if resp[4] else None
+        return None
+
+    def set_device_mode(self, mode_value: int):
+        """Set device mode. Host-side only, temporary. Returns success."""
+        if self._device_mode_idx is None or self._dev is None:
+            print("[HidGesture] set_device_mode: Device Mode not available — not applied")
+            return False
+        payload = [mode_value & 0xFF]
+        resp = self._request(self._device_mode_idx, 0x10, payload)
+        success = resp is not None
+        print(f"[HidGesture] Device Mode set (host-side, temporary): mode={mode_value} -> {'OK' if success else 'FAILED'}")
+        return success
+
     def _discover_common_features(self):
         """Discover DPI, battery, wheel (including ratchet on 0x2121), onboard profiles (0x8100),
         and report rate.  Safe to call on any opened HID++ device, including gaming mice
@@ -1309,6 +1336,12 @@ class HidGestureListener:
         if led_fi:
             self._led_control_idx = led_fi
             print(f"[HidGesture] Found LED_CONTROL @0x{led_fi:02X}")
+
+        # Device Mode / Wireless Mode — 009.17
+        dm_fi = self._find_feature(FEAT_DEVICE_MODE)
+        if dm_fi:
+            self._device_mode_idx = dm_fi
+            print(f"[HidGesture] Found DEVICE_MODE @0x{dm_fi:02X}")
 
         fn_fi = self._find_feature(FEAT_K375S_FN_INVERSION)
         if fn_fi:
@@ -2111,6 +2144,7 @@ class HidGestureListener:
             self._litra_illumination_idx = None
             self._device_name_idx = None
             self._led_control_idx = None
+            self._device_mode_idx = None
             self._gesture_cid = DEFAULT_GESTURE_CID
             self._gesture_candidates = list(
                 getattr(device_spec, "gesture_cids", ()) or DEFAULT_GESTURE_CIDS
@@ -2500,6 +2534,7 @@ class HidGestureListener:
             self._litra_illumination_idx = None
             self._device_name_idx = None
             self._led_control_idx = None
+            self._device_mode_idx = None
             self._pending_battery = None
             self._pending_dpi = None
             self._dpi_result = None
