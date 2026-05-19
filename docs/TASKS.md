@@ -293,6 +293,9 @@ Eighteenth feature extraction (Power Management beyond Sleep Timeout / Wireless 
 **Implementation Note (TASK-009 micro-chunk 009.38)**  
 Introduced `UltraThinHandler` ultra-light convenience base (inheriting from `RecommendedThinHandler`) for the absolute simplest pure thin-delegation cases (the most common pattern). Includes a clear class docstring illustrating the even more concise usage pattern for brand-new ultra-simple handlers. Migrated `DeviceTypeHandler` as demonstration. Small, high-value ergonomic improvement with zero behavioral change. Passed Code Review + AC validation. Commit: 9e28965.
 
+**Implementation Note (TASK-009 micro-chunk 009.40)**  
+Introduced small protected helper `_log_unsupported(operation, **context)` on `FeatureHandler`. Integrated into the safe defaults of `ThinDelegationHandler` / `DefaultThinHandler` for handlers marked read-only or write-only (via the 009.32 declarative markers). Automatically standardizes logging for unsupported operations across all one-way handlers (replaces ad-hoc prints). Small, high-value maintainability and consistency improvement with zero behavioral change. Passed Code Review + AC validation. Commit: 54f3698.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
