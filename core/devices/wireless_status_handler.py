@@ -17,9 +17,10 @@ if TYPE_CHECKING:
 
 
 class WirelessStatusHandler(ThinDelegationHandler):
-    """Host-side Wireless Status (link quality / RSSI) read (read-only). Temporary (lost on reconnect/host switch).
+    """Host-side Wireless Status (link quality / RSSI / additional health metrics) read (read-only). Temporary (lost on reconnect/host switch).
 
-    009.25: Migrated to ThinDelegationHandler for minimal boilerplate.
+    009.22 / 009.41: Extended to surface labeled fields (link_quality, rssi, etc.) when the listener provides them.
+    Uses ThinDelegationHandler + the declarative helper (read-only).
     """
 
     def __init__(self, device: "LogitechDevice", listener: Any):
@@ -31,5 +32,5 @@ class WirelessStatusHandler(ThinDelegationHandler):
             feature_index_attr="_wireless_status_idx",
             read_method="read_wireless_status"
         )
-        # 009.32: declarative marker (replaces manual safe override)
+        # 009.32: declarative marker
         self._mark_as_read_only()

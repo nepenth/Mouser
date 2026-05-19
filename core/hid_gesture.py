@@ -1438,14 +1438,22 @@ class HidGestureListener:
         print(f"[HidGesture] Sleep Timeout set (host-side, temporary): timeout={timeout_value} -> {'OK' if success else 'FAILED'}")
         return success
 
-    # 009.22: Basic Wireless Status (link quality / RSSI) skeleton (host-side only, temporary; read-only)
+    # 009.22 / 009.41: Basic Wireless Status (link quality / RSSI / additional health metrics) — host-side only, temporary; read-only
     def read_wireless_status(self):
-        """Returns current wireless status values (raw parameters) or None. Host-side only, temporary."""
+        """Returns current wireless status values (raw parameters + labeled fields when available). Host-side only, temporary."""
         if self._wireless_status_idx is None or self._dev is None:
             return None
         resp = self._request(self._wireless_status_idx, 0x00, [])
         if resp and resp[4]:
-            return list(resp[4])  # raw parameters for now
+            raw = list(resp[4])
+            result = {"raw": raw}
+            # 009.41: Parse additional cleanly available fields when the response length supports it
+            # (typical Logitech Wireless Status responses often encode link quality and RSSI in the first bytes)
+            if len(raw) >= 1:
+                result["link_quality"] = raw[0]
+            if len(raw) >= 2:
+                result["rssi"] = raw[1]  # signed interpretation may be needed on some devices; raw value for now
+            return result
         return None
 
     # 009.19: Basic LED Effects skeleton (host-side only, temporary)
