@@ -136,6 +136,9 @@ First step into per-device middle-path settings. Added `devices` top-level secti
 **Implementation Note (TASK-006 micro-chunk 006.2)**  
 First behavioral enforcement. Added guards inside `Engine.set_backlight()` and `set_fn_inversion()` that consult the per-device settings from 006.1. When the corresponding `allow_host_*` flag is `False`, the call is refused (logged + returns `False`) before any HID++ interaction. Reads remain unaffected. Passed Code Review + AC validation. Commit: c44e4b3.
 
+**Implementation Note (TASK-006 micro-chunk 006.3)**  
+First user-visible part of per-device settings. Added thin `getDeviceKeyboardMiddlePathSetting` / `setDeviceKeyboardMiddlePathSetting` methods in `ui/backend.py`. Added "Host Control Permissions" section with two Switches on `KeyboardPage.qml` (only visible for supported keyboards). Toggles read current values and persist immediately. Completes the first full loop (config 006.1 → enforcement 006.2 → UI 006.3). Passed Code Review + AC validation. Commit: 42c4cb2.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
