@@ -22,12 +22,16 @@ if TYPE_CHECKING:
 class SmartShiftHandler(FeatureHandler):
     """SmartShift read/write handling for devices that support 0x2110 or 0x2111."""
 
+    # 009.11: use the reusable default is_supported() from the base
+    _feature_index_attr = "_smart_shift_idx"
+
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
+        # Also expose listener for the default is_supported() implementation
+        self.listener = listener
 
-    def is_supported(self) -> bool:
-        return getattr(self._listener, "_smart_shift_idx", None) is not None
+    # (is_supported() now inherited from FeatureHandler base — no override needed)
 
     def handle_read(self) -> Optional[Dict[str, Any]]:
         """Return the current SmartShift state dict or None."""

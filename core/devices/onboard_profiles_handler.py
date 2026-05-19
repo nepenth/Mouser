@@ -19,12 +19,16 @@ if TYPE_CHECKING:
 class OnboardProfilesHandler(FeatureHandler):
     """Basic onboard profile read/switch handling for devices that support 0x8100."""
 
+    # 009.11: use the reusable default is_supported() from the base
+    _feature_index_attr = "_onboard_profiles_idx"
+
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
+        # Also expose listener for the default is_supported() implementation
+        self.listener = listener
 
-    def is_supported(self) -> bool:
-        return getattr(self._listener, "_onboard_profiles_idx", None) is not None
+    # (is_supported() now inherited from FeatureHandler base — no override needed)
 
     def handle_read(self) -> Optional[int]:
         """Return the current onboard profile index (or None)."""

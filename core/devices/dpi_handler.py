@@ -22,12 +22,16 @@ if TYPE_CHECKING:
 class DPIHandler(FeatureHandler):
     """Core DPI set/read handling for devices that support ADJUSTABLE_DPI (0x2201)."""
 
+    # 009.11: use the reusable default is_supported() from the base
+    _feature_index_attr = "_dpi_idx"
+
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener
+        # Also expose listener for the default is_supported() implementation (009.11)
+        self.listener = listener
 
-    def is_supported(self) -> bool:
-        return getattr(self._listener, "_dpi_idx", None) is not None
+    # (is_supported() now inherited from FeatureHandler base — no override needed)
 
     def handle_write(self, dpi_value: int) -> bool:
         """Set DPI. The caller (Engine) is responsible for clamping (consistent with 009.4 minimal scope)."""

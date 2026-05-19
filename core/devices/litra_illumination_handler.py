@@ -21,13 +21,16 @@ class LitraIlluminationHandler(FeatureHandler):
     All changes are temporary (lost on reconnect or host switch).
     """
 
+    # 009.11: use the reusable default is_supported() from the base
+    _feature_index_attr = "_litra_illumination_idx"
+
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)
         self._listener = listener  # the existing HidGestureListener (for now)
+        # Also expose listener for the default is_supported() implementation
+        self.listener = listener
 
-    def is_supported(self) -> bool:
-        # For the initial extraction we rely on the listener having detected the feature
-        return getattr(self._listener, "_litra_illumination_idx", None) is not None
+    # (is_supported() now inherited from FeatureHandler base — no override needed)
 
     def handle_read(self) -> Tuple[bool | None, int | None]:
         """Return (enabled, brightness) or (None, None)."""
