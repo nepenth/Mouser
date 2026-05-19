@@ -21,22 +21,61 @@ Item {
     property bool litraEnabled: false
     property int litraBrightness: 50
 
+    // Polish state (008.6)
+    property bool refreshing: false
+    property string lastError: ""
+
     Component.onCompleted: {
         refreshFromDevice()
     }
 
     function refreshFromDevice() {
-        if (!backend.hasLitraBeam) return
+        if (refreshing || !backend.hasLitraBeam) return
+        refreshing = true
+        lastError = ""
+
         var state = backend.readLitraIllumination()
         if (state && state.length >= 2) {
             litraEnabled = !!state[0]
             litraBrightness = (state[1] !== null && state[1] !== undefined) ? state[1] : 50
         }
+
+        refreshing = false
     }
 
     function applyIllumination() {
         if (!backend.hasLitraBeam) return
-        backend.setLitraIllumination(litraEnabled, litraBrightness)
+        var ok = backend.setLitraIllumination(litraEnabled, litraBrightness)
+        if (!ok) {
+            lastError = "Failed to apply (temporary change)"
+            errorClearTimer.restart()
+        }
+    }
+
+    Timer {
+        id: errorClearTimer
+        interval: 3800
+        repeat: false
+        onTriggered: lastError = ""
+    }
+
+    // Debounce timer for brightness slider (reduces HID++ spam)
+    Timer {
+        id: brightnessDebounce
+        interval: 350
+        repeat: false
+        onTriggered: {
+            if (backend.hasLitraBeam && !refreshing) {
+                backend.setLitraIllumination(litraEnabled, litraBrightness)
+            }
+        }
+    }
+
+    // React to device changes (KVM use case)
+    Connections {
+        target: backend
+        function onDeviceInfoChanged() { refreshFromDevice() }
+        function onHasLitraBeamChanged() { refreshFromDevice() }
     }
 
     Rectangle {
@@ -92,7 +131,24 @@ Item {
                     }
                 }
 
+                // Refreshing indicator (008.6)
+                Text {
+                    visible: root.refreshing
+                    text: "Refreshing…"
+                    font { family: uiState.fontFamily; pixelSize: 12; italic: true }
+                    color: root.theme.textSecondary
+                }
+
                 Item { Layout.fillWidth: true }
+            }
+
+            // Error feedback row (008.6)
+            Text {
+                visible: root.lastError !== ""
+                text: root.lastError
+                font { family: uiState.fontFamily; pixelSize: 12; bold: true }
+                color: "#D32F2F"
+                Layout.leftMargin: 4
             }
 
             // On/Off
@@ -114,6 +170,7 @@ Item {
                 Switch {
                     checked: root.litraEnabled
                     Material.accent: root.theme.accent
+                    enabled: !root.refreshing
                     onClicked: {
                         root.litraEnabled = checked
                         root.applyIllumination()
@@ -154,9 +211,12 @@ Item {
                         to: 100
                         stepSize: 5
                         value: root.litraBrightness
+                        enabled: !root.refreshing
+
                         onMoved: {
                             root.litraBrightness = Math.round(value)
-                            root.applyIllumination()
+                            // Debounced apply — only hits the device after user stops moving
+                            brightnessDebounce.restart()
                         }
                     }
 
@@ -189,6 +249,7 @@ Item {
                 Button {
                     text: "Refresh"
                     font { family: uiState.fontFamily; pixelSize: 12 }
+                    enabled: !root.refreshing
                     onClicked: root.refreshFromDevice()
                 }
             }
