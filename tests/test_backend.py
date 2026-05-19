@@ -1296,5 +1296,68 @@ class LitraIlluminationBackendTests(unittest.TestCase):
         self.assertEqual(backend.readLitraIllumination(), [True, 60])
 
 
+class NewArchitectureHandlersBackendTestsA2(unittest.TestCase):
+    """Tests for the first batch of thin Backend delegates for extracted FeatureHandlers (A.2).
+
+    Covers: report rate, onboard profiles, device name/friendly name, LED state.
+    Safe no-engine defaults + correct delegation. Enables Linux Python testing.
+    """
+
+    def _make_backend(self, engine=None):
+        _ensure_qapp()
+        with patch("ui.backend.load_config", return_value=copy.deepcopy(DEFAULT_CONFIG)):
+            return Backend(engine=engine)
+
+    def test_no_engine_returns_safe_defaults(self):
+        backend = self._make_backend(engine=None)
+        self.assertFalse(backend.setReportRate(1000))
+        self.assertIsNone(backend.readReportRate())
+        self.assertIsNone(backend.readOnboardProfile())
+        self.assertFalse(backend.switchOnboardProfile(1))
+        self.assertIsNone(backend.readDeviceName())
+        self.assertFalse(backend.setDeviceName("foo"))
+        self.assertIsNone(backend.readDeviceFriendlyName())
+        self.assertFalse(backend.setDeviceFriendlyName("bar"))
+        self.assertFalse(backend.setLedState(True, 50))
+        self.assertEqual(backend.readLedState(), [None, None])
+
+    def test_delegates_to_engine(self):
+        fake_engine = _FakeEngine()
+
+        # Report rate
+        fake_engine.set_report_rate = lambda rate: True
+        fake_engine.read_report_rate = lambda: 1000
+
+        # Onboard
+        fake_engine.read_onboard_profile = lambda: 1
+        fake_engine.switch_onboard_profile = lambda idx: True
+
+        # Device name / friendly
+        fake_engine.read_device_name = lambda: "MX Mechanical Mini"
+        fake_engine.set_device_name = lambda n: True
+        fake_engine.read_device_friendly_name = lambda: "My Mini"
+        fake_engine.set_device_friendly_name = lambda n: True
+
+        # LED
+        fake_engine.set_led_state = lambda en, br=-1: True
+        fake_engine.read_led_state = lambda: (True, 75)
+
+        backend = self._make_backend(engine=fake_engine)
+
+        self.assertTrue(backend.setReportRate(1000))
+        self.assertEqual(backend.readReportRate(), 1000)
+
+        self.assertIsNotNone(backend.readOnboardProfile())
+        self.assertTrue(backend.switchOnboardProfile(2))
+
+        self.assertEqual(backend.readDeviceName(), "MX Mechanical Mini")
+        self.assertTrue(backend.setDeviceName("TestName"))
+        self.assertEqual(backend.readDeviceFriendlyName(), "My Mini")
+        self.assertTrue(backend.setDeviceFriendlyName("Friendly"))
+
+        self.assertTrue(backend.setLedState(True, 80))
+        self.assertEqual(backend.readLedState(), [True, 75])
+
+
 if __name__ == "__main__":
     unittest.main()

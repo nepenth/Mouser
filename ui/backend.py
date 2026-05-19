@@ -537,6 +537,89 @@ class Backend(QObject):
             return val if isinstance(val, dict) else {}
         return {}
 
+    # ── Additional thin delegates for extracted FeatureHandlers (A.2 batch) ──
+    # These complete the first slice of full architecture exposure (TASK-009).
+    # All are intentionally minimal + safe. Host-side / temporary only.
+    # Enables direct Python REPL / script testing on Linux workstation
+    # (e.g. backend.readReportRate(), backend.setDeviceFriendlyName("My KB")).
+
+    @Slot(int, result=bool)
+    def setReportRate(self, rate):
+        """Set report rate (0x8060). Host-side only, temporary. Returns success."""
+        if self._engine and hasattr(self._engine, "set_report_rate"):
+            return bool(self._engine.set_report_rate(int(rate)))
+        return False
+
+    @Slot(result="QVariant")
+    def readReportRate(self):
+        """Read current report rate (or None). Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "read_report_rate"):
+            val = self._engine.read_report_rate()
+            return val if val is not None else None
+        return None
+
+    @Slot(result="QVariant")
+    def readOnboardProfile(self):
+        """Read current onboard profile index (or None). Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "read_onboard_profile"):
+            val = self._engine.read_onboard_profile()
+            return val if val is not None else None
+        return None
+
+    @Slot(int, result=bool)
+    def switchOnboardProfile(self, profile_index):
+        """Switch to onboard profile index. Host-side only, temporary. Returns success."""
+        if self._engine and hasattr(self._engine, "switch_onboard_profile"):
+            return bool(self._engine.switch_onboard_profile(int(profile_index)))
+        return False
+
+    @Slot(result="QVariant")
+    def readDeviceName(self):
+        """Read current device name (or None). Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "read_device_name"):
+            val = self._engine.read_device_name()
+            return val if val is not None else None
+        return None
+
+    @Slot(str, result=bool)
+    def setDeviceName(self, name):
+        """Set device name. Host-side only, temporary. Returns success."""
+        if self._engine and hasattr(self._engine, "set_device_name"):
+            return bool(self._engine.set_device_name(str(name) if name else ""))
+        return False
+
+    @Slot(result="QVariant")
+    def readDeviceFriendlyName(self):
+        """Read current user-settable Friendly Name (or None). Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "read_device_friendly_name"):
+            val = self._engine.read_device_friendly_name()
+            return val if val is not None else None
+        return None
+
+    @Slot(str, result=bool)
+    def setDeviceFriendlyName(self, name):
+        """Set user-settable Friendly Name. Host-side only, temporary. Returns success."""
+        if self._engine and hasattr(self._engine, "set_device_friendly_name"):
+            return bool(self._engine.set_device_friendly_name(str(name) if name else ""))
+        return False
+
+    @Slot(bool, int, result=bool)
+    def setLedState(self, enabled, brightness=-1):
+        """Host-side mouse LED on/off + brightness (0-100). Temporary (lost on reconnect). Returns success."""
+        if self._engine and hasattr(self._engine, "set_led_state"):
+            return bool(self._engine.set_led_state(bool(enabled), int(brightness) if brightness >= 0 else -1))
+        return False
+
+    @Slot(result=list)
+    def readLedState(self):
+        """Returns [enabled, brightness] or [None, None]. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "read_led_state"):
+            val = self._engine.read_led_state()
+            if isinstance(val, (list, tuple)) and len(val) >= 2:
+                return [val[0], val[1]]
+            return [None, None]
+        return [None, None]
+
     @Property(bool, notify=settingsChanged)
     def invertHScroll(self):
         return self._cfg.get("settings", {}).get("invert_hscroll", False)
