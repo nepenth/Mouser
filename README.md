@@ -84,6 +84,7 @@ This is the authoritative running log of completed and **accepted** work. Tasks 
 - TASK-005 micro-chunk 005.3 accepted and committed: Added dedicated `KeyboardPage.qml` (hosts the existing controls + header + temporary warning) and wired a third "Keyboard" sidebar navigation entry (page 2) into Main.qml. First structural step toward a proper keyboard section. Passed Code Review + AC validation.
 - TASK-005 micro-chunk 005.4 accepted and committed: Added basic device status block to KeyboardPage (device name, connection type, battery level when available). Status only appears for supported middle-path keyboards. Reused existing backend properties. Passed Code Review + AC validation.
 - TASK-005 micro-chunk 005.5 accepted and committed: Made the quick-access KeyboardControls footer context-aware — it is now hidden when the user is on the dedicated Keyboard page (reduces duplication). Footer behavior unchanged on Mouse/Scroll pages. Passed Code Review + AC validation.
+- TASK-006 micro-chunk 006.1 accepted and committed: Added per-device `devices.<key>.keyboard_middle_path` structure in config + helper functions (`get_keyboard_middle_path_settings`, `set_keyboard_middle_path_setting`). Safe defaults favoring host enhancements. No behavior change yet. Passed Code Review + AC validation.
 
 For the detailed current task board, see [docs/TASKS.md](docs/TASKS.md).  
 For overall status and roadmap, see [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).

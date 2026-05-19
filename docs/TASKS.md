@@ -130,6 +130,9 @@ Added a small, clean device status block to `KeyboardPage.qml` (shown only when 
 **Implementation Note (TASK-005 micro-chunk 005.5)**  
 Made the quick-access `KeyboardControls` footer context-aware. The footer is now hidden when the user is on the dedicated Keyboard page (page 2), while continuing to appear normally on the Mouse and Scroll pages when a supported keyboard is connected. Single small change in `Main.qml`. Passed Code Review + AC validation. Commit: 8fb5aad.
 
+**Implementation Note (TASK-006 micro-chunk 006.1)**  
+First step into per-device middle-path settings. Added `devices` top-level section in config with `keyboard_middle_path` per device key, containing `allow_host_backlight` and `allow_fn_inversion` (defaults `true`). Added `get_keyboard_middle_path_settings()` and `set_keyboard_middle_path_setting()` helpers in `core/config.py`. Settings persist correctly. No wiring into control paths yet. Passed Code Review + AC validation. Commit: 74cd899.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
