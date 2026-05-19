@@ -56,6 +56,19 @@ class FeatureHandler:
         """Perform a write operation for this feature."""
         raise NotImplementedError
 
+    # 009.14: small protected helper for safe listener attribute access
+    def _get_listener_attr(self, attr_name: str, default: Any = None) -> Any:
+        """Safely retrieve an attribute from the listener (or self if stored there).
+
+        Returns `default` if the attribute is missing. This centralizes direct
+        getattr(self.listener, ...) calls and makes future changes safer.
+        """
+        listener = getattr(self, "listener", None)
+        if listener is None:
+            # Some handlers store attributes directly on self
+            listener = self
+        return getattr(listener, attr_name, default)
+
 
 class SimpleDelegationHandler(FeatureHandler):
     """Lightweight base for handlers that are essentially thin wrappers around listener methods (009.12).
@@ -75,10 +88,7 @@ class SimpleDelegationHandler(FeatureHandler):
     def handle_read(self, *args, **kwargs) -> Any:
         if self._read_method_name is None:
             raise NotImplementedError("SimpleDelegationHandler: _read_method_name not set and handle_read() not overridden")
-        listener = getattr(self, "listener", None)
-        if listener is None:
-            raise RuntimeError("SimpleDelegationHandler: no listener available for delegation")
-        method = getattr(listener, self._read_method_name, None)
+        method = self._get_listener_attr(self._read_method_name)
         if method is None:
             raise AttributeError(f"Listener has no method named {self._read_method_name}")
         return method(*args, **kwargs)
@@ -86,10 +96,7 @@ class SimpleDelegationHandler(FeatureHandler):
     def handle_write(self, *args, **kwargs) -> Any:
         if self._write_method_name is None:
             raise NotImplementedError("SimpleDelegationHandler: _write_method_name not set and handle_write() not overridden")
-        listener = getattr(self, "listener", None)
-        if listener is None:
-            raise RuntimeError("SimpleDelegationHandler: no listener available for delegation")
-        method = getattr(listener, self._write_method_name, None)
+        method = self._get_listener_attr(self._write_method_name)
         if method is None:
             raise AttributeError(f"Listener has no method named {self._write_method_name}")
         return method(*args, **kwargs)
