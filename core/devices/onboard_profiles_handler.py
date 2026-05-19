@@ -10,16 +10,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from core.logi_device import FeatureHandler, DefaultThinHandler
+from core.logi_device import FeatureHandler, RecommendedThinHandler
 
 if TYPE_CHECKING:
     from core.logi_device import LogitechDevice
 
 
-class OnboardProfilesHandler(DefaultThinHandler):
+class OnboardProfilesHandler(RecommendedThinHandler):
     """Basic onboard profile read/switch handling for devices that support 0x8100.
 
-    009.25/009.26/009.27/009.30: Uses DefaultThinHandler.
+    009.25/009.26/009.27/009.30/009.33: Uses RecommendedThinHandler
+    (the current recommended starting point for simple thin handlers).
     """
 
     def __init__(self, device: "LogitechDevice", listener: Any):
@@ -29,4 +30,4 @@ class OnboardProfilesHandler(DefaultThinHandler):
                          write_method="switch_onboard_profile")
         self._listener = listener
 
-    # All behavior (is_supported + handle_read + handle_write) comes from DefaultThinHandler.
+    # All behavior (is_supported + handle_read + handle_write) comes from RecommendedThinHandler / DefaultThinHandler.

@@ -203,6 +203,45 @@ class DefaultThinHandler(ThinDelegationHandler):
             )
 
 
+class RecommendedThinHandler(DefaultThinHandler):
+    """Recommended starting point for the simplest thin delegation handlers (009.33).
+
+    This class bundles the best practices and reusable patterns developed across
+    TASK-009:
+
+    - Reusable `is_supported()` via `_feature_index_attr`
+    - Thin delegation via `_read_method_name` / `_write_method_name`
+    - `_get_listener_attr(...)` safety
+    - Declarative `_declare_attributes(...)` helper (009.27)
+    - Automatic respect for `_read_only` / `_write_only` markers (009.32)
+
+    Recommended usage for a brand-new simple handler:
+
+        class MyFeatureHandler(RecommendedThinHandler):
+            def __init__(self, device, listener):
+                super().__init__(device, listener,
+                                 feature_index_attr="_my_idx",
+                                 read_method="read_my",
+                                 write_method="set_my")
+
+    Or (for read-only cases):
+
+        class MyReadOnlyHandler(RecommendedThinHandler):
+            def __init__(self, device, listener):
+                super().__init__(device, listener,
+                                 feature_index_attr="_my_idx",
+                                 read_method="read_my")
+                self._mark_as_read_only()
+
+    Existing handlers can continue to inherit directly from `DefaultThinHandler`,
+    `ThinDelegationHandler`, or `FeatureHandler` if they need custom logic.
+    """
+
+    # No additional implementation required — the value is the clear
+    # recommended shape + the bundled patterns from the preceding refinements.
+    pass
+
+
 class LogitechDevice:
     """Very lightweight base for a Logitech HID++ device.
 
