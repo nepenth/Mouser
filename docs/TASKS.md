@@ -332,6 +332,9 @@ Introduced small protected helper `_get_device_key_for_log(self) -> str` on `Fea
 **Implementation Note (TASK-009 micro-chunk 009.50)**  
 Expanded the “Full Recommended Pattern for a Brand-New Thin Handler (current best practice)” section in the `RecommendedThinHandler` class docstring to show the complete current best-practice shape using `RecommendedThinHandler` / `UltraThinHandler` + all the key helpers and declarative patterns (inheritance, `super().__init__` call with the three attributes, `_declare_attributes`, `_mark_as_read_only`, and the optional helpers including the new `_get_device_key_for_log` for consistent logging). Includes the read-only variant and a note about custom overrides when needed. Small, high-value documentation improvement with zero behavioral or API change. Passed Code Review + AC validation. Commit: ad21412.
 
+**Post-009.50 small deliverable (committed + pushed):**  
+Added thin Backend slots for the newest extracted handlers (`getRemainingPairingSlots`, `getForceSensingButtons`, `getDeviceType`) to make the full architecture easily testable from Python on Linux before full QML surfaces. Clear incremental step toward "plan implemented + start Linux workstation testing". Commit: a1c53cd.
+
 **Implementation Note (TASK-009 micro-chunk 009.49)**  
 Fresh non-duplicate extraction (Remaining Pairing slots). Added `FEAT_REMAINING_PAIRING` detection + tiny listener method. Created `RemainingPairingHandler` (ultra-thin read-only) using the reusable `is_supported()` default. Wired thin public wrapper on Engine with lazy attachment and full fallback. Nineteenth feature extraction (chosen after exercising the Device Type escape clause in the PM directive). Passed Code Review + AC validation. Commit: 1bfdcc8.
 
