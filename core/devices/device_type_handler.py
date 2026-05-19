@@ -17,9 +17,9 @@ if TYPE_CHECKING:
 
 
 class DeviceTypeHandler(UltraThinHandler):
-    """Host-side Device Type / Product Type (additional identity/capability fields) read (read-only). Temporary (lost on reconnect/host switch).
+    """Host-side Device Type / Product Type (even further identity/capability fields) read (read-only). Temporary (lost on reconnect/host switch).
 
-    009.35 / 009.47: Extended to surface further labeled fields (sub_type, capability_flags, etc.) when the listener provides them.
+    009.35 / 009.47 / 009.44: Extended to surface even more labeled fields (additional_type_info_1, additional_type_info_2, etc.) when the listener provides them.
     Uses UltraThinHandler (the ultra-light base for the absolute simplest pure thin cases).
     """
 

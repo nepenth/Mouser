@@ -1320,6 +1320,11 @@ class HidGestureListener:
                 result["extended_type"] = raw[3]
             if len(raw) >= 5:
                 result["reserved_or_flags"] = raw[4]
+            # 009.45 (in this message): Even further additional cleanly available identity/capability fields when the response is longer
+            if len(raw) >= 6:
+                result["additional_type_info_1"] = raw[5]
+            if len(raw) >= 7:
+                result["additional_type_info_2"] = raw[6]
             return result
         return None
 
@@ -1347,6 +1352,11 @@ class HidGestureListener:
                 result["extra_setting_3"] = raw[4]
             if len(raw) >= 6:
                 result["extra_setting_4"] = raw[5]
+            # 009.45 (in this message): Even further additional cleanly available fields when the response is longer
+            if len(raw) >= 7:
+                result["extra_setting_5"] = raw[6]
+            if len(raw) >= 8:
+                result["extra_setting_6"] = raw[7]
             return result
         return None
 
@@ -1364,6 +1374,8 @@ class HidGestureListener:
                 settings.get("extra_setting_2", 0),
                 settings.get("extra_setting_3", 0),
                 settings.get("extra_setting_4", 0),
+                settings.get("extra_setting_5", 0),
+                settings.get("extra_setting_6", 0),
             ]
         elif isinstance(settings, (list, tuple)):
             payload = list(settings)
