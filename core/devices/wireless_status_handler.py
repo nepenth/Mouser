@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 class WirelessStatusHandler(ThinDelegationHandler):
     """Host-side Wireless Status (link quality / RSSI / additional health metrics) read (read-only). Temporary (lost on reconnect/host switch).
 
-    009.22 / 009.41: Extended to surface labeled fields (link_quality, rssi, etc.) when the listener provides them.
+    009.22 / 009.41 / 009.44: Extended to surface additional labeled fields (link_quality, rssi, signal_quality, channel, etc.) when the listener provides them.
     Uses ThinDelegationHandler + the declarative helper (read-only).
     """
 
