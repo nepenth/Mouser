@@ -124,6 +124,9 @@ All changes limited to `KeyboardControls.qml`. Passed Code Review + AC validatio
 **Implementation Note (TASK-005 micro-chunk 005.3)**  
 First structural expansion of the keyboard experience. Created `ui/qml/KeyboardPage.qml` as a minimal dedicated page that hosts the existing `KeyboardControls` component, with a clear header and prominent temporary/host-side warning. Added a third sidebar navigation entry ("Keyboard", page 2) and wired `KeyboardPage` into the main `StackLayout` in `Main.qml`. The previous quick-access footer under the mouse view was left in place. No new controls or features. Passed Code Review + AC validation. Commit: 74d4790.
 
+**Implementation Note (TASK-005 micro-chunk 005.4)**  
+Added a small, clean device status block to `KeyboardPage.qml` (shown only when a supported keyboard is connected). Displays device display name, connection type/transport, and battery level (with graceful fallback). Reused only existing backend properties (`deviceDisplayName`, `connectionType`, `batteryLevel`, and the middle-path capability flags). No changes to any other files. Passed Code Review + AC validation. Commit: 80850ad.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
