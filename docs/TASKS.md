@@ -160,6 +160,9 @@ Light polish pass to make the diversion feature feel first-class. Introduced cle
 **Implementation Note (TASK-008 micro-chunk 008.1)**  
 Official start of Litra Beam support. Added early “litra” name heuristic in `classify_device_kind` so Litra Beam devices are reliably classified as “other” (non-mouse, non-keyboard). Added clear, specific logging at all three classification sites when a Litra Beam is detected. Establishes the safe discovery/classification foundation with zero impact on existing mouse or keyboard paths. Passed Code Review + AC validation. Commit: 17163d8.
 
+**Implementation Note (TASK-008 micro-chunk 008.2)**  
+First functional control for the Litra Beam. Added `FEAT_LITRA_ILLUMINATION` detection + `_litra_illumination_idx` in the listener. Implemented host-side `set_litra_illumination()` / `read_litra_illumination()` (on/off + brightness 0-100). Added thin public wrappers on `Engine` following the exact keyboard middle-path pattern from 004.1. All changes are clearly temporary/host-side only, with safe no-op behavior for non-Litra devices. Passed Code Review + AC validation. Commit: 2372a68.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
