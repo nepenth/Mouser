@@ -508,6 +508,35 @@ class Backend(QObject):
     def invertVScroll(self):
         return self._cfg.get("settings", {}).get("invert_vscroll", False)
 
+    # ── New Architecture Handlers (TASK-009) ─────────────────────
+    # Small, thin exposures for recently extracted features.
+    # These are intentionally minimal to enable Python-level testing on Linux
+    # before full QML UI surfaces are built.
+
+    @Slot(result=int)
+    def getRemainingPairingSlots(self):
+        """Returns remaining pairing slots on the receiver, or -1 if unavailable."""
+        if self._engine and hasattr(self._engine, "get_remaining_pairing_slots"):
+            val = self._engine.get_remaining_pairing_slots()
+            return val if val is not None else -1
+        return -1
+
+    @Slot(result=list)
+    def getForceSensingButtons(self):
+        """Returns force sensing button data (raw or structured) or empty list."""
+        if self._engine and hasattr(self._engine, "get_force_sensing_buttons"):
+            val = self._engine.get_force_sensing_buttons()
+            return val if val is not None else []
+        return []
+
+    @Slot(result=dict)
+    def getDeviceType(self):
+        """Returns richer device type information (if available) or empty dict."""
+        if self._engine and hasattr(self._engine, "read_device_type"):
+            val = self._engine.read_device_type()
+            return val if isinstance(val, dict) else {}
+        return {}
+
     @Property(bool, notify=settingsChanged)
     def invertHScroll(self):
         return self._cfg.get("settings", {}).get("invert_hscroll", False)
