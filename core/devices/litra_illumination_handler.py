@@ -9,20 +9,26 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Tuple
 
-from core.logi_device import FeatureHandler
+from core.logi_device import FeatureHandler, SimpleDelegationHandler
 
 if TYPE_CHECKING:
     from core.logi_device import LogitechDevice
 
 
-class LitraIlluminationHandler(FeatureHandler):
+class LitraIlluminationHandler(SimpleDelegationHandler):
     """Host-side illumination control for Litra Beam devices.
 
     All changes are temporary (lost on reconnect or host switch).
+
+    009.12: Now inherits from SimpleDelegationHandler for default read/write forwarding.
     """
 
-    # 009.11: use the reusable default is_supported() from the base
+    # 009.10/009.11: use the reusable default is_supported() from the base
     _feature_index_attr = "_litra_illumination_idx"
+
+    # 009.12: declare the listener method names for the SimpleDelegationHandler defaults
+    _read_method_name = "read_litra_illumination"
+    _write_method_name = "set_litra_illumination"
 
     def __init__(self, device: "LogitechDevice", listener: Any):
         super().__init__(device)

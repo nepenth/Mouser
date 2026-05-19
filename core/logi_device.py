@@ -57,6 +57,44 @@ class FeatureHandler:
         raise NotImplementedError
 
 
+class SimpleDelegationHandler(FeatureHandler):
+    """Lightweight base for handlers that are essentially thin wrappers around listener methods (009.12).
+
+    Subclasses can declare:
+        _read_method_name = "read_xxx"
+        _write_method_name = "set_xxx"
+
+    The default handle_read() / handle_write() will then forward to self.listener.<method>(*args, **kwargs).
+
+    Handlers that need custom logic can still override the methods or inherit directly from FeatureHandler.
+    """
+
+    _read_method_name: str | None = None
+    _write_method_name: str | None = None
+
+    def handle_read(self, *args, **kwargs) -> Any:
+        if self._read_method_name is None:
+            raise NotImplementedError("SimpleDelegationHandler: _read_method_name not set and handle_read() not overridden")
+        listener = getattr(self, "listener", None)
+        if listener is None:
+            raise RuntimeError("SimpleDelegationHandler: no listener available for delegation")
+        method = getattr(listener, self._read_method_name, None)
+        if method is None:
+            raise AttributeError(f"Listener has no method named {self._read_method_name}")
+        return method(*args, **kwargs)
+
+    def handle_write(self, *args, **kwargs) -> Any:
+        if self._write_method_name is None:
+            raise NotImplementedError("SimpleDelegationHandler: _write_method_name not set and handle_write() not overridden")
+        listener = getattr(self, "listener", None)
+        if listener is None:
+            raise RuntimeError("SimpleDelegationHandler: no listener available for delegation")
+        method = getattr(listener, self._write_method_name, None)
+        if method is None:
+            raise AttributeError(f"Listener has no method named {self._write_method_name}")
+        return method(*args, **kwargs)
+
+
 class LogitechDevice:
     """Very lightweight base for a Logitech HID++ device.
 
