@@ -51,6 +51,12 @@ try:
 except Exception:
     DPIHandler = None
 
+# 009.5: ReportRateHandler import (guarded)
+try:
+    from core.devices.report_rate_handler import ReportRateHandler
+except Exception:
+    ReportRateHandler = None
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -917,6 +923,34 @@ class Engine:
             return getattr(hg, "_fn_inversion_idx", None) is not None
         return False
 
+    # 009.5: thin public Report Rate wrappers (delegation + full fallback)
+    def set_report_rate(self, rate):
+        """Set report rate (0x8060). Temporary (lost on reconnect/host switch)."""
+        self._maybe_attach_report_rate_handler()
+        if ReportRateHandler is not None and hasattr(self, "_report_rate_device") and self._report_rate_device:
+            handler = self._report_rate_device.get_handler("report_rate")
+            if handler:
+                return handler.handle_write(rate)
+
+        hg = self.hook._hid_gesture
+        if hg:
+            return hg.set_report_rate(rate) if hasattr(hg, "set_report_rate") else False
+        print("[Engine] set_report_rate: No HID++ connection — not applied")
+        return False
+
+    def read_report_rate(self):
+        """Read current report rate. Host-side only, temporary."""
+        self._maybe_attach_report_rate_handler()
+        if ReportRateHandler is not None and hasattr(self, "_report_rate_device") and self._report_rate_device:
+            handler = self._report_rate_device.get_handler("report_rate")
+            if handler:
+                return handler.handle_read()
+
+        hg = self.hook._hid_gesture
+        if hg:
+            return hg.read_report_rate() if hasattr(hg, "read_report_rate") else None
+        return None
+
     # ------------------------------------------------------------------
     # Litra Beam basic illumination (008.2 skeleton, host-side only, temporary)
     # ------------------------------------------------------------------
@@ -1027,6 +1061,24 @@ class Engine:
             self._dpi_device = LogitechDevice(pid, name, key)
             handler = DPIHandler(self._dpi_device, hg)
             self._dpi_device.add_handler("dpi", handler)
+
+    # 009.5: minimal lazy attachment for ReportRateHandler (same pattern)
+    def _maybe_attach_report_rate_handler(self):
+        if not (ReportRateHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_report_rate_idx", None) is None:
+            return
+
+        if not hasattr(self, "_report_rate_device") or self._report_rate_device is None:
+            dev = getattr(hg, "connected_device", None)
+            pid = getattr(dev, "product_id", 0) if dev else 0
+            name = getattr(dev, "name", "Device") if dev else "Device"
+            key = getattr(dev, "key", None) if dev else str(pid)
+
+            self._report_rate_device = LogitechDevice(pid, name, key)
+            handler = ReportRateHandler(self._report_rate_device, hg)
+            self._report_rate_device.add_handler("report_rate", handler)
 
     def reload_mappings(self):
         """
