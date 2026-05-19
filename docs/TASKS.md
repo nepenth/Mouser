@@ -145,6 +145,9 @@ KVM robustness polish. Made the two permission toggles on `KeyboardPage.qml` aut
 **Implementation Note (TASK-007 micro-chunk 007.1)**  
 Start of safe, opt-in key diversion work for the MX Mechanical Mini. Extended the per-device `keyboard_middle_path` config with `allow_diversion_backlight` (default `false`). Added a third toggle in the existing "Host Control Permissions" section on `KeyboardPage.qml` ("Allow diversion of Backlight Up/Down keys") with the required cautionary text. The toggle is fully functional for persistence and reactive to device changes. No actual diversion logic implemented yet (reserved for 007.2). Passed Code Review + AC validation. Commit: a235707.
 
+**Implementation Note (TASK-007 micro-chunk 007.2)**  
+First real gated diversion wiring in the hook layer. Extended `_build_extra_diverts` (and the listener creation path) to conditionally register the two safest MX Mechanical Mini backlight CIDs (0x00C5 / 0x00C6 for Backlight Up/Down) **only when** `allow_diversion_backlight` is explicitly `true` for that device. When the flag is `false` (the default), those keys are not diverted at all — onboard behavior is completely preserved. Added clear decision logging and placeholder handlers for future event dispatch. Passed Code Review + AC validation. Commit: aa2b93c.
+
 **Description**  
 Create a clean, documented, and stable public interface on the `Backend` class for the keyboard middle-path features.
 
