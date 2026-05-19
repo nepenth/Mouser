@@ -17,7 +17,10 @@ if TYPE_CHECKING:
 
 
 class PowerManagementHandler(FeatureHandler):
-    """Host-side Power Management (beyond Sleep Timeout / Wireless Power) read/write. Temporary (lost on reconnect/host switch)."""
+    """Host-side Power Management (beyond Sleep Timeout / Wireless Power / Battery) read/write. Temporary (lost on reconnect/host switch).
+
+    009.37 / 009.42: Extended to surface labeled fields (profile, save_mode, etc.) when the listener provides them.
+    """
 
     # 009.10/009.11: use the reusable default is_supported() from the base
     _feature_index_attr = "_power_management_idx"
@@ -29,8 +32,8 @@ class PowerManagementHandler(FeatureHandler):
 
     # (is_supported() inherited from FeatureHandler base)
 
-    def handle_read(self) -> Optional[List[int]]:
-        """Return current power management settings / profile (raw parameters) or None."""
+    def handle_read(self) -> Optional[dict]:
+        """Return current power management settings / profile (raw + labeled fields when available) or None."""
         if not self.is_supported():
             return None
         if hasattr(self._listener, "read_power_management"):

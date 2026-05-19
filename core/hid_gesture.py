@@ -1307,14 +1307,21 @@ class HidGestureListener:
             return resp[4][0] if resp[4] else None
         return None
 
-    # 009.37: Basic Power Management (beyond Sleep Timeout) skeleton (host-side only, temporary)
+    # 009.37 / 009.42: Basic Power Management (beyond Sleep Timeout / Wireless Power / Battery) — host-side only, temporary
     def read_power_management(self):
-        """Returns current power management settings / profile or None. Host-side only, temporary."""
+        """Returns current power management settings / profile (raw + labeled fields when available). Host-side only, temporary."""
         if self._power_management_idx is None or self._dev is None:
             return None
         resp = self._request(self._power_management_idx, 0x00, [])
         if resp and resp[4]:
-            return list(resp[4])  # raw parameters for now
+            raw = list(resp[4])
+            result = {"raw": raw}
+            # 009.42: Parse additional cleanly available fields when the response length supports it
+            if len(raw) >= 1:
+                result["profile"] = raw[0]
+            if len(raw) >= 2:
+                result["save_mode"] = raw[1]
+            return result
         return None
 
     def set_power_management(self, settings):
@@ -1322,8 +1329,13 @@ class HidGestureListener:
         if self._power_management_idx is None or self._dev is None:
             print("[HidGesture] set_power_management: Power Management not available — not applied")
             return False
-        # Minimal implementation: send the settings payload (exact format depends on real feature)
-        payload = settings if isinstance(settings, (list, tuple)) else [settings]
+        # Accept either raw list or richer dict (for convenience); send appropriate payload
+        if isinstance(settings, dict):
+            payload = [settings.get("profile", 0), settings.get("save_mode", 0)]
+        elif isinstance(settings, (list, tuple)):
+            payload = list(settings)
+        else:
+            payload = [settings]
         resp = self._request(self._power_management_idx, 0x10, payload)
         success = resp is not None
         print(f"[HidGesture] Power Management set (host-side, temporary) -> {'OK' if success else 'FAILED'}")
