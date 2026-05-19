@@ -273,6 +273,9 @@ ApplicationWindow {
                 visible: (backend.keyboardBacklightSupported || backend.keyboardFnInversionSupported)
                          && root.currentPage !== 2
             }
+
+            // First minimal UI surface for Litra Beam (TASK-008 008.5)
+            LitraControls {}
         }
     }
 

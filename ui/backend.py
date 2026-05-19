@@ -620,6 +620,12 @@ class Backend(QObject):
     def connectionType(self):
         return self._connected_device_transport
 
+    @Property(bool, notify=deviceInfoChanged)
+    def hasLitraBeam(self):
+        """True when the currently connected device is a Litra Beam (for conditional UI)."""
+        name = (self._device_display_name or "").lower()
+        return "litra" in name
+
     @Property(int, notify=deviceInfoChanged)
     def deviceDpiMin(self):
         return self._device_dpi_min
