@@ -788,6 +788,20 @@ class Engine:
         print("[Engine] set_fn_inversion: No HID++ connection — not applied")
         return False
 
+    def has_backlight_control(self):
+        """Returns True if the connected device supports host-side BACKLIGHT2 control via this API (MX Mechanical Mini etc.)."""
+        hg = self.hook._hid_gesture
+        if hg:
+            return getattr(hg, "_backlight2_idx", None) is not None
+        return False
+
+    def has_fn_inversion_control(self):
+        """Returns True if the connected device supports host-side K375S FN inversion control via this API."""
+        hg = self.hook._hid_gesture
+        if hg:
+            return getattr(hg, "_fn_inversion_idx", None) is not None
+        return False
+
     def reload_mappings(self):
         """
         Called by the UI when the user changes a mapping.

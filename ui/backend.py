@@ -1595,6 +1595,17 @@ class Backend(QObject):
             return self._engine.set_fn_inversion(bool(swap))
         return False
 
+    # Read-only capability flags for future Keyboard UI (thin delegates)
+    @Property(bool, notify=hidFeaturesReadyChanged)
+    def keyboardBacklightSupported(self):
+        """True when the connected device exposes BACKLIGHT2 (host-side, temporary)."""
+        return self._engine.has_backlight_control() if self._engine else False
+
+    @Property(bool, notify=hidFeaturesReadyChanged)
+    def keyboardFnInversionSupported(self):
+        """True when the connected device exposes K375S FN inversion (host-side, temporary)."""
+        return self._engine.has_fn_inversion_control() if self._engine else False
+
     def _onEngineConnectionChange(self, connected):
         """Called from engine/hook thread — posts to Qt main thread."""
         self._connectionChangeRequest.emit(connected)
