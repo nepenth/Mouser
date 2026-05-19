@@ -10,33 +10,24 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from core.logi_device import FeatureHandler
+from core.logi_device import FeatureHandler, UltraThinHandler
 
 if TYPE_CHECKING:
     from core.logi_device import LogitechDevice
 
 
-class DeviceTypeHandler(FeatureHandler):
-    """Host-side Device Type / Product Type read (read-only). Temporary (lost on reconnect/host switch)."""
+class DeviceTypeHandler(UltraThinHandler):
+    """Host-side Device Type / Product Type read (read-only). Temporary (lost on reconnect/host switch).
 
-    # 009.10/009.11: use the reusable default is_supported() from the base
-    _feature_index_attr = "_device_type_idx"
+    009.35/009.38: Uses UltraThinHandler (the ultra-light base for the absolute simplest pure thin cases).
+    """
 
     def __init__(self, device: "LogitechDevice", listener: Any):
-        super().__init__(device)
+        super().__init__(device, listener,
+                         feature_index_attr="_device_type_idx",
+                         read_method="read_device_type")
         self._listener = listener
-        self.listener = listener
+        self._mark_as_read_only()
 
-    # (is_supported() inherited from FeatureHandler base)
-
-    def handle_read(self) -> Optional[int]:
-        """Return current device type / product type value or None."""
-        if not self.is_supported():
-            return None
-        if hasattr(self._listener, "read_device_type"):
-            return self._listener.read_device_type()
-        return None
-
-    def handle_write(self, *args, **kwargs) -> bool:
-        """Write not supported for this read-only feature in this micro-chunk."""
-        return False
+    # All behavior (is_supported + handle_read) comes from UltraThinHandler / RecommendedThinHandler.
+    # handle_write remains a no-op (read-only feature).

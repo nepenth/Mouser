@@ -273,6 +273,42 @@ class RecommendedThinHandler(DefaultThinHandler):
     pass
 
 
+class UltraThinHandler(RecommendedThinHandler):
+    """Ultra-light convenience base for the absolute simplest thin handlers (009.38).
+
+    This class inherits from `RecommendedThinHandler` and is intended for the most
+    common, pure thin-delegation cases where the handler is literally just a
+    one-to-one forwarder to a listener method (plus the reusable `is_supported()`
+    check).
+
+    For the absolute simplest handler, the declaration can be extremely concise:
+
+        class MyUltraSimpleHandler(UltraThinHandler):
+            def __init__(self, device, listener):
+                super().__init__(device, listener,
+                                 feature_index_attr="_my_idx",
+                                 read_method="read_my",
+                                 write_method="set_my")
+
+    Or (for read-only ultra-simple cases):
+
+        class MyUltraSimpleReadOnlyHandler(UltraThinHandler):
+            def __init__(self, device, listener):
+                super().__init__(device, listener,
+                                 feature_index_attr="_my_idx",
+                                 read_method="read_my")
+                self._mark_as_read_only()
+
+    Existing handlers can continue to inherit from `RecommendedThinHandler`,
+    `DefaultThinHandler`, `ThinDelegationHandler`, or `FeatureHandler` if they
+    need more flexibility or custom logic.
+    """
+
+    # No additional implementation required — the value is the even more
+    # concise shape for the absolute simplest pure thin cases.
+    pass
+
+
 class LogitechDevice:
     """Very lightweight base for a Logitech HID++ device.
 
