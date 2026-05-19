@@ -33,6 +33,9 @@ BUTTON_NAMES = {
     "hscroll_right": "Horizontal scroll right",
     "mode_shift":    "Mode shift button",
     "dpi_switch":    "DPI switch button",
+    # 007.4: Diverted MX Mechanical Mini backlight keys (opt-in only)
+    "keyboard_backlight_up":      "Backlight Up (diverted)",
+    "keyboard_backlight_down":    "Backlight Down (diverted)",
 }
 
 GESTURE_DIRECTION_BUTTONS = (
@@ -48,6 +51,9 @@ PROFILE_BUTTON_NAMES = {
     "gesture_right": "Gesture swipe right",
     "gesture_up":    "Gesture swipe up",
     "gesture_down":  "Gesture swipe down",
+    # 007.4: Diverted backlight keys also appear in profiles
+    "keyboard_backlight_up":   "Backlight Up (diverted)",
+    "keyboard_backlight_down": "Backlight Down (diverted)",
 }
 
 # Maps config button keys to the MouseEvent types they correspond to
@@ -64,6 +70,9 @@ BUTTON_TO_EVENTS = {
     "hscroll_right": ("hscroll_right",),
     "mode_shift":    ("mode_shift_down", "mode_shift_up"),
     "dpi_switch":    ("dpi_switch_down", "dpi_switch_up"),
+    # 007.4: Diverted MX Mechanical Mini backlight keys (opt-in only)
+    "keyboard_backlight_up":      ("keyboard_backlight_up_down", "keyboard_backlight_up_up"),
+    "keyboard_backlight_down":    ("keyboard_backlight_down_down", "keyboard_backlight_down_up"),
 }
 
 DEFAULT_CONFIG = {

@@ -463,6 +463,18 @@ class Engine:
             except Exception:
                 pass
 
+        # 007.4: Make the diverted MX Mechanical Mini backlight key events mappable
+        # They arrive as strings via the gesture callback when diversion is opted in.
+        if isinstance(event, str) and event.startswith("keyboard_backlight_"):
+            mappings = get_active_mappings(self.cfg)
+            action_id = mappings.get(event, "none")
+            if action_id != "none":
+                try:
+                    execute_action(action_id)
+                    self._emit_debug(f"Mapped diverted {event} -> {action_id}")
+                except Exception as exc:
+                    print(f"[Engine] Exception executing action for diverted {event}: {exc}")
+
     def _emit_mapping_snapshot(self, prefix, mappings):
         if not self._debug_events_enabled:
             return
@@ -474,6 +486,9 @@ class Engine:
             "gesture_down",
             "xbutton1",
             "xbutton2",
+            # 007.4: Diverted MX Mechanical Mini backlight keys (opt-in)
+            "keyboard_backlight_up",
+            "keyboard_backlight_down",
         ]
         summary = ", ".join(f"{key}={mappings.get(key, 'none')}" for key in interesting)
         self._emit_debug(f"{prefix}: {summary}")
