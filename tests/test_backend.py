@@ -1273,5 +1273,28 @@ class BackendLoginStartupTests(unittest.TestCase):
         self.assertFalse(backend.startMinimized)
 
 
+class LitraIlluminationBackendTests(unittest.TestCase):
+    """Minimal test coverage for the new Litra Beam illumination Backend methods (008.4)."""
+
+    def _make_backend(self, engine=None):
+        _ensure_qapp()
+        with patch("ui.backend.load_config", return_value=copy.deepcopy(DEFAULT_CONFIG)):
+            return Backend(engine=engine)
+
+    def test_litra_illumination_no_engine_returns_safe_defaults(self):
+        backend = self._make_backend(engine=None)
+        self.assertFalse(backend.setLitraIllumination(True, 75))
+        self.assertEqual(backend.readLitraIllumination(), [None, None])
+
+    def test_litra_illumination_delegates_to_engine(self):
+        fake_engine = _FakeEngine()
+        fake_engine.set_litra_illumination = lambda enabled, brightness=-1: True
+        fake_engine.read_litra_illumination = lambda: (True, 60)
+
+        backend = self._make_backend(engine=fake_engine)
+        self.assertTrue(backend.setLitraIllumination(False, 0))
+        self.assertEqual(backend.readLitraIllumination(), [True, 60])
+
+
 if __name__ == "__main__":
     unittest.main()
