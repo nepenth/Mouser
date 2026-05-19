@@ -1573,7 +1573,8 @@ class Backend(QObject):
     @Slot(result=list)
     def readBacklight(self):
         """Returns [enabled, level] or [None, None]."""
-        hg = getattr(self._engine, "_hid_gesture", None) if self._engine else None
+        hook = getattr(self._engine, "hook", None) if self._engine else None
+        hg = getattr(hook, "_hid_gesture", None) if hook else None
         if hg and hasattr(hg, "read_backlight"):
             enabled, level = hg.read_backlight()
             return [enabled, level]
@@ -1581,7 +1582,8 @@ class Backend(QObject):
 
     @Slot(bool, int, result=bool)
     def setBacklight(self, enabled, level=-1):
-        hg = getattr(self._engine, "_hid_gesture", None) if self._engine else None
+        hook = getattr(self._engine, "hook", None) if self._engine else None
+        hg = getattr(hook, "_hid_gesture", None) if hook else None
         if hg and hasattr(hg, "set_backlight"):
             lvl = None if level < 0 else level
             return hg.set_backlight(bool(enabled), lvl)
@@ -1589,14 +1591,16 @@ class Backend(QObject):
 
     @Slot(result=bool)
     def readFnInversion(self):
-        hg = getattr(self._engine, "_hid_gesture", None) if self._engine else None
+        hook = getattr(self._engine, "hook", None) if self._engine else None
+        hg = getattr(hook, "_hid_gesture", None) if hook else None
         if hg and hasattr(hg, "read_fn_inversion"):
             return hg.read_fn_inversion() or False
         return False
 
     @Slot(bool, result=bool)
     def setFnInversion(self, swap):
-        hg = getattr(self._engine, "_hid_gesture", None) if self._engine else None
+        hook = getattr(self._engine, "hook", None) if self._engine else None
+        hg = getattr(hook, "_hid_gesture", None) if hook else None
         if hg and hasattr(hg, "set_fn_inversion"):
             return hg.set_fn_inversion(bool(swap))
         return False

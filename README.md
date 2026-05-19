@@ -75,6 +75,7 @@ This is the authoritative running log of completed and **accepted** work. Tasks 
 **Quality & Process Improvements**
 - Multiple rounds of sub-agent code review and acceptance criteria validation
 - Significant improvements to pending/timeout handling, logging of host-side changes, and response parsing robustness
+- TASK-001 (P0) accepted and committed: Fix Backend Exposure Bug for Keyboard Methods — corrected the four readBacklight/setBacklight/readFnInversion/setFnInversion delegates in ui/backend.py from erroneous direct `self._engine._hid_gesture` access to the proper `engine.hook._hid_gesture` path (with safe guards). Passed internal code review (design fidelity, consistency, no regressions) and strict Acceptance Criteria validation.
 
 For the detailed current task board, see [docs/TASKS.md](docs/TASKS.md).  
 For overall status and roadmap, see [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).

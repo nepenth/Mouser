@@ -24,8 +24,11 @@ This document contains the current actionable tasks for the Mouser Logitech Devi
 ## Phase 0 – Polish & Quality Gates (High Priority)
 
 ### TASK-001: Fix Backend Exposure Bug for Keyboard Methods
-**Status**: Ready  
+**Status**: Done  
 **Priority**: P0
+
+**Implementation Note**  
+The four methods (`readBacklight`, `setBacklight`, `readFnInversion`, `setFnInversion`) were attempting direct access to the non-existent `self._engine._hid_gesture`. Fixed by using the correct indirection `self._engine.hook._hid_gesture` (with safe getattr guards) matching all other Engine/HID++ access patterns in the codebase. No other changes required for this narrow bugfix.
 
 **Description**  
 The four keyboard middle-path methods added to `ui/backend.py` (`readBacklight`, `setBacklight`, `readFnInversion`, `setFnInversion`) are currently broken. They attempt to access `self._engine._hid_gesture`, which does not exist at that location.
