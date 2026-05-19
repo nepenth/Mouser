@@ -19,7 +19,61 @@ This document contains the current actionable tasks for the Mouser Logitech Devi
 - Deliver the actual user-facing Keyboard experience (UI + settings).
 - Begin support for the Litra Beam.
 
+**NEW (2026-05-19):** Active phase is the "Final Architecture Push + Linux Workstation Testing Readiness" (Tasks A–G). Goal: make the mature FeatureHandler architecture (post TASK-009) fully exposed for Python testing on Linux, complete any UI gaps for keyboard/Litra, deliver practical validation harness + docs so the user can exercise everything on their Linux workstation immediately. See detailed charter in PM session notes. Work proceeds via gated micro-chunks only.
+
 ---
+
+## Phase: Complete Architecture + Linux Workstation Testing Readiness (A–G)
+
+**Overall Goal**  
+Finish the core architecture work (full thin Backend exposure for all extracted handlers) + remaining middle-path / Litra polish so the app is in a clean, documented, testable state on Linux. The user can run Mouser, exercise keyboard middle-path + new handlers via Python REPL/scripts, and have clear smoke-test paths + docs.
+
+**Status**: In Progress (micro-chunks under A started)
+
+### Task A: Complete Backend Exposure for New Architecture Handlers
+**Status**: In Progress (A.1 complete; A.2 accepted+committed)
+
+**Implementation Note (A.2)**  
+First coding micro-chunk of the final phase. Added 10 thin @Slot methods in `ui/backend.py` (setReportRate/readReportRate, readOnboardProfile/switchOnboardProfile, read/setDeviceName, read/setDeviceFriendlyName, setLedState/readLedState) immediately after the prior 3 newest exposures. All follow the exact established thin-delegate pattern (hasattr guard + safe defaults, explicit "Host-side only, temporary" docstrings in the style of setLitraIllumination / getRemainingPairingSlots). Added NewArchitectureHandlersBackendTestsA2 test class (safe-defaults + delegation cases for the batch; 2/2 green via unittest). Confirmed directly callable for Linux Python testing. Gated process: coding + parallel review/AC validation (tests as objective evidence) passed. Local commit + push executed. README Completed Work Log and this file updated. This slice makes the majority of the 19+ FeatureHandler-backed capabilities (report rate, onboard profiles, names, LED) immediately exercisable from Python on the target workstation without QML.
+
+**Description** (summary)  
+Expose thin, Python-callable (QML-friendly) slots in `ui/backend.py` for *all* the new public Engine methods backed by the extracted RecommendedThinHandler / UltraThinHandler architecture. This is the highest-leverage step for Linux testing readiness.
+
+**Requirements**
+- One consistent thin-delegate pattern for reads/writes (with safe no-engine behavior).
+- Clear docstrings repeating the "host-side only / temporary" discipline.
+- Batchable, reviewable additions + corresponding test coverage in `tests/test_backend.py`.
+- No impact on existing slots or QML surfaces.
+
+**Acceptance Criteria**
+- Every thin public method on Engine from the 009 extractions (report_rate through power_management, device identity, etc.) has a matching Backend @Slot (or @Property where appropriate).
+- All new slots are directly callable from Python (REPL / test scripts / debug surface) on Linux and return safe values or delegate correctly.
+- New focused test class(es) in test_backend.py cover the no-engine + delegation cases (modeled on LitraIlluminationBackendTests).
+- Zero regressions in existing Backend functionality or tests.
+
+**Validation Steps**
+- Run the dedicated Backend tests for the new slots; all green.
+- In a Python shell on Linux (with or without hardware): from ui.backend import ... instantiate and call the new methods; observe safe behavior + (when hardware present) real delegation through handlers.
+- Full test suite still passes.
+
+**Related Files**
+- `ui/backend.py`
+- `tests/test_backend.py`
+- `core/engine.py` (source of the thin methods)
+
+---
+
+### Task B–G (see PM charter for full Definitions / AC / Validation)
+**B**: Basic Keyboard Middle-Path UI (complete any remaining from 005)
+**C**: Per-Device Middle-Path Settings (full coverage + Linux/KVM refinements)
+**D**: Safe Selective Key Diversion for Backlight Keys (end-to-end + Linux evdev validation)
+**E**: Litra Beam Initial Integration & Controls (gaps from 008 closed)
+**F**: Linux Workstation Validation Harness & Smoke Tests (new practical scripts + checklists)
+**G**: Architecture User Guide / "How to Test on Linux" Documentation (targeted, actionable)
+
+---
+
+
 
 ## Phase 0 – Polish & Quality Gates (High Priority)
 

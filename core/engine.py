@@ -130,6 +130,12 @@ try:
 except Exception:
     RemainingPairingHandler = None
 
+# 009.51 (fresh): ForceSensingButtonHandler import (guarded)
+try:
+    from core.devices.force_sensing_button_handler import ForceSensingButtonHandler
+except Exception:
+    ForceSensingButtonHandler = None
+
 # 009.37: PowerManagementHandler import (guarded)
 try:
     from core.devices.power_management_handler import PowerManagementHandler
@@ -1361,6 +1367,21 @@ class Engine:
             _fallback
         )
 
+    # 009.51 (fresh): thin public Force Sensing Button wrapper (read-focused)
+    def get_force_sensing_buttons(self):
+        """Returns force sensing button information (raw or structured) or None. Host-side only, temporary."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "get_force_sensing_buttons"):
+                return hg.get_force_sensing_buttons()
+            return None
+
+        self._maybe_attach_force_sensing_button_handler()
+        return self._delegate_or_fallback(
+            "_force_sensing_button_device", "force_sensing_button", "handle_read",
+            _fallback
+        )
+
     # 009.37: thin public Power Management wrappers (host-side only, temporary)
     def read_power_management(self):
         """Read current power management settings / profile. Host-side only, temporary."""
@@ -1801,6 +1822,28 @@ class Engine:
             )
             if dev:
                 self._remaining_pairing_device = dev
+
+    # 009.51 (fresh): minimal lazy attachment for ForceSensingButtonHandler
+    def _maybe_attach_force_sensing_button_handler(self):
+        if not (ForceSensingButtonHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_force_sensing_button_idx", None) is None:
+            return
+
+        if not hasattr(self, "_force_sensing_button_device") or self._force_sensing_button_device is None:
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=ForceSensingButtonHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_force_sensing_button_idx",
+                handler_name="force_sensing_button",
+            )
+            if dev:
+                self._force_sensing_button_device = dev
 
     # 009.37: minimal lazy attachment for PowerManagementHandler (same pattern)
     def _maybe_attach_power_management_handler(self):
