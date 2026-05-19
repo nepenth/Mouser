@@ -124,6 +124,12 @@ try:
 except Exception:
     DeviceTypeHandler = None
 
+# 009.49 (fresh): RemainingPairingHandler import (guarded)
+try:
+    from core.devices.remaining_pairing_handler import RemainingPairingHandler
+except Exception:
+    RemainingPairingHandler = None
+
 # 009.37: PowerManagementHandler import (guarded)
 try:
     from core.devices.power_management_handler import PowerManagementHandler
@@ -1340,6 +1346,21 @@ class Engine:
             _fallback
         )
 
+    # 009.49 (fresh): thin public Remaining Pairing wrapper (read-only)
+    def get_remaining_pairing_slots(self):
+        """Returns the number of remaining pairing slots on the receiver, or None. Host-side only, temporary."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "get_remaining_pairing_slots"):
+                return hg.get_remaining_pairing_slots()
+            return None
+
+        self._maybe_attach_remaining_pairing_handler()
+        return self._delegate_or_fallback(
+            "_remaining_pairing_device", "remaining_pairing", "handle_read",
+            _fallback
+        )
+
     # 009.37: thin public Power Management wrappers (host-side only, temporary)
     def read_power_management(self):
         """Read current power management settings / profile. Host-side only, temporary."""
@@ -1758,6 +1779,28 @@ class Engine:
             )
             if dev:
                 self._device_type_device = dev
+
+    # 009.49 (fresh): minimal lazy attachment for RemainingPairingHandler
+    def _maybe_attach_remaining_pairing_handler(self):
+        if not (RemainingPairingHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_remaining_pairing_idx", None) is None:
+            return
+
+        if not hasattr(self, "_remaining_pairing_device") or self._remaining_pairing_device is None:
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=RemainingPairingHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_remaining_pairing_idx",
+                handler_name="remaining_pairing",
+            )
+            if dev:
+                self._remaining_pairing_device = dev
 
     # 009.37: minimal lazy attachment for PowerManagementHandler (same pattern)
     def _maybe_attach_power_management_handler(self):

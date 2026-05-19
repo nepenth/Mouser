@@ -632,6 +632,7 @@ FEAT_LED_EFFECTS        = 0x1A02  # Placeholder for LED Effects (patterns/modes 
 FEAT_DEVICE_MODE        = 0x1B00  # Placeholder for Device Mode / Wireless Mode; replace with real ID from device dumps
 FEAT_WIRELESS_POWER     = 0x1C00  # Placeholder for Wireless Power / RF Power Management; replace with real ID from device dumps
 FEAT_POWER_MANAGEMENT   = 0x1C01  # Placeholder for Power Management (beyond Sleep Timeout / Wireless Power); replace with real ID from device dumps
+FEAT_REMAINING_PAIRING  = 0x1DF0  # Remaining Pairing slots (standard HID++ feature)
 FEAT_WIRELESS_CHANNEL   = 0x1D00  # Placeholder for Wireless Channel / RF Channel; replace with real ID from device dumps
 FEAT_WIRELESS_STATUS    = 0x1F00  # Placeholder for Wireless Status (link quality / RSSI); replace with real ID from device dumps
 FEAT_SLEEP_TIMEOUT      = 0x1E00  # Placeholder for Sleep Timeout / Power Save Timeout; replace with real ID from device dumps
@@ -818,6 +819,7 @@ class HidGestureListener:
         self._device_mode_idx = None        # 0x1B00 - Device Mode / Wireless Mode (placeholder)
         self._wireless_power_idx = None     # 0x1C00 - Wireless Power / RF Power (placeholder)
         self._power_management_idx = None   # 0x1C01 - Power Management (beyond Sleep Timeout) (placeholder)
+        self._remaining_pairing_idx = None  # Remaining Pairing slots
         self._wireless_channel_idx = None   # 0x1D00 - Wireless Channel / RF Channel (placeholder)
         self._sleep_timeout_idx = None      # 0x1E00 - Sleep Timeout / Power Save Timeout (placeholder)
         self._wireless_status_idx = None    # 0x1F00 - Wireless Status (placeholder)
@@ -944,6 +946,8 @@ class HidGestureListener:
             features.append({"feature_id": FEAT_WIRELESS_POWER, "index": self._wireless_power_idx})
         if self._power_management_idx is not None:
             features.append({"feature_id": FEAT_POWER_MANAGEMENT, "index": self._power_management_idx})
+        if self._remaining_pairing_idx is not None:
+            features.append({"feature_id": FEAT_REMAINING_PAIRING, "index": self._remaining_pairing_idx})
         if self._wireless_channel_idx is not None:
             features.append({"feature_id": FEAT_WIRELESS_CHANNEL, "index": self._wireless_channel_idx})
         if self._sleep_timeout_idx is not None:
@@ -1002,6 +1006,8 @@ class HidGestureListener:
             features["WIRELESS_POWER (0x1C00)"] = f"index 0x{self._wireless_power_idx:02X}"
         if self._power_management_idx is not None:
             features["POWER_MANAGEMENT (0x1C01)"] = f"index 0x{self._power_management_idx:02X}"
+        if self._remaining_pairing_idx is not None:
+            features["REMAINING_PAIRING"] = f"index 0x{self._remaining_pairing_idx:02X}"
         if self._wireless_channel_idx is not None:
             features["WIRELESS_CHANNEL (0x1D00)"] = f"index 0x{self._wireless_channel_idx:02X}"
         if self._sleep_timeout_idx is not None:
@@ -1414,6 +1420,16 @@ class HidGestureListener:
         print(f"[HidGesture] Power Management set (host-side, temporary) -> {'OK' if success else 'FAILED'}")
         return success
 
+    # 009.49 (fresh): Remaining Pairing slots (read-only, tiny isolated feature)
+    def get_remaining_pairing_slots(self):
+        """Returns the number of remaining pairing slots, or None if the feature is not available. Host-side only, temporary."""
+        if self._remaining_pairing_idx is None or self._dev is None:
+            return None
+        resp = self._request(self._remaining_pairing_idx, 0x00, [])
+        if resp and resp[4]:
+            return resp[4][0] if resp[4] else None
+        return None
+
     # 009.16: Basic LED control skeleton (host-side only, temporary)
     def set_led_state(self, enabled: bool, brightness: int | None = None):
         """Host-side LED on/off + optional brightness (0-100). Temporary (lost on reconnect/host switch)."""
@@ -1687,6 +1703,12 @@ class HidGestureListener:
         if pm_fi:
             self._power_management_idx = pm_fi
             print(f"[HidGesture] Found POWER_MANAGEMENT @0x{pm_fi:02X}")
+
+        # Remaining Pairing slots — 009.49 (fresh)
+        rp_fi = self._find_feature(FEAT_REMAINING_PAIRING)
+        if rp_fi:
+            self._remaining_pairing_idx = rp_fi
+            print(f"[HidGesture] Found REMAINING_PAIRING @0x{rp_fi:02X}")
 
         # Wireless Channel / RF Channel — 009.20
         wc_fi = self._find_feature(FEAT_WIRELESS_CHANNEL)
@@ -2513,6 +2535,7 @@ class HidGestureListener:
             self._device_mode_idx = None
             self._wireless_power_idx = None
             self._power_management_idx = None
+            self._remaining_pairing_idx = None
             self._wireless_channel_idx = None
             self._sleep_timeout_idx = None
             self._wireless_status_idx = None
@@ -2911,6 +2934,7 @@ class HidGestureListener:
             self._device_mode_idx = None
             self._wireless_power_idx = None
             self._power_management_idx = None
+            self._remaining_pairing_idx = None
             self._wireless_channel_idx = None
             self._sleep_timeout_idx = None
             self._wireless_status_idx = None
