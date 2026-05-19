@@ -800,6 +800,7 @@ class HidGestureListener:
         self._backlight2_idx = None         # 0x1982 - BACKLIGHT2 (MX Mechanical Mini etc.)
         self._fn_inversion_idx = None       # 0x40A3 - K375S FN inversion
         self._litra_illumination_idx = None # 0x1A00 - Litra Beam illumination (placeholder ID)
+        self._device_name_idx = None        # 0x0005 - Device Name / Friendly Name
         self._pending_smart_shift = None
         self._smart_shift_result = None
         self._smart_shift_call_lock = threading.Lock()
@@ -907,6 +908,8 @@ class HidGestureListener:
             features.append({"feature_id": FEAT_BACKLIGHT2, "index": self._backlight2_idx})
         if self._fn_inversion_idx is not None:
             features.append({"feature_id": FEAT_K375S_FN_INVERSION, "index": self._fn_inversion_idx})
+        if self._device_name_idx is not None:
+            features.append({"feature_id": FEAT_DEVICE_NAME, "index": self._device_name_idx})
         return tuple(features)
 
     def dump_device_info(self):
@@ -943,6 +946,8 @@ class HidGestureListener:
             features["BACKLIGHT2 (0x1982)"] = f"index 0x{self._backlight2_idx:02X}"
         if self._fn_inversion_idx is not None:
             features["K375S_FN_INVERSION (0x40A3)"] = f"index 0x{self._fn_inversion_idx:02X}"
+        if self._device_name_idx is not None:
+            features["DEVICE_NAME (0x0005)"] = f"index 0x{self._device_name_idx:02X}"
 
         controls = []
         for c in self._last_controls:
@@ -1186,6 +1191,10 @@ class HidGestureListener:
         name = bytes(name_bytes).decode("ascii", errors="replace").strip("\x00").strip()
         return name if name else None
 
+    def read_device_name(self):
+        """Public wrapper for device/friendly name read (009.15)."""
+        return self._query_device_name()
+
     def _discover_common_features(self):
         """Discover DPI, battery, wheel (including ratchet on 0x2121), onboard profiles (0x8100),
         and report rate.  Safe to call on any opened HID++ device, including gaming mice
@@ -1257,6 +1266,12 @@ class HidGestureListener:
         if litra_fi:
             self._litra_illumination_idx = litra_fi
             print(f"[HidGesture] Found Litra illumination @0x{litra_fi:02X}")
+
+        # Device Name / Friendly Name (common identity feature)
+        dn_fi = self._find_feature(FEAT_DEVICE_NAME)
+        if dn_fi:
+            self._device_name_idx = dn_fi
+            print(f"[HidGesture] Found DEVICE_NAME @0x{dn_fi:02X}")
 
         fn_fi = self._find_feature(FEAT_K375S_FN_INVERSION)
         if fn_fi:
@@ -2057,6 +2072,7 @@ class HidGestureListener:
             self._backlight2_idx = None
             self._fn_inversion_idx = None
             self._litra_illumination_idx = None
+            self._device_name_idx = None
             self._gesture_cid = DEFAULT_GESTURE_CID
             self._gesture_candidates = list(
                 getattr(device_spec, "gesture_cids", ()) or DEFAULT_GESTURE_CIDS
@@ -2444,6 +2460,7 @@ class HidGestureListener:
             self._backlight2_idx = None
             self._fn_inversion_idx = None
             self._litra_illumination_idx = None
+            self._device_name_idx = None
             self._pending_battery = None
             self._pending_dpi = None
             self._dpi_result = None

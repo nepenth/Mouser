@@ -64,6 +64,12 @@ try:
 except Exception:
     OnboardProfilesHandler = None
 
+# 009.15: DeviceNameHandler import (guarded)
+try:
+    from core.devices.device_name_handler import DeviceNameHandler
+except Exception:
+    DeviceNameHandler = None
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -987,6 +993,21 @@ class Engine:
             _fallback, profile_index
         )
 
+    # 009.15: thin public Device Name wrappers (read-only for this micro-chunk)
+    def read_device_name(self):
+        """Read current device/friendly name. Host-side only, temporary."""
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg and hasattr(hg, "read_device_name"):
+                return hg.read_device_name()
+            return None
+
+        self._maybe_attach_device_name_handler()
+        return self._delegate_or_fallback(
+            "_device_name_device", "device_name", "handle_read",
+            _fallback
+        )
+
     # ------------------------------------------------------------------
     # Litra Beam basic illumination (008.2 skeleton, host-side only, temporary)
     # ------------------------------------------------------------------
@@ -1155,6 +1176,28 @@ class Engine:
             )
             if dev:
                 self._onboard_profiles_device = dev
+
+    # 009.15: minimal lazy attachment for DeviceNameHandler (same pattern)
+    def _maybe_attach_device_name_handler(self):
+        if not (DeviceNameHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_device_name_idx", None) is None:
+            return
+
+        if not hasattr(self, "_device_name_device") or self._device_name_device is None:
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=DeviceNameHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_device_name_idx",
+                handler_name="device_name",
+            )
+            if dev:
+                self._device_name_device = dev
 
     # 009.7: tiny reusable helper for the common “delegate or fallback” pattern
     def _delegate_or_fallback(self, device_attr: str, handler_name: str, handler_method: str, fallback_callable, *args, **kwargs):
