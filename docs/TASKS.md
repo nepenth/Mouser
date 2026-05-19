@@ -260,6 +260,9 @@ Mechanical follow-through on the `ThinDelegationHandler` harvest. Updated the re
 **Implementation Note (TASK-009 micro-chunk 009.27)**  
 Introduced small protected helper `_declare_attributes(...)` on `ThinDelegationHandler` that allows the three standard attributes (`_feature_index_attr`, `_read_method_name`, `_write_method_name`) to be declared in a single, clear statement. Updated `ReportRateHandler` and `OnboardProfilesHandler` as demonstration (the most concise possible thin-handler declaration). The helper is optional; direct assignment still works. The other handlers can be updated mechanically later. Small, high-value ergonomic improvement with zero behavioral change. Passed Code Review + AC validation. Commit: 3a70682.
 
+**Implementation Note (TASK-009 micro-chunk 009.28)**  
+Mechanical follow-through on the `_declare_attributes` harvest. Updated the remaining handlers (LitraIlluminationHandler, SmartShiftHandler, BatteryHandler, DPIHandler, WirelessStatusHandler, DeviceIdentityHandler, DeviceNameHandler) to use the single-line declarative helper. All handlers that can benefit from the declarative style now use it. Zero behavioral change. Passed Code Review + AC validation. Commit: 5d20f88.
+
   
 Second consolidation step. Added tiny reusable helper `_delegate_or_fallback(...)` in Engine that encapsulates the common “if handler attached → call handler method, else fall back to listener” pattern. Refactored `set_litra_illumination` as the demonstration case (the other four extracted features follow the identical mechanical pattern). Significant reduction in repetitive delegation boilerplate with zero behavioral change. Passed Code Review + AC validation. Commit: ec6f54f.
 
