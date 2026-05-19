@@ -816,22 +816,20 @@ class Engine:
         settings["smart_shift_threshold"] = threshold
         save_config(self.cfg)
 
-        # 009.3: optional delegation to SmartShiftHandler (full backward compatibility fallback)
-        self._maybe_attach_smart_shift_handler()
-        if SmartShiftHandler is not None and hasattr(self, "_smart_shift_device") and self._smart_shift_device:
-            handler = self._smart_shift_device.get_handler("smart_shift")
-            if handler:
-                result = handler.handle_write(mode, smart_shift_enabled, threshold)
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg:
+                result = hg.set_smart_shift(mode, smart_shift_enabled, threshold)
                 print(f"[Engine] set_smart_shift -> {'OK' if result else 'FAILED'}")
                 return result
+            print("[Engine] set_smart_shift: No HID++ connection — not applied")
+            return False
 
-        hg = self.hook._hid_gesture
-        if hg:
-            result = hg.set_smart_shift(mode, smart_shift_enabled, threshold)
-            print(f"[Engine] set_smart_shift -> {'OK' if result else 'FAILED'}")
-            return result
-        print("[Engine] set_smart_shift: No HID++ connection — not applied")
-        return False
+        self._maybe_attach_smart_shift_handler()
+        return self._delegate_or_fallback(
+            "_smart_shift_device", "smart_shift", "handle_write",
+            _fallback, mode, smart_shift_enabled, threshold
+        )
 
     @property
     def smart_shift_supported(self):
@@ -840,17 +838,17 @@ class Engine:
 
     def read_smart_shift(self):
         """Read current SmartShift state from device."""
-        # 009.3: optional delegation to SmartShiftHandler (full backward compatibility fallback)
-        self._maybe_attach_smart_shift_handler()
-        if SmartShiftHandler is not None and hasattr(self, "_smart_shift_device") and self._smart_shift_device:
-            handler = self._smart_shift_device.get_handler("smart_shift")
-            if handler:
-                return handler.handle_read()
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg:
+                return hg.read_smart_shift()
+            return None
 
-        hg = self.hook._hid_gesture
-        if hg:
-            return hg.read_smart_shift()
-        return None
+        self._maybe_attach_smart_shift_handler()
+        return self._delegate_or_fallback(
+            "_smart_shift_device", "smart_shift", "handle_read",
+            _fallback
+        )
 
     # ------------------------------------------------------------------
     # Keyboard middle-path (MX Mechanical Mini etc.) — host-side only, temporary
@@ -927,30 +925,32 @@ class Engine:
     # 009.5: thin public Report Rate wrappers (delegation + full fallback)
     def set_report_rate(self, rate):
         """Set report rate (0x8060). Temporary (lost on reconnect/host switch)."""
-        self._maybe_attach_report_rate_handler()
-        if ReportRateHandler is not None and hasattr(self, "_report_rate_device") and self._report_rate_device:
-            handler = self._report_rate_device.get_handler("report_rate")
-            if handler:
-                return handler.handle_write(rate)
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg:
+                return hg.set_report_rate(rate) if hasattr(hg, "set_report_rate") else False
+            print("[Engine] set_report_rate: No HID++ connection — not applied")
+            return False
 
-        hg = self.hook._hid_gesture
-        if hg:
-            return hg.set_report_rate(rate) if hasattr(hg, "set_report_rate") else False
-        print("[Engine] set_report_rate: No HID++ connection — not applied")
-        return False
+        self._maybe_attach_report_rate_handler()
+        return self._delegate_or_fallback(
+            "_report_rate_device", "report_rate", "handle_write",
+            _fallback, rate
+        )
 
     def read_report_rate(self):
         """Read current report rate. Host-side only, temporary."""
-        self._maybe_attach_report_rate_handler()
-        if ReportRateHandler is not None and hasattr(self, "_report_rate_device") and self._report_rate_device:
-            handler = self._report_rate_device.get_handler("report_rate")
-            if handler:
-                return handler.handle_read()
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg:
+                return hg.read_report_rate() if hasattr(hg, "read_report_rate") else None
+            return None
 
-        hg = self.hook._hid_gesture
-        if hg:
-            return hg.read_report_rate() if hasattr(hg, "read_report_rate") else None
-        return None
+        self._maybe_attach_report_rate_handler()
+        return self._delegate_or_fallback(
+            "_report_rate_device", "report_rate", "handle_read",
+            _fallback
+        )
 
     # ------------------------------------------------------------------
     # Litra Beam basic illumination (008.2 skeleton, host-side only, temporary)
