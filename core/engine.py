@@ -752,6 +752,42 @@ class Engine:
         hg = self.hook._hid_gesture
         return hg.smart_shift_supported if hg else False
 
+    # ------------------------------------------------------------------
+    # Keyboard middle-path (MX Mechanical Mini etc.) — host-side only, temporary
+    # ------------------------------------------------------------------
+
+    def read_backlight(self):
+        """Returns [enabled, level] or [None, None]. Host-side only, temporary (lost on reconnect/host switch)."""
+        hg = self.hook._hid_gesture
+        if hg:
+            return hg.read_backlight()
+        return [None, None]
+
+    def set_backlight(self, enabled, level=-1):
+        """Host-side backlight control. Temporary (lost on reconnect/host switch)."""
+        hg = self.hook._hid_gesture
+        if hg:
+            lvl = None if level < 0 else level
+            return hg.set_backlight(bool(enabled), lvl)
+        print("[Engine] set_backlight: No HID++ connection — not applied")
+        return False
+
+    def read_fn_inversion(self):
+        """Returns current Fn/Fx swap state or False/None. Host-side only, temporary."""
+        hg = self.hook._hid_gesture
+        if hg:
+            val = hg.read_fn_inversion()
+            return val if val is not None else False
+        return False
+
+    def set_fn_inversion(self, swap):
+        """Host-side FN inversion toggle. Temporary (lost on reconnect/host switch)."""
+        hg = self.hook._hid_gesture
+        if hg:
+            return hg.set_fn_inversion(bool(swap))
+        print("[Engine] set_fn_inversion: No HID++ connection — not applied")
+        return False
+
     def reload_mappings(self):
         """
         Called by the UI when the user changes a mapping.

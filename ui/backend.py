@@ -1572,37 +1572,27 @@ class Backend(QObject):
 
     @Slot(result=list)
     def readBacklight(self):
-        """Returns [enabled, level] or [None, None]."""
-        hook = getattr(self._engine, "hook", None) if self._engine else None
-        hg = getattr(hook, "_hid_gesture", None) if hook else None
-        if hg and hasattr(hg, "read_backlight"):
-            enabled, level = hg.read_backlight()
-            return [enabled, level]
+        """Returns [enabled, level] or [None, None]. Delegates to Engine (host-side only, temporary)."""
+        if self._engine:
+            return self._engine.read_backlight()
         return [None, None]
 
     @Slot(bool, int, result=bool)
     def setBacklight(self, enabled, level=-1):
-        hook = getattr(self._engine, "hook", None) if self._engine else None
-        hg = getattr(hook, "_hid_gesture", None) if hook else None
-        if hg and hasattr(hg, "set_backlight"):
-            lvl = None if level < 0 else level
-            return hg.set_backlight(bool(enabled), lvl)
+        if self._engine:
+            return self._engine.set_backlight(bool(enabled), level)
         return False
 
     @Slot(result=bool)
     def readFnInversion(self):
-        hook = getattr(self._engine, "hook", None) if self._engine else None
-        hg = getattr(hook, "_hid_gesture", None) if hook else None
-        if hg and hasattr(hg, "read_fn_inversion"):
-            return hg.read_fn_inversion() or False
+        if self._engine:
+            return self._engine.read_fn_inversion()
         return False
 
     @Slot(bool, result=bool)
     def setFnInversion(self, swap):
-        hook = getattr(self._engine, "hook", None) if self._engine else None
-        hg = getattr(hook, "_hid_gesture", None) if hook else None
-        if hg and hasattr(hg, "set_fn_inversion"):
-            return hg.set_fn_inversion(bool(swap))
+        if self._engine:
+            return self._engine.set_fn_inversion(bool(swap))
         return False
 
     def _onEngineConnectionChange(self, connected):
