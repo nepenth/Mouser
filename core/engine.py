@@ -959,21 +959,20 @@ class Engine:
     def set_litra_illumination(self, enabled, brightness=-1):
         """Host-side Litra Beam illumination control (on/off + brightness 0-100).
         Temporary (lost on reconnect/host switch)."""
-        # 009.1: lazy attachment of FeatureHandler (only for Litra devices, zero impact otherwise)
         self._maybe_attach_litra_handler()
 
-        if LitraIlluminationHandler is not None and hasattr(self, "_litra_device") and self._litra_device:
-            handler = self._litra_device.get_handler("litra_illumination")
-            if handler:
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg:
                 lvl = None if brightness < 0 else brightness
-                return handler.handle_write(bool(enabled), lvl)
+                return hg.set_litra_illumination(bool(enabled), lvl)
+            print("[Engine] set_litra_illumination: No HID++ connection — not applied")
+            return False
 
-        hg = self.hook._hid_gesture
-        if hg:
-            lvl = None if brightness < 0 else brightness
-            return hg.set_litra_illumination(bool(enabled), lvl)
-        print("[Engine] set_litra_illumination: No HID++ connection — not applied")
-        return False
+        return self._delegate_or_fallback(
+            "_litra_device", "litra_illumination", "handle_write",
+            _fallback, bool(enabled), None if brightness < 0 else brightness
+        )
 
     def read_litra_illumination(self):
         """Returns (enabled, brightness) or (None, None). Host-side only, temporary."""
@@ -1099,6 +1098,22 @@ class Engine:
             )
             if dev:
                 self._report_rate_device = dev
+
+    # 009.7: tiny reusable helper for the common “delegate or fallback” pattern
+    def _delegate_or_fallback(self, device_attr: str, handler_name: str, handler_method: str, fallback_callable, *args, **kwargs):
+        """Encapsulates the repetitive delegate-to-handler-or-call-fallback logic.
+
+        device_attr: e.g. "_litra_device"
+        handler_name: e.g. "litra_illumination"
+        handler_method: e.g. "handle_write"
+        fallback_callable: the original listener call (e.g. lambda: hg.set_xxx(...))
+        """
+        device = getattr(self, device_attr, None)
+        if device:
+            handler = device.get_handler(handler_name)
+            if handler and hasattr(handler, handler_method):
+                return getattr(handler, handler_method)(*args, **kwargs)
+        return fallback_callable(*args, **kwargs) if fallback_callable else None
 
     def reload_mappings(self):
         """
