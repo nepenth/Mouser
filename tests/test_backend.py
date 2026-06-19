@@ -1398,6 +1398,12 @@ class LitraIlluminationBackendTests(unittest.TestCase):
         self.assertTrue(backend.setLitraIllumination(False, 0))
         self.assertEqual(backend.readLitraIllumination(), [True, 60])
 
+    def test_has_litra_illumination_supported_uses_engine_capability(self):
+        fake_engine = _FakeEngine()
+        fake_engine.has_litra_illumination_control = lambda: True
+        backend = self._make_backend(engine=fake_engine)
+        self.assertTrue(backend.hasLitraIlluminationSupported)
+
 
 class NewArchitectureHandlersBackendTestsA2(unittest.TestCase):
     """Tests for the first batch of thin Backend delegates for extracted FeatureHandlers (A.2).

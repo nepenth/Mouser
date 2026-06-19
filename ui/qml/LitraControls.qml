@@ -11,7 +11,7 @@ import "Theme.js" as Theme
 
 Item {
     id: root
-    visible: backend.hasLitraBeam
+    visible: backend.hasLitraIlluminationSupported
     implicitHeight: content.implicitHeight + 32
     Layout.fillWidth: true
 

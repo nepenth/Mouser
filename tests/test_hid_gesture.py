@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from core import hid_gesture
+from core.config import DEFAULT_CONFIG
 
 
 class HidModuleImportTests(unittest.TestCase):
@@ -955,6 +956,52 @@ class MXMechanicalMiniMiddlePathTests(unittest.TestCase):
             self.assertTrue(self.listener._fn_result)
             self.assertIsNone(self.listener._pending_fn)
 
+    def test_candidate_sort_prefers_mouse_before_keyboard(self):
+        """Multi-receiver setups should try mouse candidates before keyboard."""
+        listener = hid_gesture.HidGestureListener()
+        infos = [
+            {
+                "product_id": 0xB367,
+                "product_string": "MX Mechanical Mini",
+                "usage_page": 0xFF00,
+                "usage": 0x0001,
+                "source": "hidapi",
+            },
+            {
+                "product_id": 0xC099,
+                "product_string": "G502 X LIGHTSPEED",
+                "usage_page": 0xFF00,
+                "usage": 0x0001,
+                "source": "hidapi",
+            },
+        ]
+
+        def _sort_key(info):
+            pid = int(info.get("product_id", 0) or 0)
+            name = (info.get("product_string") or "").lower()
+            kind = hid_gesture.classify_device_kind(pid, name)
+            kind_prio = {"mouse": 0, "unknown": 1, "other": 2, "keyboard": 3}.get(kind, 4)
+            is_receiver = 1 if "receiver" in name else 0
+            return (kind_prio, is_receiver, name)
+
+        infos.sort(key=_sort_key)
+        self.assertEqual(infos[0]["product_string"], "G502 X LIGHTSPEED")
+
+    def test_discover_common_features_populates_litra_illumination_index(self):
+        """Litra ILLUMINATION uses HID++ 0x1990 (Solaar), not PRESENTER_CONTROL 0x1A00."""
+        listener = hid_gesture.HidGestureListener()
+        listener._dev = Mock()
+
+        def _find_feature(feature_id):
+            if feature_id == hid_gesture.FEAT_LITRA_ILLUMINATION:
+                return 0x0D
+            return None
+
+        with patch.object(listener, "_find_feature", side_effect=_find_feature):
+            listener._discover_common_features()
+
+        self.assertEqual(listener._litra_illumination_idx, 0x0D)
+
     def test_try_connect_keyboard_short_circuits_reprog_and_divert(self):
         """Keyboard with REPROG must still skip reprog walk + gesture diversion."""
         listener = hid_gesture.HidGestureListener()
@@ -1007,6 +1054,80 @@ class MXMechanicalMiniMiddlePathTests(unittest.TestCase):
         self.assertTrue(info.capability_inventory.keyboard_device)
         self.assertEqual(info.gesture_cids, ())
         self.assertFalse(info.capability_inventory.has_reprog_controls)
+
+
+class KeyboardHostReplayTests(unittest.TestCase):
+    """Engine replays per-device host-side keyboard settings on HID++ reconnect."""
+
+    def _make_engine(self, device_key="B367"):
+        import copy
+        from core.engine import Engine
+        from tests.test_smart_shift import _FakeAppDetector, _FakeMouseHook
+
+        cfg = copy.deepcopy(DEFAULT_CONFIG)
+        cfg.setdefault("devices", {})[device_key] = {
+            "keyboard_middle_path": {
+                "allow_host_backlight": True,
+                "allow_fn_inversion": True,
+                "host_backlight_enabled": True,
+                "host_backlight_level": 40,
+                "host_fn_inversion": True,
+            }
+        }
+        with (
+            patch("core.engine.MouseHook", _FakeMouseHook),
+            patch("core.engine.AppDetector", _FakeAppDetector),
+            patch("core.engine.load_config", return_value=cfg),
+            patch("core.engine.save_config"),
+        ):
+            return Engine()
+
+    def test_replay_saved_keyboard_host_settings(self):
+        engine = self._make_engine()
+        hg = Mock()
+        hg.connected_device = SimpleNamespace(key="B367", product_id=0xB367)
+        hg._backlight2_idx = 0x0A
+        hg._fn_inversion_idx = 0x0B
+        hg.set_backlight.return_value = True
+        hg.set_fn_inversion.return_value = True
+        engine.hook._hid_gesture = hg
+
+        self.assertTrue(engine._replay_saved_keyboard_host_settings(hg))
+        hg.set_backlight.assert_called_once_with(True, 40)
+        hg.set_fn_inversion.assert_called_once_with(True)
+
+    def test_replay_skips_when_allow_host_flags_disabled(self):
+        import copy
+        from core.engine import Engine
+        from tests.test_smart_shift import _FakeAppDetector, _FakeMouseHook
+
+        cfg = copy.deepcopy(DEFAULT_CONFIG)
+        cfg.setdefault("devices", {})["B367"] = {
+            "keyboard_middle_path": {
+                "allow_host_backlight": False,
+                "allow_fn_inversion": False,
+                "host_backlight_enabled": True,
+                "host_backlight_level": 40,
+                "host_fn_inversion": True,
+            }
+        }
+        with (
+            patch("core.engine.MouseHook", _FakeMouseHook),
+            patch("core.engine.AppDetector", _FakeAppDetector),
+            patch("core.engine.load_config", return_value=cfg),
+            patch("core.engine.save_config"),
+        ):
+            engine = Engine()
+
+        hg = Mock()
+        hg.connected_device = SimpleNamespace(key="B367", product_id=0xB367)
+        hg._backlight2_idx = 0x0A
+        hg._fn_inversion_idx = 0x0B
+        engine.hook._hid_gesture = hg
+
+        self.assertTrue(engine._replay_saved_keyboard_host_settings(hg))
+        hg.set_backlight.assert_not_called()
+        hg.set_fn_inversion.assert_not_called()
 
 
 if __name__ == "__main__":

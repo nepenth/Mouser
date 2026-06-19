@@ -869,6 +869,14 @@ class Backend(QObject):
         name = (self._device_display_name or "").lower()
         return "litra" in name
 
+    @Property(bool, notify=hidFeaturesReadyChanged)
+    def hasLitraIlluminationSupported(self):
+        """True when HID++ ILLUMINATION is available (capability-based; name heuristic fallback)."""
+        if self._engine and hasattr(self._engine, "has_litra_illumination_control"):
+            if self._engine.has_litra_illumination_control():
+                return True
+        return self.hasLitraBeam
+
     @Property(int, notify=deviceInfoChanged)
     def deviceDpiMin(self):
         return self._device_dpi_min

@@ -292,6 +292,38 @@ def set_keyboard_middle_path_setting(cfg, device_key, key, value):
     return True
 
 
+def save_keyboard_host_backlight_state(cfg, device_key, enabled, level):
+    """Persist last successful host-side backlight values for reconnect replay."""
+    devices = cfg.setdefault("devices", {})
+    dev = devices.setdefault(device_key, {})
+    kmp = dev.setdefault("keyboard_middle_path", {})
+    kmp["host_backlight_enabled"] = bool(enabled)
+    if level is not None:
+        kmp["host_backlight_level"] = int(level)
+    save_config(cfg)
+
+
+def save_keyboard_host_fn_inversion_state(cfg, device_key, swap):
+    """Persist last successful host-side FN inversion for reconnect replay."""
+    devices = cfg.setdefault("devices", {})
+    dev = devices.setdefault(device_key, {})
+    kmp = dev.setdefault("keyboard_middle_path", {})
+    kmp["host_fn_inversion"] = bool(swap)
+    save_config(cfg)
+
+
+def get_saved_keyboard_host_replay(cfg, device_key):
+    """Return saved host-side keyboard values to replay after reconnect, if any."""
+    devices = cfg.get("devices", {})
+    kmp = devices.get(device_key, {}).get("keyboard_middle_path", {})
+    backlight = None
+    if "host_backlight_enabled" in kmp:
+        level = kmp.get("host_backlight_level")
+        backlight = (bool(kmp["host_backlight_enabled"]), level)
+    fn_inversion = kmp.get("host_fn_inversion") if "host_fn_inversion" in kmp else None
+    return {"backlight": backlight, "fn_inversion": fn_inversion}
+
+
 def resolve_app_for_config(spec: str):
     """Resolve an app identifier/path into a catalog entry with aliases."""
     return app_catalog.resolve_app_spec(spec)

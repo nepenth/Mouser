@@ -15,6 +15,9 @@ from core.config import (
     load_config, get_active_mappings, get_profile_for_app,
     BUTTON_TO_EVENTS, GESTURE_DIRECTION_BUTTONS, save_config,
     get_keyboard_middle_path_settings,
+    get_saved_keyboard_host_replay,
+    save_keyboard_host_backlight_state,
+    save_keyboard_host_fn_inversion_state,
 )
 from core.app_detector import AppDetector
 from core.mouse_hook_types import HidRuntimeState
@@ -714,6 +717,9 @@ class Engine:
                     except Exception:
                         pass
 
+        if not self._replay_saved_keyboard_host_settings(hg):
+            replay_ok = False
+
         return replay_ok
 
     def _replay_saved_settings_worker(self):
@@ -961,7 +967,10 @@ class Engine:
         hg = self.hook._hid_gesture
         if hg:
             lvl = None if level < 0 else level
-            return hg.set_backlight(bool(enabled), lvl)
+            ok = hg.set_backlight(bool(enabled), lvl)
+            if ok and device_key:
+                save_keyboard_host_backlight_state(self.cfg, device_key, bool(enabled), lvl)
+            return ok
         print("[Engine] set_backlight: No HID++ connection — not applied")
         return False
 
@@ -988,7 +997,10 @@ class Engine:
 
         hg = self.hook._hid_gesture
         if hg:
-            return hg.set_fn_inversion(bool(swap))
+            ok = hg.set_fn_inversion(bool(swap))
+            if ok and device_key:
+                save_keyboard_host_fn_inversion_state(self.cfg, device_key, bool(swap))
+            return ok
         print("[Engine] set_fn_inversion: No HID++ connection — not applied")
         return False
 
@@ -1005,6 +1017,54 @@ class Engine:
         if hg:
             return getattr(hg, "_fn_inversion_idx", None) is not None
         return False
+
+    def has_litra_illumination_control(self):
+        """True when the active HID++ device exposes ILLUMINATION (Litra Beam etc.)."""
+        hg = self.hook._hid_gesture
+        if hg:
+            return getattr(hg, "_litra_illumination_idx", None) is not None
+        return False
+
+    def _keyboard_replay_device_key(self, hg):
+        device = getattr(hg, "connected_device", None)
+        if not device:
+            return None
+        key = getattr(device, "key", None)
+        if key:
+            return key
+        product_id = getattr(device, "product_id", None)
+        return str(product_id) if product_id is not None else None
+
+    def _replay_saved_keyboard_host_settings(self, hg):
+        """Replay per-device host-side keyboard settings after HID++ reconnect."""
+        device_key = self._keyboard_replay_device_key(hg)
+        if not device_key:
+            return True
+        kmp = get_keyboard_middle_path_settings(self.cfg, device_key)
+        saved = get_saved_keyboard_host_replay(self.cfg, device_key)
+        replay_ok = True
+
+        if kmp.get("allow_host_backlight", True) and saved.get("backlight") is not None:
+            if getattr(hg, "_backlight2_idx", None) is not None:
+                enabled, level = saved["backlight"]
+                print(
+                    f"[Engine] Replaying host-side backlight (device={device_key}, "
+                    f"enabled={enabled}, level={level}) — temporary"
+                )
+                if not hg.set_backlight(enabled, level):
+                    replay_ok = False
+
+        if kmp.get("allow_fn_inversion", True) and saved.get("fn_inversion") is not None:
+            if getattr(hg, "_fn_inversion_idx", None) is not None:
+                swap = saved["fn_inversion"]
+                print(
+                    f"[Engine] Replaying host-side FN inversion (device={device_key}, "
+                    f"swap={swap}) — temporary"
+                )
+                if not hg.set_fn_inversion(swap):
+                    replay_ok = False
+
+        return replay_ok
 
     # 009.5: thin public Report Rate wrappers (delegation + full fallback)
     def set_report_rate(self, rate):

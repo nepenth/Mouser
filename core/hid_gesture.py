@@ -626,7 +626,9 @@ FEAT_DEVICE_TYPE        = 0x0002     # Device Type / Product Type (placeholder; 
 FEAT_BATTERY_STATUS = 0x1000      # Battery Status (fallback)
 
 # Litra Beam (and similar Logitech lights) illumination control
-FEAT_LITRA_ILLUMINATION = 0x1A00  # Placeholder — replace with actual Litra illumination feature ID from device dump
+# HID++ ILLUMINATION (Solaar SupportedFeature.ILLUMINATION); not PRESENTER_CONTROL 0x1A00.
+FEAT_LITRA_ILLUMINATION = 0x1990
+FEAT_LITRA_ILLUMINATION_LEGACY = 0x1A00  # runtime fallback only (was incorrect placeholder)
 FEAT_LED_CONTROL        = 0x1A01  # Placeholder for common mouse LED control (on/off + brightness); replace with real ID from device dumps
 FEAT_LED_EFFECTS        = 0x1A02  # Placeholder for LED Effects (patterns/modes beyond basic on/off + brightness); replace with real ID from device dumps
 FEAT_DEVICE_MODE        = 0x1B00  # Placeholder for Device Mode / Wireless Mode; replace with real ID from device dumps
@@ -811,7 +813,7 @@ class HidGestureListener:
         self._report_rate_idx = None        # 0x8060 - report rate control
         self._backlight2_idx = None         # 0x1982 - BACKLIGHT2 (MX Mechanical Mini etc.)
         self._fn_inversion_idx = None       # 0x40A3 - K375S FN inversion
-        self._litra_illumination_idx = None # 0x1A00 - Litra Beam illumination (placeholder ID)
+        self._litra_illumination_idx = None  # 0x1990 - HID++ ILLUMINATION (Litra Beam)
         self._device_name_idx = None        # 0x0005 - Device Name / Friendly Name
         self._device_identity_idx = None    # 0x0003 - Device Serial / Hardware Version / Identity (placeholder)
         self._device_type_idx = None        # 0x0002 - Device Type / Product Type (placeholder)
@@ -1667,8 +1669,10 @@ class HidGestureListener:
             self._backlight2_idx = bl_fi
             print(f"[HidGesture] Found BACKLIGHT2 @0x{bl_fi:02X}")
 
-        # Litra Beam illumination (first functional control slice)
+        # Litra Beam illumination (HID++ ILLUMINATION 0x1990; legacy 0x1A00 fallback)
         litra_fi = self._find_feature(FEAT_LITRA_ILLUMINATION)
+        if not litra_fi:
+            litra_fi = self._find_feature(FEAT_LITRA_ILLUMINATION_LEGACY)
         if litra_fi:
             self._litra_illumination_idx = litra_fi
             print(f"[HidGesture] Found Litra illumination @0x{litra_fi:02X}")
