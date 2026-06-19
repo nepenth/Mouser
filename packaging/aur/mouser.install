@@ -9,8 +9,8 @@ post_install() {
 
   echo ">>> Mouser installed."
   echo ">>> Reconnect Logitech receivers, then launch: mouser"
-  echo ">>> If HID access fails, run once as root:"
-  echo "        /usr/share/mouser/install-linux-permissions.sh"
+  echo ">>> udev rules are installed under /usr/lib/udev/rules.d/."
+  echo ">>> If HID access fails, run: sudo /usr/share/mouser/install-linux-permissions.sh"
   echo ">>> KDE Plasma Wayland per-app profiles: install kdotool (AUR)."
   echo ">>> Docs: /usr/share/doc/mouser/README.md"
 }

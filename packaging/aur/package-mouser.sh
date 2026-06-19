@@ -38,6 +38,8 @@ mouser_package() {
 
   install -Dm644 packaging/linux/69-mouser-logitech.rules \
     "${pkgroot}/usr/lib/udev/rules.d/69-mouser-logitech.rules"
+  install -Dm644 packaging/linux/69-mouser-logitech.rules \
+    "${pkgroot}/usr/share/mouser/69-mouser-logitech.rules"
   install -Dm755 packaging/linux/install-linux-permissions.sh \
     "${pkgroot}/usr/share/mouser/install-linux-permissions.sh"
 

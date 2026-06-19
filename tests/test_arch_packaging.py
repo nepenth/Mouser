@@ -63,6 +63,20 @@ class ArchPackagingTests(unittest.TestCase):
         self.assertTrue(os.path.isfile(desktop))
         self.assertTrue(os.path.isfile(icon))
 
+    def test_package_mouser_installs_udev_rules_in_share_and_udev(self):
+        helper = os.path.join(AUR, "package-mouser.sh")
+        with open(helper, encoding="utf-8") as handle:
+            text = handle.read()
+        self.assertIn("/usr/lib/udev/rules.d/69-mouser-logitech.rules", text)
+        self.assertIn("/usr/share/mouser/69-mouser-logitech.rules", text)
+
+    def test_install_permissions_script_handles_packaged_rules(self):
+        script = os.path.join(ROOT, "packaging", "linux", "install-linux-permissions.sh")
+        with open(script, encoding="utf-8") as handle:
+            text = handle.read()
+        self.assertIn("/usr/lib/udev/rules.d/", text)
+        self.assertIn("/usr/share/mouser/", text)
+
     def test_all_aur_variants_reference_shared_install(self):
         for variant in ("mouser", "mouser-git", "mouser-local"):
             pkgbuild = os.path.join(AUR, variant, "PKGBUILD")
