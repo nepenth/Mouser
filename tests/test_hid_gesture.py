@@ -176,6 +176,18 @@ class DeviceInfoDumpTests(unittest.TestCase):
         self.assertTrue(dump["capability_inventory"]["battery"])
 
 
+class BatteryParseTests(unittest.TestCase):
+    def test_parse_battery_response_returns_normalized_level(self):
+        listener = hid_gesture.HidGestureListener()
+        parsed = listener._parse_battery_response(bytes([75]))
+        self.assertEqual(parsed, {"level": 75})
+
+    def test_parse_battery_response_rejects_out_of_range(self):
+        listener = hid_gesture.HidGestureListener()
+        self.assertIsNone(listener._parse_battery_response(bytes([101])))
+        self.assertIsNone(listener._parse_battery_response(b""))
+
+
 class _FakeHidDevice:
     def __init__(self):
         self.open_path = Mock()

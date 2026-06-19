@@ -2212,32 +2212,23 @@ class HidGestureListener:
 
         if self._battery_feature_id == FEAT_UNIFIED_BATT:
             resp = self._request(self._battery_idx, 1, [])
-            if resp:
-                _, _, _, _, params = resp
-                level = params[0] if params else None
-                if level is not None and 0 <= level <= 100:
-                    if level != self._last_logged_battery:
-                        print(f"[HidGesture] Battery (unified): {level}%")
-                        self._last_logged_battery = level
-                    self._battery_result = level
-                else:
-                    self._battery_result = None
+        else:
+            resp = self._request(self._battery_idx, 0, [])
+
+        if resp:
+            _, _, _, _, params = resp
+            parsed = self._parse_battery_response(params)
+            if parsed is not None:
+                level = parsed["level"]
+                label = "unified" if self._battery_feature_id == FEAT_UNIFIED_BATT else "status"
+                if level != self._last_logged_battery:
+                    print(f"[HidGesture] Battery ({label}): {level}%")
+                    self._last_logged_battery = level
+                self._battery_result = level
             else:
                 self._battery_result = None
         else:
-            resp = self._request(self._battery_idx, 0, [])
-            if resp:
-                _, _, _, _, params = resp
-                level = params[0] if params else None
-                if level is not None and 0 <= level <= 100:
-                    if level != self._last_logged_battery:
-                        print(f"[HidGesture] Battery (status): {level}%")
-                        self._last_logged_battery = level
-                    self._battery_result = level
-                else:
-                    self._battery_result = None
-            else:
-                self._battery_result = None
+            self._battery_result = None
 
         self._pending_battery = None
 
@@ -2398,11 +2389,16 @@ class HidGestureListener:
         return None, None
 
     def _parse_battery_response(self, params: bytes) -> Optional[dict]:
-        """Tiny helper exposed for BatteryHandler (009.2).
-        Returns a normalized battery dict or None. For the initial extraction
-        this is a placeholder; the real parse logic can be moved in a later micro-chunk.
+        """Parse battery feature response bytes into a normalized dict.
+
+        Shared by ``_apply_pending_read_battery`` and any direct HID++ read paths.
+        Returns ``{"level": 0-100}`` or None when params are missing or invalid.
         """
-        # Placeholder for 009.2 — keeps the diff minimal while proving the handler delegation pattern.
+        if not params:
+            return None
+        level = params[0]
+        if 0 <= level <= 100:
+            return {"level": level}
         return None
 
     # ── notification handling ─────────────────────────────────────

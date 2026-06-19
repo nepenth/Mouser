@@ -1544,5 +1544,30 @@ class NewArchitectureHandlersBackendTestsC(unittest.TestCase):
         self.assertTrue(backend.setPowerManagement({"profile": 2}))
 
 
+class NewArchitectureHandlersBackendTestsD(unittest.TestCase):
+    """Task 5.3: force sensing buttons (post-009.50 Backend exposure)."""
+
+    def _make_backend(self, engine=None):
+        _ensure_qapp()
+        with patch("ui.backend.load_config", return_value=copy.deepcopy(DEFAULT_CONFIG)):
+            return Backend(engine=engine)
+
+    def test_no_engine_returns_safe_defaults(self):
+        backend = self._make_backend(engine=None)
+        self.assertEqual(backend.getForceSensingButtons(), [])
+
+    def test_delegates_to_engine(self):
+        fake_engine = _FakeEngine()
+        fake_engine.get_force_sensing_buttons = lambda: [10, 20, 30]
+        backend = self._make_backend(engine=fake_engine)
+        self.assertEqual(backend.getForceSensingButtons(), [10, 20, 30])
+
+    def test_none_from_engine_returns_empty_list(self):
+        fake_engine = _FakeEngine()
+        fake_engine.get_force_sensing_buttons = lambda: None
+        backend = self._make_backend(engine=fake_engine)
+        self.assertEqual(backend.getForceSensingButtons(), [])
+
+
 if __name__ == "__main__":
     unittest.main()
