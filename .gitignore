@@ -35,6 +35,11 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
+# Arch / paru makepkg output
+packaging/aur/*/src/
+packaging/aur/*/pkg/
+packaging/aur/*/*.pkg.tar.zst
+
 # Build artifacts
 build_icon.py
 

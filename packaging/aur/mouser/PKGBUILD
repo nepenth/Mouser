@@ -1,0 +1,51 @@
+# Maintainer: Mouser Contributors <https://github.com/TomBadash/Mouser>
+pkgname=mouser
+pkgver=3.6.0
+pkgrel=1
+pkgdesc="Logitech HID++ mouse and keyboard companion (native Python/Qt package)"
+arch=('any')
+url="https://github.com/TomBadash/Mouser"
+license=('MIT')
+depends=(
+  'python'
+  'pyside6'
+  'python-hidapi'
+  'python-evdev'
+  'python-pillow'
+  'qt6-declarative'
+  'qt6-svg'
+  'qt6-quickcontrols2'
+)
+makedepends=('git')
+optdepends=(
+  'kdotool: KDE Plasma Wayland per-app profile switching'
+  'xdotool: X11 and XWayland foreground app detection fallback'
+)
+provides=('mouser')
+conflicts=('mouser-git' 'mouser-local' 'mouser-bin')
+install=mouser.install
+source=(
+  "git+${url}.git#tag=v${pkgver}"
+  "package-mouser.sh"
+)
+sha256sums=('SKIP' 'SKIP')
+
+# Requires an upstream git tag v${pkgver}. Until tagged, use mouser-git or mouser-local.
+
+prepare() {
+  install -Dm644 "${startdir}/package-mouser.sh" \
+    "${srcdir}/Mouser/packaging/aur/package-mouser.sh"
+}
+
+check() {
+  cd Mouser
+  /usr/bin/python -m py_compile main_qml.py
+  /usr/bin/python -m compileall -q core ui
+}
+
+package() {
+  cd Mouser
+  # shellcheck disable=SC1091
+  . packaging/aur/package-mouser.sh
+  mouser_package "$pkgdir" "$pkgver"
+}

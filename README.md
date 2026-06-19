@@ -269,6 +269,14 @@ MOUSER_SIGN_IDENTITY="ABCD1234..." ./build_macos_app.sh   # local signed build
 <details>
 <summary><strong>Linux</strong></summary>
 
+**CachyOS / Arch (paru):** see [BUILD_CACHYOS.md](BUILD_CACHYOS.md) and [packaging/aur/README.md](packaging/aur/README.md). Quick install from a checkout:
+
+```bash
+paru -P ./packaging/aur/mouser-local
+```
+
+**Generic Linux (venv + PyInstaller):**
+
 ```bash
 source .venv/bin/activate
 pip install -r requirements.txt

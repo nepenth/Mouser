@@ -1,0 +1,26 @@
+pkgbase = mouser-local
+	pkgdesc = Logitech HID++ mouse and keyboard companion (local source tree)
+	pkgver = 3.6.0.r415.f52f15f.local
+	pkgrel = 1
+	url = https://github.com/TomBadash/Mouser
+	install = mouser.install
+	arch = any
+	license = MIT
+	depends = python
+	depends = pyside6
+	depends = python-hidapi
+	depends = python-evdev
+	depends = python-pillow
+	depends = qt6-declarative
+	depends = qt6-svg
+	depends = qt6-quickcontrols2
+	optdepends = kdotool: KDE Plasma Wayland per-app profile switching
+	optdepends = xdotool: X11 and XWayland foreground app detection fallback
+	provides = mouser
+	conflicts = mouser
+	conflicts = mouser-git
+	conflicts = mouser-bin
+	source = package-mouser.sh
+	sha256sums = SKIP
+
+pkgname = mouser-local

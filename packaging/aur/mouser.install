@@ -1,0 +1,28 @@
+post_install() {
+  if command -v modprobe >/dev/null 2>&1; then
+    modprobe uinput 2>/dev/null || true
+  fi
+  if command -v udevadm >/dev/null 2>&1; then
+    udevadm control --reload-rules 2>/dev/null || true
+    udevadm trigger 2>/dev/null || true
+  fi
+
+  echo ">>> Mouser installed."
+  echo ">>> Reconnect Logitech receivers, then launch: mouser"
+  echo ">>> If HID access fails, run once as root:"
+  echo "        /usr/share/mouser/install-linux-permissions.sh"
+  echo ">>> KDE Plasma Wayland per-app profiles: install kdotool (AUR)."
+  echo ">>> Docs: /usr/share/doc/mouser/README.md"
+}
+
+post_upgrade() {
+  post_install
+}
+
+post_remove() {
+  if command -v udevadm >/dev/null 2>&1; then
+    udevadm control --reload-rules 2>/dev/null || true
+    udevadm trigger 2>/dev/null || true
+  fi
+  echo ">>> Mouser removed. User config remains in ~/.config/Mouser"
+}

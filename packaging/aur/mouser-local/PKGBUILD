@@ -1,0 +1,85 @@
+# Maintainer: Mouser Contributors <https://github.com/TomBadash/Mouser>
+# Build the current working tree without pushing to a remote (best for CachyOS dev).
+pkgname=mouser-local
+pkgver=3.6.0.r415.f52f15f.local
+pkgrel=1
+pkgdesc="Logitech HID++ mouse and keyboard companion (local source tree)"
+arch=('any')
+url="https://github.com/TomBadash/Mouser"
+license=('MIT')
+depends=(
+  'python'
+  'pyside6'
+  'python-hidapi'
+  'python-evdev'
+  'python-pillow'
+  'qt6-declarative'
+  'qt6-svg'
+  'qt6-quickcontrols2'
+)
+makedepends=()
+optdepends=(
+  'kdotool: KDE Plasma Wayland per-app profile switching'
+  'xdotool: X11 and XWayland foreground app detection fallback'
+)
+provides=('mouser')
+conflicts=('mouser' 'mouser-git' 'mouser-bin')
+install=mouser.install
+source=(
+  "package-mouser.sh"
+)
+sha256sums=('SKIP')
+
+_repo_root() {
+  cd "${startdir}/../../.." && pwd
+}
+
+pkgver() {
+  local root rev short base
+  root="$(_repo_root)"
+  base="$(cd "$root" && /usr/bin/python -c 'from core.version import APP_VERSION; print(APP_VERSION)')"
+  if git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    rev="$(git -C "$root" rev-list --count HEAD)"
+    short="$(git -C "$root" rev-parse --short HEAD)"
+    printf '%s.r%s.%s.local' "$base" "$rev" "$short"
+  else
+    printf '%s.local' "$base"
+  fi
+}
+
+prepare() {
+  local root
+  root="$(_repo_root)"
+  rm -rf "${srcdir}/Mouser"
+  mkdir -p "${srcdir}/Mouser"
+  tar -C "$root" \
+    --exclude='.git' \
+    --exclude='.venv' \
+    --exclude='build' \
+    --exclude='dist' \
+    --exclude='__pycache__' \
+    --exclude='*.pyc' \
+    --exclude='packaging/aur/mouser/src' \
+    --exclude='packaging/aur/mouser/pkg' \
+    --exclude='packaging/aur/mouser-git/src' \
+    --exclude='packaging/aur/mouser-git/pkg' \
+    --exclude='packaging/aur/mouser-local/src' \
+    --exclude='packaging/aur/mouser-local/pkg' \
+    --exclude='*.pkg.tar.zst' \
+    -cf - . | tar -C "${srcdir}/Mouser" -xf -
+  install -Dm644 "${startdir}/package-mouser.sh" \
+    "${srcdir}/Mouser/packaging/aur/package-mouser.sh"
+}
+
+check() {
+  cd Mouser
+  /usr/bin/python -m py_compile main_qml.py
+  /usr/bin/python -m compileall -q core ui
+}
+
+package() {
+  cd Mouser
+  # shellcheck disable=SC1091
+  . packaging/aur/package-mouser.sh
+  mouser_package "$pkgdir" "$pkgver"
+}
