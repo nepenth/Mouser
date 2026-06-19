@@ -128,6 +128,7 @@ DEFAULT_CONFIG = {
         "keyboard_middle_path": {},   # per-device: {"B367": {"backlight_host": True, "fn_inversion_host": False, "allow_diversion_backlight": False}}
         "language": "en",
         "ignore_trackpad": True,
+        "screenshot_directory": "",
         "check_for_updates": True,
         "update_check_state": {},
     },
@@ -388,6 +389,7 @@ def _migrate(cfg):
     cfg["settings"].setdefault("keyboard_middle_path", {})
     cfg["settings"].setdefault("language", "en")
     cfg["settings"].setdefault("ignore_trackpad", True)
+    cfg["settings"].setdefault("screenshot_directory", "")
     cfg["settings"].setdefault("check_for_updates", True)
     cfg["settings"].setdefault("update_check_state", {})
 

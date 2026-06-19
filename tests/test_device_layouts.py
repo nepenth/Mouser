@@ -13,10 +13,13 @@ class DeviceLayoutTests(unittest.TestCase):
             with self.subTest(device=device.key, ui_layout=device.ui_layout):
                 layout = get_device_layout(device.ui_layout)
 
-                if device.ui_layout == "generic_mouse":
-                    self.assertFalse(layout["interactive"])
-                else:
+                # Layouts with hotspot art must be interactive; placeholder
+                # layouts (device cataloged before artwork is contributed,
+                # per CONTRIBUTING_DEVICES.md step 3b) must not be.
+                if layout["hotspots"]:
                     self.assertTrue(layout["interactive"])
+                else:
+                    self.assertFalse(layout["interactive"])
                 self.assertEqual(layout["key"], device.ui_layout)
                 self.assertTrue((image_root / layout["image_asset"]).is_file())
 
@@ -81,6 +84,14 @@ class DeviceLayoutTests(unittest.TestCase):
         self.assertIn({"key": "mx_master", "label": "MX Master family"}, choices)
         self.assertIn({"key": "mx_anywhere", "label": "MX Anywhere family"}, choices)
         self.assertIn({"key": "mx_vertical", "label": "MX Vertical family"}, choices)
+
+    def test_manual_choices_include_gaming_family_layouts(self):
+        # G502 has no MX-style family fallback, so its layout must be
+        # manually selectable for owners whose device connects with an
+        # unrecognized PID/name.
+        choices = get_manual_layout_choices()
+
+        self.assertIn({"key": "g502", "label": "G502 family"}, choices)
 
     def test_manual_choices_do_not_duplicate_layout_keys(self):
         keys = [choice["key"] for choice in get_manual_layout_choices() if choice["key"]]

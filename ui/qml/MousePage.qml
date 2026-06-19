@@ -12,6 +12,9 @@ import "Theme.js" as Theme
 Item {
     id: mousePage
     readonly property var theme: Theme.palette(uiState.darkMode)
+    readonly property bool hasBlockingDialog: addAppDialog.visible
+                                             || deleteDialog.visible
+                                             || keyCaptureDialog.visible
     property string pendingDeleteProfile: ""
     // Reactive i18n shortcut — all s["key"] bindings update on lm.languageChanged
     property var s: lm.strings

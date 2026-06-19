@@ -2337,6 +2337,11 @@ class HidGestureListener:
         resp = self._request(self._fn_inversion_idx, 0x10, payload)
         success = resp is not None
         self._fn_result = success
+        if success:
+            print(f"[HidGesture] FN inversion set (host-side, temporary): swap_fx={swap_fx}")
+        else:
+            print("[HidGesture] FN inversion set FAILED")
+        self._pending_fn = None
 
     # ------------------------------------------------------------------
     # Litra Beam basic illumination control (008.2 skeleton, host-side only)
@@ -2376,11 +2381,6 @@ class HidGestureListener:
         """
         # Placeholder for 009.2 — keeps the diff minimal while proving the handler delegation pattern.
         return None
-        if success:
-            print(f"[HidGesture] FN inversion set (host-side, temporary): swap_fx={swap_fx}")
-        else:
-            print("[HidGesture] FN inversion set FAILED")
-        self._pending_fn = None
 
     # ── notification handling ─────────────────────────────────────
 

@@ -27,6 +27,21 @@ MX_ANYWHERE_SMARTSHIFT_BUTTONS = (
     "mode_shift",
 )
 
+# G502 family (G-series gaming mice). These run onboard profiles and do not
+# expose REPROG_CONTROLS_V4 (0x1B04), so HID++ button diversion -- gesture,
+# mode_shift, dpi_switch -- is unavailable. The buttons below are the ones the
+# firmware emits as standard OS events in its default profile: middle click,
+# back/forward side buttons, and wheel tilt left/right. The DPI up/down and
+# sniper buttons are consumed onboard and never reach the OS. ADJUSTABLE_DPI
+# (0x2201) is exposed, so the DPI slider works.
+G502_BUTTONS = (
+    "middle",
+    "xbutton1",
+    "xbutton2",
+    "hscroll_left",
+    "hscroll_right",
+)
+
 
 def _hotspot(
     button_key: str,
@@ -177,40 +192,101 @@ LOGI_DEVICE_SPECS = (
         "supported_buttons": MX_ANYWHERE_BUTTONS,
         "dpi_max": 4000,
     },
-    # G502 X family (Lightspeed wireless via c547/409f, wired c098).
-    # Uses onboard profiles for most G-buttons; OS-visible side buttons,
-    # wheel tilt (hscroll), middle click, and DPI are exposed. No
-    # REPROG_CONTROLS_V4 advertised in standard feature set, so extra
-    # buttons rely on evdev/keyboard events or onboard config.
+    # -- G502 family ----------------------------------------------------------
+    # Product IDs verified against Solaar's device descriptors. Wireless
+    # variants list both the wired USB PID and the Lightspeed receiver WPID.
+    # 0xC547 is the Lightspeed receiver WPID used by G502 X on some setups.
     {
-        "key": "g502_x_lightspeed",
-        "display_name": "G502 X Lightspeed",
-        "product_ids": (0xC547, 0x409F, 0xC098),
+        "key": "g502_hero",
+        "display_name": "G502 HERO",
+        "product_ids": (0xC08B,),
         "aliases": (
+            "G502 HERO Gaming Mouse",
+            "G502 SE HERO Gaming Mouse",
+            "G502 HERO SE",
+        ),
+        "ui_layout": "g502",
+        "image_asset": "icons/mouse-simple.svg",
+        "supported_buttons": G502_BUTTONS,
+        "dpi_min": 100,
+        "dpi_max": 25600,
+    },
+    {
+        "key": "g502_lightspeed",
+        "display_name": "G502 LIGHTSPEED",
+        "product_ids": (0xC08D, 0x407F),
+        "aliases": (
+            "G502 LIGHTSPEED Wireless Gaming Mouse",
+            "G502 Lightspeed Gaming Mouse",
+        ),
+        "ui_layout": "g502",
+        "image_asset": "icons/mouse-simple.svg",
+        "supported_buttons": G502_BUTTONS,
+        "dpi_min": 100,
+        "dpi_max": 25600,
+    },
+    {
+        "key": "g502_x",
+        "display_name": "G502 X",
+        "product_ids": (0xC099, 0xC098, 0xC095, 0x409F, 0x4099, 0xC547),
+        "aliases": (
+            "G502 X Gaming Mouse",
             "G502 X LIGHTSPEED",
+            "G502 X PLUS",
+            "G502 X Lightspeed",
             "G502 X LS",
             "Logitech G502 X LS",
             "G502 X Plus",
-            "G502 X",
             "G502X",
             "G502 X Wired",
         ),
-        "ui_layout": "generic_mouse",
+        "ui_layout": "g502",
         "image_asset": "icons/mouse-simple.svg",
-        "supported_buttons": (
-            "middle",
-            "xbutton1",
-            "xbutton2",
-            "hscroll_left",
-            "hscroll_right",
-        ),
+        "supported_buttons": G502_BUTTONS,
         "dpi_min": 100,
         "dpi_max": 25600,
+    },
+    {
+        "key": "g502",
+        "display_name": "G502",
+        "product_ids": (0xC07D, 0xC332),
+        "aliases": (
+            "G502 Gaming Mouse",
+            "Tunable FPS Gaming Mouse G502",
+            "G502 Proteus Spectrum",
+            "G502 Proteus Core",
+        ),
+        "ui_layout": "g502",
+        "image_asset": "icons/mouse-simple.svg",
+        "supported_buttons": G502_BUTTONS,
+        "dpi_min": 200,
+        "dpi_max": 12000,
     },
 )
 
 
 LOGI_DEVICE_LAYOUTS = {
+    # Shared placeholder for the G502 family: no device art has been
+    # contributed yet, so the page shows the generic silhouette with the
+    # G502 button list instead of an interactive hotspot diagram.
+    "g502": {
+        "key": "g502",
+        "label": "G502 family",
+        "image_asset": "icons/mouse-simple.svg",
+        "image_width": 220,
+        "image_height": 220,
+        "interactive": False,
+        # Manual-selectable so G502 owners whose device connects with an
+        # unrecognized PID/name (e.g. via a receiver) can still pick the
+        # right button set from the layout dropdown.
+        "manual_selectable": True,
+        "note": (
+            "G502 buttons are remapped at the OS level. DPI up/down and the "
+            "sniper button are handled by the mouse's onboard profile and "
+            "cannot be remapped here yet."
+        ),
+        "hotspots": [],
+    },
     "mx_master_4": _layout(
         "mx_master_4",
         "MX Master 4",

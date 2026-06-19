@@ -47,7 +47,7 @@ os.environ["QT_QUICK_CONTROLS_MATERIAL_ACCENT"] = "#00d4aa"
 
 _t1 = _time.perf_counter()
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QFileIconProvider, QMessageBox
-from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap, QWindow
+from PySide6.QtGui import QAction, QColor, QGuiApplication, QIcon, QPainter, QPixmap, QWindow
 from PySide6.QtCore import QObject, Property, QCoreApplication, QRectF, Qt, QUrl, Signal, QFileInfo, QEvent, QTimer
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickImageProvider
@@ -66,6 +66,7 @@ from core.config import load_config, save_config
 from core.engine import Engine
 from core.hid_gesture import set_backend_preference as set_hid_backend_preference
 from core.accessibility import is_process_trusted
+from core.startup import linux_runtime_icon_path, sync_linux_icon_theme
 from core.version import APP_BUILD_MODE, APP_COMMIT_DISPLAY, APP_VERSION
 from ui.backend import Backend
 from ui.locale_manager import LocaleManager
@@ -76,6 +77,10 @@ def _print_startup_times():
     print(f"[Startup] PySide6 imports:  {(_t2-_t1)*1000:7.1f} ms")
     print(f"[Startup] Core imports:     {(_t4-_t3)*1000:7.1f} ms")
     print(f"[Startup] Total imports:    {(_t4-_t0)*1000:7.1f} ms")
+
+
+LINUX_DESKTOP_FILE_BASENAME = "io.github.tombadash.mouser"
+WINDOWS_APP_USER_MODEL_ID = "TomBadash.Mouser"
 
 
 def _parse_cli_args(argv):
@@ -168,8 +173,14 @@ def _app_icon() -> QIcon:
     pixmap path produced. Logs and returns an empty QIcon if the asset
     file is missing.
     """
-    icon_name = "logo_icon.png" if sys.platform == "darwin" else "logo.ico"
-    icon_path = os.path.join(ROOT, "images", icon_name)
+    if sys.platform == "linux":
+        icon_path = linux_runtime_icon_path()
+    elif sys.platform == "win32":
+        icon_name = "logo.ico"
+        icon_path = os.path.join(ROOT, "images", icon_name)
+    else:
+        icon_name = "logo_icon.png"
+        icon_path = os.path.join(ROOT, "images", icon_name)
     if not os.path.isfile(icon_path):
         print(f"[Mouser] App icon missing: {icon_path}")
         return QIcon()
@@ -216,6 +227,35 @@ def _tray_icon() -> QIcon:
             QIcon.Mode.Selected)
     icon.setIsMask(True)
     return icon
+
+
+def _configure_windows_app_user_model_id() -> None:
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        set_app_id = ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID
+        set_app_id.argtypes = [wintypes.LPCWSTR]
+        set_app_id.restype = getattr(wintypes, "HRESULT", ctypes.c_long)
+        result = int(set_app_id(WINDOWS_APP_USER_MODEL_ID))
+        if result != 0:
+            print(
+                "[Mouser] Failed to set Windows AppUserModelID: "
+                f"0x{result & 0xFFFFFFFF:08X}"
+            )
+    except Exception as exc:
+        print(f"[Mouser] Failed to set Windows AppUserModelID: {exc}")
+
+
+def _configure_linux_desktop_file_name(app: QGuiApplication) -> None:
+    if sys.platform != "linux":
+        return
+    try:
+        app.setDesktopFileName(LINUX_DESKTOP_FILE_BASENAME)
+    except Exception as exc:
+        print(f"[Mouser] Failed to set Linux desktop file name: {exc}")
 
 
 _MACOS_RELAUNCH_GUARD = "MOUSER_MACOS_RELAUNCHED"
@@ -595,6 +635,16 @@ def _install_macos_dock_icon():
         print(f"[Mouser] Failed to apply macOS Dock icon: {exc}")
 
 
+def _schedule_macos_dock_icon_refresh() -> None:
+    if sys.platform != "darwin":
+        return
+    try:
+        QTimer.singleShot(0, _install_macos_dock_icon)
+        QTimer.singleShot(250, _install_macos_dock_icon)
+    except Exception:
+        _install_macos_dock_icon()
+
+
 def _set_macos_activation_policy(regular: bool) -> None:
     """Toggle between the Regular (foreground, Dock + Cmd+Tab) and
     Accessory (menu-bar only) policies. On a Regular promotion AppKit
@@ -608,6 +658,8 @@ def _set_macos_activation_policy(regular: bool) -> None:
     if sys.platform != "darwin":
         return
     if _MACOS_ACTIVATION_POLICY_REGULAR == regular:
+        if regular:
+            _schedule_macos_dock_icon_refresh()
         return
     appkit = _macos_appkit()
     if appkit is None:
@@ -624,6 +676,7 @@ def _set_macos_activation_policy(regular: bool) -> None:
     _MACOS_ACTIVATION_POLICY_REGULAR = regular
     if regular:
         _install_macos_dock_icon()
+        _schedule_macos_dock_icon_refresh()
 
 
 def _activate_macos_window():
@@ -965,12 +1018,16 @@ def main():
     # surfaces that read from `[NSBundle mainBundle]` (application menu
     # first item, Force Quit, notification banners) say "Mouser" too.
     _rename_macos_bundle_for_dock()
+    _configure_windows_app_user_model_id()
 
     QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
     app = QApplication(argv)
     app.setApplicationName("Mouser")
     app.setApplicationVersion(APP_VERSION)
     app.setOrganizationName("Mouser")
+    _configure_linux_desktop_file_name(app)
+    if sys.platform == "linux":
+        sync_linux_icon_theme()
     app.setWindowIcon(_app_icon())
     app.setQuitOnLastWindowClosed(False)
     _configure_macos_app_mode()
@@ -1015,6 +1072,44 @@ def main():
     backend.settingsChanged.connect(
         lambda: setattr(ui_state, "appearanceMode", backend.appearanceMode)
     )
+    if sys.platform == "win32":
+        from core.key_simulator import set_screenshot_action_handler
+        from ui.windows_screenshot import WindowsScreenshotController
+
+        screenshot_controller = WindowsScreenshotController(
+            status_callback=backend.statusMessage.emit,
+            path_factory=backend.next_screenshot_file_path,
+            parent=app,
+        )
+        app._mouser_screenshot_controller = screenshot_controller
+        set_screenshot_action_handler(screenshot_controller.request_action)
+    elif sys.platform == "linux":
+        from core.key_simulator import set_screenshot_action_handler
+        from ui.linux_screenshot import LinuxScreenshotController
+
+        screenshot_controller = LinuxScreenshotController(
+            status_callback=backend.statusMessage.emit,
+            path_factory=backend.next_screenshot_file_path,
+            parent=app,
+        )
+        app._mouser_screenshot_controller = screenshot_controller
+        set_screenshot_action_handler(screenshot_controller.request_action)
+    elif sys.platform == "darwin":
+        from core.key_simulator import (
+            execute_screenshot_shortcut,
+            set_screenshot_action_handler,
+        )
+        from ui.macos_screenshot import MacScreenshotController
+
+        screenshot_controller = MacScreenshotController(
+            status_callback=backend.statusMessage.emit,
+            path_factory=backend.next_screenshot_file_path,
+            has_custom_directory=backend.has_custom_screenshot_directory,
+            fallback_action=execute_screenshot_shortcut,
+            parent=app,
+        )
+        app._mouser_screenshot_controller = screenshot_controller
+        set_screenshot_action_handler(screenshot_controller.request_action)
 
     # ── QML Engine ─────────────────────────────────────────────
     qml_engine = QQmlApplicationEngine()
@@ -1040,16 +1135,6 @@ def main():
 
     root_window = qml_engine.rootObjects()[0]
 
-    def _sync_linux_ui_passthrough(*_args):
-        if sys.platform != "linux":
-            return
-        engine.set_ui_passthrough(bool(root_window.isVisible()))
-
-    root_window.activeChanged.connect(_sync_linux_ui_passthrough)
-    root_window.visibilityChanged.connect(_sync_linux_ui_passthrough)
-    app.applicationStateChanged.connect(_sync_linux_ui_passthrough)
-    _sync_linux_ui_passthrough()
-
     def show_main_window():
         # Promote BEFORE show so the window registers with WindowServer's
         # foreground-app surfaces (Dock + Cmd+Tab + Mission Control) at
@@ -1060,6 +1145,7 @@ def main():
         root_window.showNormal()
         root_window.raise_()
         root_window.requestActivate()
+        _schedule_macos_dock_icon_refresh()
         _activate_macos_window()
 
     def _on_window_visibility_changed(visibility):
@@ -1113,9 +1199,6 @@ def main():
 
     # ── Accessibility check (macOS) ──────────────────────────────
     accessibility_granted = _check_accessibility(locale_mgr)
-
-    if sys.platform == "linux":
-        engine.set_ui_passthrough(not launch_hidden)
 
     # ── Start engine AFTER window is ready (deferred) ──────────
     _schedule_engine_start(engine, accessibility_granted=accessibility_granted)

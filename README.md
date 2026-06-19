@@ -171,9 +171,210 @@ For overall status and roadmap, see [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md)
 
 The original Mouser functionality for remapping Logitech mice is still fully supported and remains high quality.
 
-For the classic documentation (features, supported mice, default mappings, etc.), please refer to the previous version of this README or the files in the repository history.
-
 **Note:** As the project evolves, the primary documentation is moving toward the new `docs/` directory.
+
+---
+
+## Available actions
+
+Action labels adapt per platform. Windows exposes `Win+D` and `Task View`; macOS exposes `Mission Control`, `Show Desktop`, `App Exposé`, and `Launchpad`; Linux falls back to compositor-native equivalents.
+
+| Category | Actions |
+|---|---|
+| **Navigation** | Alt+Tab, Alt+Shift+Tab, Show Desktop, Previous Desktop, Next Desktop, Task View (Windows), Mission Control / App Exposé / Launchpad (macOS), Page Up / Page Down / Home / End |
+| **Browser** | Back, Forward, Close Tab (Ctrl+W), New Tab (Ctrl+T), Next Tab (Ctrl+Tab), Previous Tab (Ctrl+Shift+Tab) |
+| **Editing** | Copy, Paste, Cut, Undo, Select All, Save, Find |
+| **Media** | Volume Up, Volume Down, Volume Mute, Play / Pause, Next Track, Previous Track |
+| **Scroll** | Switch Scroll Mode (Ratchet / Free Spin), Toggle SmartShift, Cycle DPI Presets |
+| **Mouse** | Left Click, Right Click, Middle Click, Back (Mouse Button 4), Forward (Mouse Button 5) |
+| **Custom** | User-defined keyboard shortcuts (any key combination, captured in the UI) |
+| **Other** | Do Nothing (pass-through) |
+
+---
+
+## Build from source
+
+You only need this if you want to hack on Mouser or run a development build. Most users should grab a release zip — see [Download & Run](#download--run).
+
+### Common prerequisites
+
+- **Windows 10/11**, **macOS 12+ (Monterey)**, or **Linux** (X11; KDE Wayland for app detection)
+- **Python 3.10+** (tested up to 3.14)
+- A supported Logitech HID++ mouse paired via Bluetooth or a USB receiver
+- **Logitech Options+ must NOT be running** — it conflicts with HID++ access
+- `git` and a working build toolchain
+
+```bash
+git clone https://github.com/TomBadash/Mouser.git
+cd Mouser
+python -m venv .venv
+```
+
+<details>
+<summary><strong>Windows</strong></summary>
+
+```powershell
+.\.venv\Scripts\activate
+pip install -r requirements.txt
+
+# Run from source
+python main_qml.py
+
+# Or start straight into the tray
+python main_qml.py --start-hidden
+
+# Build a portable zip
+build.bat                # standard
+build.bat --clean        # force clean rebuild
+```
+
+`build.bat` installs requirements, verifies that `hidapi` is importable, and packages with PyInstaller. The output lives in `dist\Mouser\` — zip the folder and ship it.
+
+To launch a source checkout without a console window, create a shortcut that uses `pythonw.exe`; see [DEVELOPMENT.md](DEVELOPMENT.md#desktop-shortcut-windows).
+
+</details>
+
+<details>
+<summary><strong>macOS</strong></summary>
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Run from source
+python main_qml.py
+python main_qml.py --start-hidden     # launch directly to menu bar
+
+# Build the native menu-bar bundle
+pip install pyinstaller
+./build_macos_app.sh
+```
+
+The output is `dist/Mouser.app`. The script reuses `images/AppIcon.icns` when present, otherwise generates one from `images/logo_icon.png`. Signing depends on whether `MOUSER_SIGN_IDENTITY` is set in the environment:
+
+- **Unset (default)**: ad-hoc signs with `codesign --sign -`. Convenient for one-off builds, but the bundle's code identity can change on rebuild, so macOS may ask for Accessibility permission again.
+- **Set to a codesigning identity** (`security find-identity -v -p codesigning` to list them — SHA-1 form preferred): signs every nested `.dylib` / `.so` / `.framework` with hardened runtime options, then signs the outer app with the hardened-runtime exceptions at `build_resources/Mouser.entitlements`. This is a local developer signing path for repeated builds; stable macOS permission behavior depends on keeping the same source, resolved Python interpreter, dependency versions, architecture, signing identity, entitlements, and timestamp policy. A failing `codesign --verify --deep --strict` check aborts the build.
+
+```sh
+MOUSER_SIGN_IDENTITY="ABCD1234..." ./build_macos_app.sh   # local signed build
+```
+
+- This is **not** a notarized release-signing flow. Public macOS release zips remain ad-hoc signed until a separate Developer ID signing, secure timestamp, notarization, stapling, and Gatekeeper validation workflow exists.
+- Build on the architecture you want to ship: an `arm64` Python produces an Apple Silicon bundle, an `x86_64` Python produces an Intel bundle. Set `PYINSTALLER_TARGET_ARCH=arm64|x86_64|universal2` to override.
+- Release CI publishes both `Mouser-macOS.zip` (Apple Silicon) and `Mouser-macOS-intel.zip` (Intel) automatically on tag pushes.
+- Accessibility permission is required. See [readme_mac_osx.md](readme_mac_osx.md) for the full grant flow and platform-specific notes.
+
+</details>
+
+<details>
+<summary><strong>Linux</strong></summary>
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Run from source
+python main_qml.py
+
+# Install device permissions (only needed once, then reconnect the mouse)
+./packaging/linux/install-linux-permissions.sh
+
+# Build a portable bundle
+sudo apt-get install libhidapi-dev
+pip install pyinstaller
+pyinstaller Mouser-linux.spec --noconfirm
+```
+
+The helper installs `69-mouser-logitech.rules`, reloads `udev`, and tries to `modprobe uinput`. After a successful run, reconnect the mouse, fully quit Mouser, and launch normally — no `sudo`. On systems without logind / `uaccess`, adding the user to the `input` group is the distro-specific fallback.
+
+The first normal Linux launch creates or refreshes:
+
+```text
+~/.local/share/applications/io.github.tombadash.mouser.desktop
+```
+
+The generated launcher uses absolute paths for the current portable app or source checkout, and syncs Mouser's app icon into the per-user hicolor icon theme when possible. If you move the checkout, launch Mouser once from the new path to refresh the app-menu entry. Enabling **Start at login** also manages:
+
+```text
+~/.config/autostart/io.github.tombadash.mouser.desktop
+```
+
+That Linux autostart entry includes a short GNOME startup delay so Mouser does not race Bluetooth / HID initialization immediately after login.
+
+`xdotool` enables per-app profile switching on X11; `kdotool` adds KDE Wayland support. Other Wayland compositors fall back to the default profile.
+
+</details>
+
+> **Automated releases:** pushing a `v*` tag triggers [`.github/workflows/release.yml`](.github/workflows/release.yml), which builds Windows, macOS (Apple Silicon + Intel), and Linux artifacts in CI and uploads them to the GitHub Release.
+
+For project layout, the architecture diagram, the HID++ gesture detector, the Engine + reconnection flow, debug CLI flags (`--hid-backend=iokit|hidapi|auto`), and how to run the test suite, see [DEVELOPMENT.md](DEVELOPMENT.md). To add a new device, see [CONTRIBUTING_DEVICES.md](CONTRIBUTING_DEVICES.md).
+
+---
+
+## Limitations
+
+- **Per-device mappings aren't fully separated yet** — layout overrides are stored per detected device, but profile mappings are still global.
+- **Conflicts with Logitech Options+** — both apps fight over HID++ access. Quit Options+ before running Mouser.
+- **Scroll inversion** uses coalesced post-injection on Windows to avoid LL-hook deadlocks; it's stable in mainstream apps but may misbehave in some games or low-level drivers.
+- **Admin not required** — but injected keystrokes may not reach elevated windows or some games. Run Mouser elevated if you need that path.
+- **Linux app detection is partial** — X11 works via `xdotool`, KDE Wayland works via `kdotool`, GNOME / other Wayland compositors still fall back to the default profile.
+- **Linux device permissions** — Mouser needs access to `/dev/hidraw*`, `/dev/input/event*`, and `/dev/uinput`. Use [`install-linux-permissions.sh`](packaging/linux/install-linux-permissions.sh) once instead of running as root.
+
+---
+
+## Roadmap
+
+- [ ] **Dedicated overlays for more devices** — real hotspot maps and artwork for MX Vertical and other Logitech families
+- [ ] **True per-device config** — separate mappings cleanly when multiple Logitech mice are used on the same machine
+- [ ] **Dynamic button inventory** — build button lists from discovered `REPROG_CONTROLS_V4` controls instead of the current fixed sets
+- [ ] **Improved scroll inversion** — explore driver-level or interception-driver approaches
+- [ ] **Gesture swipe tuning** — improve swipe reliability and defaults across more devices
+- [ ] **Per-app profile auto-creation** — detect new apps and prompt to create a profile
+- [ ] **Export / import config** — share configurations between machines
+- [ ] **Tray icon badge** — show the active profile name in the tray tooltip
+- [ ] **Broader Wayland support** — extend app detection beyond X11 / KDE and validate across more distros
+- [ ] **Plugin system** — allow third-party action providers
+
+---
+
+## Contributing
+
+Contributions are welcome.
+
+- **Code, fixes, and features:** fork → branch → PR. The dev setup, architecture overview, debug flags, and test instructions live in [DEVELOPMENT.md](DEVELOPMENT.md).
+- **Adding a new Logitech mouse:** follow the discovery-dump walkthrough in [CONTRIBUTING_DEVICES.md](CONTRIBUTING_DEVICES.md). Even a partial dump helps.
+- **Help wanted:**
+  - Testing with other Logitech HID++ devices
+  - Scroll inversion improvements
+  - Broader Linux / Wayland validation
+  - UI/UX polish, accessibility, and translations
+
+## Support the project
+
+If Mouser saves you from installing Logitech Options+, consider supporting development:
+
+<p align="center">
+  <a href="https://github.com/sponsors/TomBadash">
+    <img src="https://img.shields.io/badge/Sponsor-❤️-ea4aaa?style=for-the-badge&logo=githubsponsors" alt="Sponsor" />
+  </a>
+</p>
+
+Every bit helps keep the project going — thank you.
+
+---
+
+## Acknowledgments
+
+- **[@andrew-sz](https://github.com/andrew-sz)** — macOS port: CGEventTap mouse hooking, Quartz key simulation, NSWorkspace app detection, and NSEvent media key support.
+- **[@thisislvca](https://github.com/thisislvca)** — significant expansion of the project including macOS compatibility improvements, multi-device support, new UI features, and active triage of open issues.
+- **[@awkure](https://github.com/awkure)** — cross-platform login startup (Windows registry + macOS LaunchAgent), single-instance guard, start-minimized option, and MX Master 4 detection.
+- **[@hieshima](https://github.com/hieshima)** — Linux support (evdev + HID++ + uinput), mode-shift mapping, Smart Shift toggle, custom keyboard shortcut support, Linux connection-state stabilization, and macOS CGEventTap reliability fixes (auto re-enable on timeout, trackpad scroll filtering).
+- **[@pavelzaichyk](https://github.com/pavelzaichyk)** — Next Tab / Previous Tab browser actions, persistent rotating log file storage, Smart Shift enhanced support (HID++ `0x2111`) with sensitivity control and scroll-mode sync.
+- **[@nellwhoami](https://github.com/nellwhoami)** — Multi-language UI system (English, Simplified Chinese, Traditional Chinese) and Page Up / Page Down / Home / End navigation actions.
+- **[@guilamu](https://github.com/guilamu)** — Mouse-to-mouse button remapping (left, right, middle, back, forward click) and HID++ stability fixes (stuck-button auto-release, auto-reconnect after consecutive timeouts, async dispatch queue for the Windows hook).
+- **[@vcanuel](https://github.com/vcanuel)** — Logi Bolt receiver support on macOS via the `hidapi` fallback path.
+- **[@farfromrefug](https://github.com/farfromrefug)** — smaller macOS bundle (Qt Quick Controls trim, QtDBus, Qt asset filtering).
+- **[@MysticalMike60t](https://github.com/MysticalMike60t)** — README structure ideas (collapsible per-OS build sections).
 
 ---
 
@@ -181,7 +382,7 @@ For the classic documentation (features, supported mice, default mappings, etc.)
 
 We work in **small, reviewable micro-chunks** using a task-driven process:
 
-- Tasks are defined with clear Description, Requirements, and Acceptance Criteria (see `docs/TASKS.md`).
+- Tasks are defined with clear Description, Requirements, and Acceptance Criteria (see `docs/TASKS.md` and `docs/EXPANSION_EXECUTION_PLAN.md`).
 - Implementation is done in focused changes.
 - Specialized sub-agents act as expert reviewers and gatekeepers. A task is only marked "Done" after it passes code review and acceptance criteria validation.
 - We prioritize "Onboard is Sacred" and the "Middle Path" philosophy on every change.

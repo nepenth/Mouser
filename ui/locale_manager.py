@@ -10,7 +10,7 @@ _TRANSLATIONS = {
     "en": {
         # Navigation sidebar
         "nav.mouse_profiles": "Mouse & Profiles",
-        "nav.point_scroll": "Point & Scroll",
+        "nav.point_scroll": "General",
         "nav.about": "About",
 
         # Mouse page — profile list
@@ -104,8 +104,8 @@ _TRANSLATIONS = {
         "mouse.delete_dialog.desc": "This removes its custom button mappings. The default profile will remain.",
 
         # Scroll / Settings page
-        "scroll.title": "Point & Scroll",
-        "scroll.subtitle": "Adjust pointer speed, appearance, and scroll behaviour",
+        "scroll.title": "General Settings",
+        "scroll.subtitle": "Adjust app preferences, pointer speed, screenshots, and scroll behaviour",
         "scroll.pointer_speed": "Pointer Speed (DPI)",
         "scroll.pointer_speed_desc": "Adjust the tracking speed of the sensor. Higher = faster pointer.",
         "scroll.pointer_speed_desc_range_prefix": "Adjust the tracking speed of the sensor. This device supports ",
@@ -129,6 +129,12 @@ _TRANSLATIONS = {
         "scroll.startup_desc": "Start Mouser at login on supported desktop platforms, and choose whether the settings window opens on launch or Mouser stays in the system tray.",
         "scroll.start_at_login": "Start at login",
         "scroll.start_minimized": "Start minimized",
+        "scroll.screenshots": "Screenshots",
+        "scroll.screenshots_desc": "Choose where Mouser saves screenshot file actions. Clipboard actions are unaffected.",
+        "scroll.screenshots_save_to": "Save to",
+        "scroll.screenshots_choose": "Choose...",
+        "scroll.screenshots_default": "Use Default",
+        "scroll.screenshots_system_default": "System default location",
         "scroll.check_for_updates": "Check for updates",
         "scroll.check_for_updates_desc": "Notify when a newer Mouser release is available. Downloads and installation stay manual.",
         "scroll.update_idle": "Mouser can check for new releases.",
@@ -216,6 +222,9 @@ _TRANSLATIONS = {
         ),
         "accessibility.info": "System Settings -> Privacy & Security -> Accessibility",
 
+        # Common dialog chrome
+        "dialog.close": "Close",
+
         # About dialog
         "about.title": "About Mouser",
         "about.subtitle": "Runtime and build details for support and debugging.",
@@ -234,7 +243,7 @@ _TRANSLATIONS = {
     # ── Simplified Chinese ────────────────────────────────────────
     "zh_CN": {
         "nav.mouse_profiles": "\u9f20\u6807\u4e0e\u914d\u7f6e\u6587\u4ef6",
-        "nav.point_scroll": "\u6307\u9488\u4e0e\u6eda\u8f6e",
+        "nav.point_scroll": "\u901a\u7528",
         "nav.about": "\u5173\u4e8e",
 
         "mouse.profiles": "\u914d\u7f6e\u6587\u4ef6",
@@ -318,8 +327,8 @@ _TRANSLATIONS = {
         "mouse.delete_dialog.confirm_suffix": " \u7684\u914d\u7f6e\uff1f",
         "mouse.delete_dialog.desc": "\u8fd9\u5c06\u5220\u9664\u5176\u81ea\u5b9a\u4e49\u6309\u952e\u6620\u5c04\u3002\u9ed8\u8ba4\u914d\u7f6e\u5c06\u4fdd\u7559\u3002",
 
-        "scroll.title": "\u6307\u9488\u4e0e\u6eda\u8f6e",
-        "scroll.subtitle": "\u8c03\u6574\u6307\u9488\u901f\u5ea6\u3001\u5916\u89c2\u548c\u6eda\u52a8\u884c\u4e3a",
+        "scroll.title": "\u901a\u7528\u8bbe\u7f6e",
+        "scroll.subtitle": "\u8c03\u6574\u5e94\u7528\u504f\u597d\u3001\u6307\u9488\u901f\u5ea6\u3001\u622a\u56fe\u548c\u6eda\u52a8\u884c\u4e3a",
         "scroll.pointer_speed": "\u6307\u9488\u901f\u5ea6 (DPI)",
         "scroll.pointer_speed_desc": "\u8c03\u6574\u4f20\u611f\u5668\u7684\u8ddf\u8e2a\u901f\u5ea6\u3002\u5024\u8d8a\u9ad8\uff0c\u6307\u9488\u79fb\u52a8\u8d8a\u5feb\u3002",
         "scroll.pointer_speed_desc_range_prefix": "\u8c03\u6574\u4f20\u611f\u5668\u7684\u8ddf\u8e2a\u901f\u5ea6\u3002\u6b64\u8bbe\u5907\u652f\u6301 ",
@@ -330,7 +339,7 @@ _TRANSLATIONS = {
         "scroll.wheel_mode_desc": "\u5728\u89e6\u89c9\u68d8\u8f6e\u6eda\u52a8\u548c\u987a\u6ed1\u98de\u8f6e\u6eda\u52a8\u4e4b\u95f4\u5207\u6362\u3002",
         "scroll.ratchet": "\u68d8\u8f6e",
         "scroll.freespin": "\u98de\u8f6e",
-        "scroll.smart_shift": "SmartShift",
+        "scroll.smart_shift": "智能切换",
         "scroll.smart_shift_desc": "\u6eda\u8f6e\u6eda\u52a8\u8f83\u5feb\u65f6\uff0c\u81ea\u52a8\u4ece\u9010\u884c\u6eda\u52a8\u5207\u6362\u5230\u9ad8\u901f\u98de\u8f6e\u6a21\u5f0f\u3002",
         "scroll.sensitivity_value": "\u7075\u654f\u5ea6",
         "scroll.scroll_mode_section": "\u6eda\u8f6e\u6a21\u5f0f",
@@ -343,6 +352,12 @@ _TRANSLATIONS = {
         "scroll.startup_desc": "\u5728\u53d7\u652f\u6301\u7684\u684c\u9762\u5e73\u53f0\u4e0a\u968f\u767b\u5f55\u542f\u52a8 Mouser\uff0c\u5e76\u9009\u62e9\u542f\u52a8\u65f6\u662f\u5426\u6253\u5f00\u8bbe\u7f6e\u7a97\u53e3\u6216\u4ec5\u4fdd\u6301\u5728\u7cfb\u7edf\u6258\u76d8\u3002",
         "scroll.start_at_login": "\u5f00\u673a\u81ea\u542f\u52a8",
         "scroll.start_minimized": "\u542f\u52a8\u65f6\u6700\u5c0f\u5316",
+        "scroll.screenshots": "\u622a\u56fe",
+        "scroll.screenshots_desc": "\u9009\u62e9 Mouser \u4fdd\u5b58\u622a\u56fe\u6587\u4ef6\u52a8\u4f5c\u7684\u4f4d\u7f6e\u3002\u526a\u8d34\u677f\u52a8\u4f5c\u4e0d\u53d7\u5f71\u54cd\u3002",
+        "scroll.screenshots_save_to": "\u4fdd\u5b58\u5230",
+        "scroll.screenshots_choose": "\u9009\u62e9...",
+        "scroll.screenshots_default": "\u4f7f\u7528\u9ed8\u8ba4",
+        "scroll.screenshots_system_default": "\u7cfb\u7edf\u9ed8\u8ba4\u4f4d\u7f6e",
         "scroll.check_for_updates": "\u68c0\u67e5\u66f4\u65b0",
         "scroll.check_for_updates_desc": "\u6709\u65b0\u7248 Mouser \u53ef\u7528\u65f6\u901a\u77e5\u3002\u4e0b\u8f7d\u548c\u5b89\u88c5\u4ecd\u9700\u624b\u52a8\u5b8c\u6210\u3002",
         "scroll.update_idle": "Mouser \u53ef\u4ee5\u68c0\u67e5\u65b0\u7248\u672c\u3002",
@@ -387,8 +402,8 @@ _TRANSLATIONS = {
         "scroll.scroll_direction_desc": "\u53cd\u8f6c\u6eda\u52a8\u65b9\u5411\uff08\u81ea\u7136\u6eda\u52a8\uff09",
         "scroll.invert_vertical": "\u53cd\u8f6c\u5782\u76f4\u6eda\u52a8",
         "scroll.invert_horizontal": "\u53cd\u8f6c\u6c34\u5e73\u6eda\u52a8",
-        "scroll.ignore_trackpad": "Ignore trackpad",
-        "scroll.ignore_trackpad_desc": "Only respond to mouse events, not trackpad or Magic Mouse",
+        "scroll.ignore_trackpad": "\u5ffd\u7565\u89e6\u6478\u677f",
+        "scroll.ignore_trackpad_desc": "\u4ec5\u54cd\u5e94\u9f20\u6807\u4e8b\u4ef6\uff0c\u4e0d\u54cd\u5e94\u89e6\u6478\u677f\u6216 Magic Mouse",
         "scroll.dpi_note": "DPI \u66f4\u6539\u9700\u8981\u901a\u8fc7 HID++ \u4e0e\u8bbe\u5907\u901a\u4fe1\uff0c\u5c06\u5728\u77ed\u6682\u5ef6\u8fdf\u540e\u751f\u6548\u3002",
         "scroll.language": "\u8bed\u8a00",
         "scroll.language_desc": "\u9009\u62e9\u5e94\u7528\u7a0b\u5e8f\u7684\u663e\u793a\u8bed\u8a00\u3002",
@@ -426,6 +441,8 @@ _TRANSLATIONS = {
         ),
         "accessibility.info": "\u7cfb\u7edf\u8bbe\u7f6e -> \u9690\u79c1\u4e0e\u5b89\u5168\u6027 -> \u8f85\u52a9\u529f\u80fd",
 
+        "dialog.close": "\u5173\u95ed",
+
         "about.title": "\u5173\u4e8e Mouser",
         "about.subtitle": "\u7528\u4e8e\u652f\u6301\u548c\u8c03\u8bd5\u7684\u8fd0\u884c\u65f6\u4e0e\u6784\u5efa\u4fe1\u606f\u3002",
         "about.version": "\u7248\u672c",
@@ -442,7 +459,7 @@ _TRANSLATIONS = {
     # ── Traditional Chinese ───────────────────────────────────────
     "zh_TW": {
         "nav.mouse_profiles": "\u6ed1\u9f20\u8207\u8a2d\u5b9a\u6a94",
-        "nav.point_scroll": "\u6307\u6a19\u8207\u6372\u8ef8",
+        "nav.point_scroll": "\u901a\u7528",
         "nav.about": "\u95dc\u65bc",
 
         "mouse.profiles": "\u8a2d\u5b9a\u6a94",
@@ -526,8 +543,8 @@ _TRANSLATIONS = {
         "mouse.delete_dialog.confirm_suffix": " \u7684\u8a2d\u5b9a\u6a94\uff1f",
         "mouse.delete_dialog.desc": "\u9019\u5c07\u522a\u9664\u5176\u81ea\u8a02\u6309\u9375\u5c0d\u6620\u3002\u9810\u8a2d\u8a2d\u5b9a\u6a94\u5c07\u4fdd\u7559\u3002",
 
-        "scroll.title": "\u6307\u6a19\u8207\u6372\u8ef8",
-        "scroll.subtitle": "\u8abf\u6574\u6307\u6a19\u901f\u5ea6\u3001\u5916\u89c0\u548c\u6372\u52d5\u884c\u70ba",
+        "scroll.title": "\u901a\u7528\u8a2d\u5b9a",
+        "scroll.subtitle": "\u8abf\u6574\u61c9\u7528\u504f\u597d\u3001\u6307\u6a19\u901f\u5ea6\u3001\u622a\u5716\u548c\u6372\u52d5\u884c\u70ba",
         "scroll.pointer_speed": "\u6307\u6a19\u901f\u5ea6 (DPI)",
         "scroll.pointer_speed_desc": "\u8abf\u6574\u611f\u6e2c\u5668\u7684\u8ffd\u8e64\u901f\u5ea6\u3002\u5024\u8d8a\u9ad8\uff0c\u6307\u6a19\u79fb\u52d5\u8d8a\u5feb\u3002",
         "scroll.pointer_speed_desc_range_prefix": "\u8abf\u6574\u611f\u6e2c\u5668\u7684\u8ffd\u8e64\u901f\u5ea6\u3002\u6b64\u88dd\u7f6e\u652f\u63f4 ",
@@ -538,7 +555,7 @@ _TRANSLATIONS = {
         "scroll.wheel_mode_desc": "\u5728\u89f8\u89ba\u68d8\u8f2a\u6372\u52d5\u548c\u9806\u6ed1\u98db\u8f2a\u6372\u52d5\u4e4b\u9593\u5207\u63db\u3002",
         "scroll.ratchet": "\u68d8\u8f2a",
         "scroll.freespin": "\u98db\u8f2a",
-        "scroll.smart_shift": "SmartShift",
+        "scroll.smart_shift": "智慧切換",
         "scroll.smart_shift_desc": "\u6372\u8ef8\u6eda\u52d5\u8f03\u5feb\u6642\uff0c\u81ea\u52d5\u5f9e\u9010\u884c\u6372\u52d5\u5207\u63db\u5230\u9ad8\u901f\u98db\u8f2a\u6a21\u5f0f\u3002",
         "scroll.sensitivity_value": "\u9748\u654f\u5ea6",
         "scroll.scroll_mode_section": "\u6eda\u8f2a\u6a21\u5f0f",
@@ -551,6 +568,12 @@ _TRANSLATIONS = {
         "scroll.startup_desc": "\u5728\u53d7\u652f\u63f4\u7684\u684c\u9762\u5e73\u53f0\u4e0a\u96a8\u767b\u5165\u555f\u52d5 Mouser\uff0c\u4e26\u9078\u64c7\u555f\u52d5\u6642\u662f\u5426\u958b\u555f\u8a2d\u5b9a\u8996\u7a97\u6216\u50c5\u4fdd\u6301\u5728\u7cfb\u7d71\u5217\u3002",
         "scroll.start_at_login": "\u767b\u5165\u6642\u555f\u52d5",
         "scroll.start_minimized": "\u555f\u52d5\u6642\u6700\u5c0f\u5316",
+        "scroll.screenshots": "\u622a\u5716",
+        "scroll.screenshots_desc": "\u9078\u64c7 Mouser \u5132\u5b58\u622a\u5716\u6a94\u6848\u52d5\u4f5c\u7684\u4f4d\u7f6e\u3002\u526a\u8cbc\u7c3f\u52d5\u4f5c\u4e0d\u53d7\u5f71\u97ff\u3002",
+        "scroll.screenshots_save_to": "\u5132\u5b58\u5230",
+        "scroll.screenshots_choose": "\u9078\u64c7...",
+        "scroll.screenshots_default": "\u4f7f\u7528\u9810\u8a2d",
+        "scroll.screenshots_system_default": "\u7cfb\u7d71\u9810\u8a2d\u4f4d\u7f6e",
         "scroll.check_for_updates": "\u6aa2\u67e5\u66f4\u65b0",
         "scroll.check_for_updates_desc": "\u6709\u65b0\u7248 Mouser \u53ef\u7528\u6642\u901a\u77e5\u3002\u4e0b\u8f09\u548c\u5b89\u88dd\u4ecd\u9700\u624b\u52d5\u5b8c\u6210\u3002",
         "scroll.update_idle": "Mouser \u53ef\u4ee5\u6aa2\u67e5\u65b0\u7248\u672c\u3002",
@@ -595,8 +618,8 @@ _TRANSLATIONS = {
         "scroll.scroll_direction_desc": "\u53cd\u8f49\u6372\u52d5\u65b9\u5411\uff08\u81ea\u7136\u6372\u52d5\uff09",
         "scroll.invert_vertical": "\u53cd\u8f49\u5782\u76f4\u6372\u52d5",
         "scroll.invert_horizontal": "\u53cd\u8f49\u6c34\u5e73\u6372\u52d5",
-        "scroll.ignore_trackpad": "Ignore trackpad",
-        "scroll.ignore_trackpad_desc": "Only respond to mouse events, not trackpad or Magic Mouse",
+        "scroll.ignore_trackpad": "\u5ffd\u7565\u89f8\u63a7\u677f",
+        "scroll.ignore_trackpad_desc": "\u50c5\u56de\u61c9\u6ed1\u9f20\u4e8b\u4ef6\uff0c\u4e0d\u56de\u61c9\u89f8\u63a7\u677f\u6216 Magic Mouse",
         "scroll.dpi_note": "DPI \u66f4\u6539\u9700\u8981\u900f\u904e HID++ \u8207\u88dd\u7f6e\u901a\u8a0a\uff0c\u5c07\u5728\u77ed\u66ab\u5ef6\u9072\u5f8c\u751f\u6548\u3002",
         "scroll.language": "\u8a9e\u8a00",
         "scroll.language_desc": "\u9078\u64c7\u61c9\u7528\u7a0b\u5f0f\u7684\u986f\u793a\u8a9e\u8a00\u3002",
@@ -633,6 +656,8 @@ _TRANSLATIONS = {
             "\u8acb\u6388\u4e88\u6b0a\u9650\uff0c\u7136\u5f8c\u91cd\u65b0\u555f\u52d5 Mouser\u3002"
         ),
         "accessibility.info": "\u7cfb\u7d71\u8a2d\u5b9a -> \u96b1\u79c1\u6b0a\u8207\u5b89\u5168\u6027 -> \u8f14\u52a9\u4f7f\u7528",
+
+        "dialog.close": "\u95dc\u9589",
 
         "about.title": "\u95dc\u65bc Mouser",
         "about.subtitle": "\u63d0\u4f9b\u652f\u63f4\u8207\u9664\u932f\u7528\u7684\u57f7\u884c\u6642\u8207\u5efa\u7f6e\u8cc7\u8a0a\u3002",
@@ -696,6 +721,7 @@ _CATEGORY_TR: dict[str, dict[str, str]] = {
         "Media":      "\u5a92\u4f53",
         "Navigation": "\u5bfc\u822a",
         "Scroll":     "\u6eda\u8f6e",
+        "Screenshot": "\u622a\u56fe",
         "Custom":     "\u81ea\u5b9a\u4e49",
     },
     "zh_TW": {
@@ -705,6 +731,7 @@ _CATEGORY_TR: dict[str, dict[str, str]] = {
         "Media":      "\u5a92\u9ad4",
         "Navigation": "\u5c0e\u822a",
         "Scroll":     "\u6eda\u8f2a",
+        "Screenshot": "\u622a\u5716",
         "Custom":     "\u81ea\u8a02",
     },
 }
@@ -784,6 +811,12 @@ _ACTION_TR: dict[str, dict[str, str]] = {
         "Toggle SmartShift":                        "\u5207\u6362 SmartShift \u5f00\u5173",
         "Switch Scroll Mode (Ratchet / Free Spin)": "\u5207\u6362\u6eda\u8f6e\u6a21\u5f0f\uff08\u68d8\u8f6e / \u98de\u8f6e\uff09",
 
+        # ── Screenshot ────────────────────────────────────────────────
+        "Screenshot Region \u2192 Clipboard":       "\u533a\u57df\u622a\u56fe \u2192 \u526a\u8d34\u677f",
+        "Screenshot Region \u2192 File":            "\u533a\u57df\u622a\u56fe \u2192 \u6587\u4ef6",
+        "Screenshot Full Screen \u2192 Clipboard":  "\u5168\u5c4f\u622a\u56fe \u2192 \u526a\u8d34\u677f",
+        "Screenshot Full Screen \u2192 File":       "\u5168\u5c4f\u622a\u56fe \u2192 \u6587\u4ef6",
+
         # ── Custom ────────────────────────────────────────────────────
         "Custom Shortcut\u2026": "\u81ea\u5b9a\u4e49\u5feb\u6377\u952e\u2026",
     },
@@ -857,6 +890,12 @@ _ACTION_TR: dict[str, dict[str, str]] = {
         # ── Scroll ────────────────────────────────────────────────────
         "Toggle SmartShift":                        "\u5207\u63db SmartShift \u958b\u95dc",
         "Switch Scroll Mode (Ratchet / Free Spin)": "\u5207\u63db\u6eda\u8f2a\u6a21\u5f0f\uff08\u68d8\u8f2a / \u98db\u8f2a\uff09",
+
+        # ── Screenshot ────────────────────────────────────────────────
+        "Screenshot Region \u2192 Clipboard":       "\u5340\u57df\u622a\u5716 \u2192 \u526a\u8cbc\u7c3f",
+        "Screenshot Region \u2192 File":            "\u5340\u57df\u622a\u5716 \u2192 \u6a94\u6848",
+        "Screenshot Full Screen \u2192 Clipboard":  "\u5168\u87a2\u5e55\u622a\u5716 \u2192 \u526a\u8cbc\u7c3f",
+        "Screenshot Full Screen \u2192 File":       "\u5168\u87a2\u5e55\u622a\u5716 \u2192 \u6a94\u6848",
 
         # ── Custom ────────────────────────────────────────────────────
         "Custom Shortcut\u2026": "\u81ea\u8a02\u5feb\u901f\u9375\u2026",

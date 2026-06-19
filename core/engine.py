@@ -900,7 +900,7 @@ class Engine:
         settings["smart_shift_threshold"] = threshold
         save_config(self.cfg)
 
-        def _fallback():
+        def _fallback(*_args, **_kwargs):
             hg = self.hook._hid_gesture
             if hg:
                 result = hg.set_smart_shift(mode, smart_shift_enabled, threshold)

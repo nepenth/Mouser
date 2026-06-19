@@ -213,6 +213,75 @@ class LogiDeviceRegistryTests(unittest.TestCase):
                 self.assertEqual(info.image_asset, "icons/mouse-simple.svg")
                 self.assertEqual(info.supported_buttons, ("middle", "xbutton1", "xbutton2"))
 
+    def test_resolve_g502_hero_by_product_id(self):
+        device = resolve_device(product_id=0xC08B)
+
+        self.assertIsNotNone(device)
+        self.assertEqual(device.key, "g502_hero")
+        self.assertEqual(device.ui_layout, "g502")
+
+    def test_resolve_g502_lightspeed_by_receiver_wpid(self):
+        for product_id in (0xC08D, 0x407F):
+            with self.subTest(product_id=f"0x{product_id:04X}"):
+                device = resolve_device(product_id=product_id)
+
+                self.assertIsNotNone(device)
+                self.assertEqual(device.key, "g502_lightspeed")
+
+    def test_resolve_g502_x_plus_by_alias(self):
+        device = resolve_device(product_name="G502 X PLUS")
+
+        self.assertIsNotNone(device)
+        self.assertEqual(device.key, "g502_x")
+
+    def test_resolve_g502_x_plus_by_product_id(self):
+        for product_id in (0xC095, 0x4099):
+            with self.subTest(product_id=f"0x{product_id:04X}"):
+                device = resolve_device(product_id=product_id)
+
+                self.assertIsNotNone(device)
+                self.assertEqual(device.key, "g502_x")
+
+    def test_resolve_g502_proteus_by_reported_name(self):
+        device = resolve_device(product_name="Tunable FPS Gaming Mouse G502")
+
+        self.assertIsNotNone(device)
+        self.assertEqual(device.key, "g502")
+
+    def test_g502_buttons_are_os_level_only(self):
+        buttons = get_buttons_for_layout("g502")
+
+        self.assertIn("middle", buttons)
+        self.assertIn("xbutton1", buttons)
+        self.assertIn("xbutton2", buttons)
+        self.assertIn("hscroll_left", buttons)
+        self.assertIn("hscroll_right", buttons)
+        # No REPROG_CONTROLS_V4 on G-series onboard-profile mice, so no
+        # HID++-gated buttons may be offered.
+        self.assertNotIn("gesture", buttons)
+        self.assertNotIn("mode_shift", buttons)
+        self.assertNotIn("dpi_switch", buttons)
+
+    def test_g502_layout_is_placeholder_not_generic(self):
+        layout = get_device_layout("g502")
+
+        self.assertEqual(layout["key"], "g502")
+        self.assertFalse(layout["interactive"])
+        self.assertEqual(layout["hotspots"], [])
+
+    def test_build_g502_hero_connected_info(self):
+        info = build_connected_device_info(
+            product_id=0xC08B,
+            product_name="G502 HERO Gaming Mouse",
+            transport="usb",
+        )
+
+        self.assertEqual(info.key, "g502_hero")
+        self.assertEqual(info.display_name, "G502 HERO")
+        self.assertEqual(info.ui_layout, "g502")
+        self.assertEqual(clamp_dpi(50000, info), 25600)
+        self.assertEqual(clamp_dpi(50, info), 100)
+
     def test_known_device_layout_metadata_is_valid(self):
         for device in iter_known_devices():
             with self.subTest(device=device.key):
