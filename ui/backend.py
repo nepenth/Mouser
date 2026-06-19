@@ -22,6 +22,7 @@ from core.config import (
     PROFILE_BUTTON_NAMES, set_mapping, create_profile, delete_profile,
     get_icon_for_exe,
     get_keyboard_middle_path_settings, set_keyboard_middle_path_setting,
+    apply_kvm_preset,
 )
 from core import app_catalog
 from core.device_layouts import get_device_layout, get_manual_layout_choices
@@ -1941,7 +1942,17 @@ class Backend(QObject):
             return settings.get("allow_host_backlight", True)
         if settingName == "allow_fn_inversion":
             return settings.get("allow_fn_inversion", True)
+        if settingName == "allow_diversion_backlight":
+            return settings.get("allow_diversion_backlight", False)
         return True
+
+    @Slot(result=bool)
+    def applyKvmPreset(self):
+        """Apply KVM-friendly keyboard_middle_path defaults for the selected or connected device."""
+        device_key = self._keyboard_settings_device_key()
+        if not device_key:
+            return False
+        return apply_kvm_preset(self._cfg, device_key)
 
     @Slot(str, bool, result=bool)
     def setDeviceKeyboardMiddlePathSetting(self, settingName, value):

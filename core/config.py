@@ -88,7 +88,7 @@ BUTTON_TO_EVENTS = {
 DEFAULT_CONFIG = {
     "version": 9,
     "active_profile": "default",
-    "devices": {},   # per-device settings, e.g. {"B367": {"keyboard_middle_path": {"allow_host_backlight": True, "allow_fn_inversion": True}}}
+    "devices": {},   # per-device settings, e.g. {"B367": {"keyboard_middle_path": {"allow_host_backlight": True, "allow_fn_inversion": True, "allow_diversion_backlight": False}}}; kvm_mode preset (apply_kvm_preset): host backlight+fn on, diversion off
     "profiles": {
         "default": {
             "label": "Default (All Apps)",
@@ -125,7 +125,7 @@ DEFAULT_CONFIG = {
         "appearance_mode": "system",
         "debug_mode": False,
         "device_layout_overrides": {},
-        "keyboard_middle_path": {},   # per-device: {"B367": {"backlight_host": True, "fn_inversion_host": False, "allow_diversion_backlight": False}}
+        "keyboard_middle_path": {},   # legacy flat map; prefer devices.<key>.keyboard_middle_path; kvm_mode: allow_host_backlight+allow_fn_inversion true, allow_diversion_backlight false
         "language": "en",
         "ignore_trackpad": True,
         "screenshot_directory": "",
@@ -288,6 +288,26 @@ def set_keyboard_middle_path_setting(cfg, device_key, key, value):
     dev = devices.setdefault(device_key, {})
     kmp = dev.setdefault("keyboard_middle_path", {})
     kmp[key] = bool(value)
+    save_config(cfg)
+    return True
+
+
+def apply_kvm_preset(cfg, device_key):
+    """Apply KVM-friendly keyboard_middle_path defaults for a device and persist.
+
+    kvm_mode preset values:
+    - allow_host_backlight: True  (host may adjust backlight)
+    - allow_fn_inversion: True    (host may adjust FN inversion)
+    - allow_diversion_backlight: False  (preserve onboard backlight keys)
+    """
+    if not device_key:
+        return False
+    devices = cfg.setdefault("devices", {})
+    dev = devices.setdefault(device_key, {})
+    kmp = dev.setdefault("keyboard_middle_path", {})
+    kmp["allow_host_backlight"] = True
+    kmp["allow_fn_inversion"] = True
+    kmp["allow_diversion_backlight"] = False
     save_config(cfg)
     return True
 

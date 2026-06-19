@@ -196,6 +196,29 @@ Item {
                 color: keyboardPage.theme.textSecondary
                 wrapMode: Text.WordWrap
             }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Apply KVM-friendly defaults (host backlight + FN on, key diversion off)."
+                    font { family: uiState.fontFamily; pixelSize: 11 }
+                    color: keyboardPage.theme.textSecondary
+                    wrapMode: Text.WordWrap
+                }
+
+                Button {
+                    text: "KVM mode"
+                    font { family: uiState.fontFamily; pixelSize: 12 }
+                    onClicked: {
+                        if (backend.applyKvmPreset()) {
+                            refreshPermissionToggles()
+                        }
+                    }
+                }
+            }
         }
 
         // Helpful subtitle when no supported keyboard is present

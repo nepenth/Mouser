@@ -12,10 +12,8 @@ from dataclasses import dataclass
 import re
 from typing import Iterable
 
+from core.hid_features import DEFAULT_GESTURE_CIDS
 from core.logi_device_catalog import LOGI_DEVICE_SPECS
-
-
-DEFAULT_GESTURE_CIDS = (0x00C3, 0x00D7)
 DEFAULT_DPI_MIN = 200
 DEFAULT_DPI_MAX = 8000
 

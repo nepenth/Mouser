@@ -18,8 +18,23 @@ import queue
 import threading
 import time
 
+from core.hid_discovery import (
+    classify_device_kind,
+    device_path_display as _device_path_display,
+    enumerate_vendor_hid_infos,
+    format_linux_device_access as _format_linux_device_access,
+    linux_logitech_hidraw_nodes as _linux_logitech_hidraw_nodes,
+    sort_hid_candidates,
+    summarize_hid_infos as _summarize_hid_infos,
+)
+from core.hid_features import *  # noqa: F403
+from core.hid_features import (
+    format_control_id as _format_cid,
+    format_flag_bits as _format_flags,
+    format_hidpp_bytes as _hex_bytes,
+    parse_hidpp_report as _parse,
+)
 from core.logi_devices import (
-    DEFAULT_GESTURE_CIDS,
     build_connected_device_info,
     clamp_dpi,
     resolve_device,
@@ -80,53 +95,6 @@ def _log_once(key, message):
         return
     _LOG_ONCE_KEYS.add(key)
     print(message)
-
-
-def _device_path_display(path):
-    if isinstance(path, memoryview):
-        path = bytes(path)
-    if isinstance(path, bytes):
-        return path.decode("utf-8", errors="replace")
-    return str(path or "")
-
-
-def _owner_name(uid):
-    try:
-        import pwd
-        return pwd.getpwuid(uid).pw_name
-    except Exception:
-        return str(uid)
-
-
-def _group_name(gid):
-    try:
-        import grp
-        return grp.getgrgid(gid).gr_name
-    except Exception:
-        return str(gid)
-
-
-def _format_linux_device_access(path):
-    if isinstance(path, memoryview):
-        path = bytes(path)
-    display = _device_path_display(path)
-    if not path:
-        return "path=-"
-    try:
-        st = os.stat(path)
-    except OSError as exc:
-        return f"path={display} stat_error={exc}"
-
-    mode = stat.S_IMODE(st.st_mode)
-    can_read = os.access(path, os.R_OK)
-    can_write = os.access(path, os.W_OK)
-    can_rw = os.access(path, os.R_OK | os.W_OK)
-    return (
-        f"path={display} mode={mode:04o} "
-        f"owner={_owner_name(st.st_uid)}({st.st_uid}) "
-        f"group={_group_name(st.st_gid)}({st.st_gid}) "
-        f"access=read:{can_read} write:{can_write} read_write:{can_rw}"
-    )
 
 
 class _HidDeviceCompat:
@@ -547,258 +515,6 @@ if _MAC_NATIVE_OK:
                         continue
                     return b""
 
-# ── Constants ─────────────────────────────────────────────────────
-LOGI_VID       = 0x046D
-
-
-def _summarize_hid_infos(infos, limit=8):
-    parts = []
-    for info in list(infos)[:limit]:
-        pid = int(info.get("product_id", 0) or 0)
-        usage_page = int(info.get("usage_page", 0) or 0)
-        usage = int(info.get("usage", 0) or 0)
-        product = info.get("product_string") or "?"
-        transport = info.get("transport") or "-"
-        parts.append(
-            f"PID=0x{pid:04X} UP=0x{usage_page:04X} "
-            f"usage=0x{usage:04X} transport={transport} product={product}"
-        )
-    remaining = max(0, len(infos) - limit)
-    if remaining:
-        parts.append(f"... {remaining} more")
-    return "; ".join(parts) if parts else "-"
-
-
-def _linux_logitech_hidraw_nodes(base="/sys/class/hidraw"):
-    if not sys.platform.startswith("linux"):
-        return []
-    try:
-        entries = sorted(os.listdir(base))
-    except OSError:
-        return []
-
-    nodes = []
-    for entry in entries:
-        if not entry.startswith("hidraw"):
-            continue
-        uevent_path = os.path.join(base, entry, "device", "uevent")
-        try:
-            with open(uevent_path, "r", encoding="utf-8", errors="replace") as fh:
-                values = dict(
-                    line.rstrip("\n").split("=", 1)
-                    for line in fh
-                    if "=" in line
-                )
-        except OSError:
-            continue
-
-        parts = values.get("HID_ID", "").split(":")
-        if len(parts) < 3:
-            continue
-        try:
-            vid = int(parts[1], 16)
-            pid = int(parts[2], 16)
-        except ValueError:
-            continue
-        if vid != LOGI_VID:
-            continue
-
-        product = values.get("HID_NAME") or "?"
-        nodes.append(f"{entry} PID=0x{pid:04X} product={product}")
-    return nodes
-
-
-SHORT_ID       = 0x10        # HID++ short report (7 bytes total)
-LONG_ID        = 0x11        # HID++ long  report (20 bytes total)
-SHORT_LEN      = 7
-LONG_LEN       = 20
-
-BT_DEV_IDX     = 0xFF        # device-index for direct Bluetooth
-# Known Logi Bolt receiver PID.
-# Source: https://github.com/pwr-Solaar/Solaar/blob/master/lib/logitech_receiver/base_usb.py
-BOLT_RECEIVER_PID = 0xC548
-FEAT_IROOT     = 0x0000
-FEAT_REPROG_V4 = 0x1B04      # Reprogrammable Controls V4
-FEAT_ADJ_DPI   = 0x2201      # Adjustable DPI
-FEAT_SMART_SHIFT          = 0x2110  # Smart Shift basic
-FEAT_SMART_SHIFT_ENHANCED = 0x2111  # Smart Shift Enhanced (MX Master 3/3S, MX Master 4)
-FEAT_HIRES_WHEEL          = 0x2120
-FEAT_HIRES_WHEEL_ENHANCED = 0x2121
-FEAT_LOWRES_WHEEL         = 0x2130
-FEAT_THUMB_WHEEL          = 0x2150
-FEAT_UNIFIED_BATT   = 0x1004      # Unified Battery (preferred)
-FEAT_ONBOARD_PROFILES = 0x8100    # Gaming mice (G502 X etc.) - onboard memory + profiles
-FEAT_REPORT_RATE    = 0x8060      # Report rate control (gaming mice)
-
-# Keyboard / general device features (MX Mechanical Mini, etc.)
-FEAT_BACKLIGHT2           = 0x1982   # Backlight control (V2 on MX Mechanical Mini)
-FEAT_K375S_FN_INVERSION   = 0x40A3   # FN / Fx swap (common on MX Mechanical family)
-FEAT_DEVICE_NAME    = 0x0005      # Device Name & Type
-# SOURCE: unverified — _find_feature probe only; is_supported False when absent
-FEAT_DEVICE_IDENTITY = 0x0003     # Device Serial Number / Hardware Version / Identity (probe candidate)
-# SOURCE: unverified — _find_feature probe only; is_supported False when absent
-FEAT_DEVICE_TYPE        = 0x0002     # Device Type / Product Type (probe candidate)
-FEAT_BATTERY_STATUS = 0x1000      # Battery Status (fallback)
-
-# Litra Beam (and similar Logitech lights) illumination control
-# HID++ ILLUMINATION (Solaar SupportedFeature.ILLUMINATION); not PRESENTER_CONTROL 0x1A00.
-FEAT_LITRA_ILLUMINATION = 0x1990
-FEAT_LITRA_ILLUMINATION_LEGACY = 0x1A00  # runtime fallback only (was incorrect placeholder)
-# SOURCE: Solaar SupportedFeature.LED_CONTROL — https://github.com/pwr-Solaar/Solaar/blob/master/lib/logitech_receiver/hidpp20_constants.py
-FEAT_LED_CONTROL        = 0x1300  # LED control (on/off + brightness)
-# SOURCE: Solaar SupportedFeature.COLOR_LED_EFFECTS — https://github.com/pwr-Solaar/Solaar/blob/master/lib/logitech_receiver/hidpp20_constants.py
-FEAT_LED_EFFECTS        = 0x8070  # LED effects (patterns/modes beyond basic on/off + brightness)
-# SOURCE: Solaar SupportedFeature.DEVICE_MODE — https://github.com/pwr-Solaar/Solaar/blob/master/lib/logitech_receiver/hidpp20_constants.py
-FEAT_DEVICE_MODE        = 0x1B30  # Device Mode / Wireless Mode
-# SOURCE: Solaar SupportedFeature.WIRELESS_SIGNAL_STRENGTH (closest RF/link match) — https://github.com/pwr-Solaar/Solaar/blob/master/lib/logitech_receiver/hidpp20_constants.py
-FEAT_WIRELESS_POWER     = 0x0080  # Wireless Power / RF Power Management (signal strength proxy)
-# SOURCE: unverified — _find_feature probe only; is_supported False when absent
-FEAT_POWER_MANAGEMENT   = 0x1C01  # Power Management (beyond Sleep Timeout / Wireless Power; probe candidate)
-FEAT_REMAINING_PAIRING  = 0x1DF0  # Remaining Pairing slots (standard HID++ feature)
-# SOURCE: Solaar SupportedFeature.FORCE_SENSING_BUTTON — https://github.com/pwr-Solaar/Solaar/blob/master/lib/logitech_receiver/hidpp20_constants.py
-FEAT_FORCE_SENSING_BUTTON = 0x19C0  # Force Sensing Button (pressure-sensitive buttons)
-# SOURCE: unverified — _find_feature probe only; is_supported False when absent
-FEAT_WIRELESS_CHANNEL   = 0x1D00  # Wireless Channel / RF Channel (probe candidate)
-# SOURCE: Solaar SupportedFeature.WIRELESS_DEVICE_STATUS — https://github.com/pwr-Solaar/Solaar/blob/master/lib/logitech_receiver/hidpp20_constants.py
-FEAT_WIRELESS_STATUS    = 0x1D4B  # Wireless Status (link quality / RSSI)
-# SOURCE: unverified — _find_feature probe only; is_supported False when absent
-FEAT_SLEEP_TIMEOUT      = 0x1E00  # Sleep Timeout / Power Save Timeout (probe candidate)
-DEFAULT_GESTURE_CID = DEFAULT_GESTURE_CIDS[0]
-
-MY_SW          = 0x0A        # arbitrary software-id used in our requests
-
-HIDPP_ERROR_NAMES = {
-    0x01: "UNKNOWN",
-    0x02: "INVALID_ARGUMENT",
-    0x03: "OUT_OF_RANGE",
-    0x04: "HARDWARE_ERROR",
-    0x05: "LOGITECH_ERROR",
-    0x06: "INVALID_FEATURE_INDEX",
-    0x07: "INVALID_FUNCTION",
-    0x08: "BUSY",
-    0x09: "UNSUPPORTED",
-}
-
-KNOWN_CID_NAMES = {
-    0x00C3: "Mouse Gesture Button",
-    0x00C4: "Smart Shift",
-    0x00D7: "Virtual Gesture Button",
-    0x00FD: "DPI Switch",
-}
-
-KEY_FLAG_BITS = (
-    (0x0001, "mse"),
-    (0x0002, "fn"),
-    (0x0004, "nonstandard"),
-    (0x0008, "fn_sensitive"),
-    (0x0010, "reprogrammable"),
-    (0x0020, "divertable"),
-    (0x0040, "persist_divertable"),
-    (0x0080, "virtual"),
-    (0x0100, "raw_xy"),
-    (0x0200, "force_raw_xy"),
-    (0x0400, "analytics"),
-    (0x0800, "raw_wheel"),
-)
-
-MAPPING_FLAG_BITS = (
-    (0x0001, "diverted"),
-    (0x0004, "persist_diverted"),
-    (0x0010, "raw_xy_diverted"),
-    (0x0040, "force_raw_xy_diverted"),
-    (0x0100, "analytics_reporting"),
-    (0x0400, "raw_wheel"),
-)
-
-
-def classify_device_kind(
-    pid: int,
-    product_name: str | None = None,
-    hidpp_name: str | None = None,
-    discovered_feature_ids: set[int] | None = None,
-) -> str:
-    """
-    Early, cheap device kind classification: 'mouse' | 'keyboard' | 'other' | 'unknown'.
-
-    Used in Phase 0 to short-circuit mouse-only logic (gesture diversion, RawXY, etc.)
-    on keyboards such as the MX Mechanical Mini while still allowing useful HID++
-    features (battery, backlight, FN inversion) on all device types.
-
-    Heuristics (in priority order):
-    - Strong name / PID signals from catalog + known devices
-    - Feature presence (BACKLIGHT2 + heavy fn keys → keyboard; DPI/ONBOARD/HIRES_WHEEL → mouse)
-    """
-    name = ((hidpp_name or product_name) or "").lower()
-    feats = discovered_feature_ids or set()
-
-    # Feature-driven classification first (strong mouse signals win even over keyboard-ish names)
-    has_dpi       = FEAT_ADJ_DPI in feats or 0x2201 in feats
-    has_onboard   = FEAT_ONBOARD_PROFILES in feats or 0x8100 in feats
-    has_hires     = FEAT_HIRES_WHEEL_ENHANCED in feats or 0x2121 in feats
-    has_backlight = FEAT_BACKLIGHT2 in feats or 0x1982 in feats
-
-    if has_dpi or has_onboard or has_hires:
-        return "mouse"
-
-    # Fast name-based signals (only after mouse features did not win)
-    if any(x in name for x in ("g502", "mx master", "mx anywhere", "mx vertical")):
-        return "mouse"
-    if any(x in name for x in ("mechanical mini", "mechanical", "mx keys", "keyboard")):
-        return "keyboard"
-    if pid in (0x409F, 0xC547, 0xC098, 0xB020):
-        return "mouse"
-
-    if has_backlight:
-        return "keyboard"
-
-    # Litra Beam (and other Logitech lights) — treat as non-mouse, non-keyboard "other"
-    # This prevents it from triggering mouse gesture / RawXY paths or keyboard short-circuits.
-    if "litra" in name:
-        return "other"
-
-    return "unknown"
-
-
-# ── Helpers ───────────────────────────────────────────────────────
-
-def _parse(raw):
-    """Parse a read buffer → (dev_idx, feat_idx, func, sw, params) or None.
-
-    On Windows the hidapi C backend strips the report-ID byte, so the
-    first byte is device-index.  On other platforms / future versions
-    the report-ID may be included.  We detect which layout we have by
-    checking whether byte 0 looks like a valid HID++ report-ID.
-    """
-    if not raw or len(raw) < 4:
-        return None
-    off = 1 if raw[0] in (SHORT_ID, LONG_ID) else 0
-    if off + 3 > len(raw):
-        return None
-    dev    = raw[off]
-    feat   = raw[off + 1]
-    fsw    = raw[off + 2]
-    func   = (fsw >> 4) & 0x0F
-    sw     = fsw & 0x0F
-    params = raw[off + 3:]
-    return dev, feat, func, sw, params
-
-
-def _hex_bytes(data):
-    if not data:
-        return "-"
-    return " ".join(f"{int(b) & 0xFF:02X}" for b in data)
-
-
-def _format_flags(value, bit_names):
-    names = [name for bit, name in bit_names if value & bit]
-    return ",".join(names) if names else "none"
-
-
-def _format_cid(cid):
-    name = KNOWN_CID_NAMES.get(cid)
-    return f"0x{cid:04X} ({name})" if name else f"0x{cid:04X}"
-
-
 # ── Listener class ────────────────────────────────────────────────
 
 class HidGestureListener:
@@ -1082,91 +798,20 @@ class HidGestureListener:
     @staticmethod
     def _vendor_hid_infos():
         """Return candidate Logitech HID interfaces from hidapi and macOS IOKit."""
-        out = []
-        seen = set()
-
-        def add_info(info):
-            pid = int(info.get("product_id", 0) or 0)
-            up = int(info.get("usage_page", 0) or 0)
-            usage = int(info.get("usage", 0) or 0)
-            transport = info.get("transport") or ""
-            path = info.get("path") or b""
-            if isinstance(path, str):
-                path = path.encode("utf-8", errors="replace")
-            key = (pid, up, usage, transport, bytes(path))
-            if key in seen:
-                return
-            seen.add(key)
-            out.append(info)
-
-        if HIDAPI_OK and _BACKEND_PREFERENCE in ("auto", "hidapi"):
-            try:
-                raw_infos = list(_hid.enumerate(LOGI_VID, 0))
-                if not raw_infos:
-                    _log_once(
-                        f"hidapi-empty-{_HID_MODULE_NAME}",
-                        "[HidGesture] "
-                        f"{_HID_MODULE_NAME or 'hidapi'} enumerate(0x{LOGI_VID:04X}) "
-                        "returned no Logitech HID interfaces"
-                    )
-                    linux_nodes = _linux_logitech_hidraw_nodes()
-                    if linux_nodes:
-                        _log_once(
-                            "linux-hidraw-logitech-present",
-                            "[HidGesture] Linux sysfs sees Logitech hidraw nodes: "
-                            f"{'; '.join(linux_nodes[:8])}. If hidapi still sees "
-                            "none, check hidraw backend packaging and /dev/hidraw "
-                            "permissions."
-                        )
-                    elif sys.platform.startswith("linux"):
-                        _log_once(
-                            "linux-hidraw-logitech-missing",
-                            "[HidGesture] Linux sysfs sees no Logitech hidraw "
-                            "nodes for VID 0x046D; verify the mouse is connected "
-                            "as an active HID device, not only paired."
-                        )
-                hidapi_candidates = 0
-                fallback_candidates = 0
-                for info in raw_infos:
-                    pid = int(info.get("product_id", 0) or 0)
-                    usage_page = int(info.get("usage_page", 0) or 0)
-                    usage = int(info.get("usage", 0) or 0)
-                    product = info.get("product_string")
-                    if usage_page >= 0xFF00:
-                        add_info(dict(info, source="hidapi-enumerate"))
-                        hidapi_candidates += 1
-                        continue
-                    if resolve_device(product_id=pid, product_name=product):
-                        print(
-                            "[HidGesture] Accepting known Logitech device "
-                            "without vendor usage metadata for fallback probe "
-                            f"PID=0x{pid:04X} UP=0x{usage_page:04X} "
-                            f"usage=0x{usage:04X} product={product or '?'}"
-                        )
-                        add_info(dict(info, source="hidapi-enumerate-fallback"))
-                        fallback_candidates += 1
-                if raw_infos and not (hidapi_candidates or fallback_candidates):
-                    print(
-                        "[HidGesture] hidapi found Logitech interfaces, but none "
-                        "matched vendor usage metadata or known-device fallback"
-                    )
-                    _log_once(
-                        f"hidapi-filtered-{_HID_MODULE_NAME}",
-                        "[HidGesture] Filtered Logitech HID interfaces: "
-                        f"{_summarize_hid_infos(raw_infos)}"
-                    )
-            except Exception as exc:
-                print(f"[HidGesture] hidapi enumerate error: {exc}")
-
-        if (
-            sys.platform == "darwin"
-            and _MAC_NATIVE_OK
-            and _BACKEND_PREFERENCE in ("auto", "iokit")
-        ):
-            for info in _MacNativeHidDevice.enumerate_infos():
-                add_info(info)
-
-        return out
+        mac_enumerate = (
+            _MacNativeHidDevice.enumerate_infos
+            if _MAC_NATIVE_OK
+            else None
+        )
+        return enumerate_vendor_hid_infos(
+            hidapi_ok=HIDAPI_OK,
+            backend_preference=_BACKEND_PREFERENCE,
+            hid_enumerate=_hid.enumerate,
+            hid_module_name=_HID_MODULE_NAME,
+            log_once=_log_once,
+            mac_native_ok=_MAC_NATIVE_OK,
+            mac_enumerate_infos=mac_enumerate,
+        )
 
     # ── low-level HID++ I/O ───────────────────────────────────────
 
@@ -2527,15 +2172,7 @@ class HidGestureListener:
         # require scanning multiple slots with slow timeouts.
         # Phase 0: prefer mouse-kind candidates (by PID/name heuristics + classify)
         # so Lightspeed (0xC547) etc. are handled before Bolt+keyboard receivers.
-        def _candidate_sort_key(info):
-            pid = int(info.get("product_id", 0) or 0)
-            name = (info.get("product_string") or "").lower()
-            kind = classify_device_kind(pid, name)
-            kind_prio = {"mouse": 0, "unknown": 1, "other": 2, "keyboard": 3}.get(kind, 4)
-            is_receiver = 1 if "receiver" in name else 0
-            return (kind_prio, is_receiver, name)
-
-        infos.sort(key=_candidate_sort_key)
+        sort_hid_candidates(infos)
 
         print(f"[HidGesture] Backend preference: {_BACKEND_PREFERENCE}")
         print(f"[HidGesture] Candidate HID interfaces: {len(infos)}")

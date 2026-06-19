@@ -1243,6 +1243,39 @@ class BackendDeviceLayoutTests(unittest.TestCase):
         self.assertFalse(backend.getDeviceKeyboardMiddlePathSetting("allow_host_backlight"))
         self.assertTrue(backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_backlight"))
 
+    def test_apply_kvm_preset_updates_selected_device_keyboard_middle_path(self):
+        device = SimpleNamespace(
+            key="mx_master_3",
+            display_name="MX Master 3S",
+            product_id=0xB023,
+            dpi_min=200,
+            dpi_max=8000,
+            ui_layout="mx_master_3",
+            supported_buttons=("middle",),
+        )
+        cfg = copy.deepcopy(DEFAULT_CONFIG)
+        cfg.setdefault("devices", {})["saved_keyboard"] = {
+            "keyboard_middle_path": {
+                "allow_host_backlight": False,
+                "allow_fn_inversion": False,
+                "allow_diversion_backlight": True,
+            }
+        }
+        backend = self._make_backend(
+            engine=_FakeEngine(device_connected=True, connected_device=device),
+            cfg=cfg,
+        )
+
+        backend.setSelectedDeviceKey("saved_keyboard")
+        self.assertTrue(backend.applyKvmPreset())
+        self.assertTrue(backend.getDeviceKeyboardMiddlePathSetting("allow_host_backlight"))
+        self.assertTrue(backend.getDeviceKeyboardMiddlePathSetting("allow_fn_inversion"))
+        self.assertFalse(backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_backlight"))
+
+    def test_apply_kvm_preset_returns_false_without_device_context(self):
+        backend = self._make_backend(engine=_FakeEngine(device_connected=False))
+        self.assertFalse(backend.applyKvmPreset())
+
     def test_add_profile_rejects_linux_duplicate_when_existing_profile_uses_legacy_path(self):
         backend = self._make_backend()
         backend._cfg["profiles"]["firefox"] = {

@@ -29,9 +29,9 @@ This plan integrates:
 | 3 — Upstream Feature Integration | 4 | 4 | **DONE** |
 | 4 — Section D Completion | 8 | 7 | **IN PROGRESS** (4.6 pending) |
 | 5 — Placeholders & Architecture | 6 | 2 | **IN PROGRESS** (5.3, 5.6 done) |
-| 6 — High-Risk Expansion | 5 | 0 | Pending |
+| 6 — High-Risk Expansion | 5 | 1 | **IN PROGRESS** (6.5 done) |
 | 7 — Tasks F–G (Linux & Docs) | 3 | 2 | **IN PROGRESS** (7.3 pending) |
-| **TOTAL** | **38** | **27** | **71%** |
+| **TOTAL** | **38** | **28** | **74%** |
 
 ---
 
@@ -836,6 +836,7 @@ This plan integrates:
 | 5.6 | 2026-06-19 | 2026-06-19 | docs/DEFERRED.md |
 | 7.2 | 2026-06-19 | 2026-06-19 | docs/ARCHITECTURE_GUIDE.md |
 | 7.3 | 2026-06-19 | — | in progress |
+| 6.5 | 2026-06-19 | 2026-06-19 | TASK-009 Done; 21 handlers; test_handler_inheritance_audit.py |
 
 ---
 

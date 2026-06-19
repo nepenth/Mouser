@@ -1248,5 +1248,87 @@ class KeyboardHandlerDelegationTests(unittest.TestCase):
             save_fn.assert_called_once_with(engine.cfg, "B367", False)
 
 
+class KeyboardBacklightDiversionGatingTests(unittest.TestCase):
+    """Diversion path gated by allow_diversion_backlight (EXPANSION 6.2 / TASK-007 closure)."""
+
+    BACKLIGHT_UP_CID = 0x00C5
+    BACKLIGHT_DOWN_CID = 0x00C6
+
+    def _mx_mini_device(self, key="B367"):
+        return SimpleNamespace(
+            key=key,
+            name="MX Mechanical Mini",
+            product_id=0xB367,
+        )
+
+    def _cfg_with_diversion(self, device_key, enabled):
+        import copy
+
+        cfg = copy.deepcopy(DEFAULT_CONFIG)
+        cfg.setdefault("devices", {})[device_key] = {
+            "keyboard_middle_path": {
+                "allow_host_backlight": True,
+                "allow_fn_inversion": True,
+                "allow_diversion_backlight": enabled,
+            }
+        }
+        return cfg
+
+    def test_build_extra_diverts_requests_backlight_cids_when_opt_in_true(self):
+        from core.mouse_hook_base import BaseMouseHook
+
+        hook = BaseMouseHook()
+        cfg = self._cfg_with_diversion("B367", True)
+        dev = self._mx_mini_device()
+
+        extra = hook._build_extra_diverts(cfg=cfg, current_device=dev)
+
+        self.assertIn(self.BACKLIGHT_UP_CID, extra)
+        self.assertIn(self.BACKLIGHT_DOWN_CID, extra)
+        self.assertEqual(
+            extra[self.BACKLIGHT_UP_CID]["on_down"].__func__,
+            hook._on_hid_keyboard_backlight_up_down.__func__,
+        )
+        self.assertIn("on_up", extra[self.BACKLIGHT_UP_CID])
+        self.assertIn("on_down", extra[self.BACKLIGHT_DOWN_CID])
+
+    def test_build_extra_diverts_skips_backlight_cids_when_opt_in_false(self):
+        from core.mouse_hook_base import BaseMouseHook
+
+        hook = BaseMouseHook()
+        cfg = self._cfg_with_diversion("B367", False)
+        dev = self._mx_mini_device()
+
+        extra = hook._build_extra_diverts(cfg=cfg, current_device=dev)
+
+        self.assertNotIn(self.BACKLIGHT_UP_CID, extra)
+        self.assertNotIn(self.BACKLIGHT_DOWN_CID, extra)
+
+    def test_divert_extras_requests_hidpp_diversion_for_opt_in_backlight_cids(self):
+        listener = hid_gesture.HidGestureListener()
+        listener._feat_idx = 0x0A
+        listener._extra_diverts = {
+            self.BACKLIGHT_UP_CID: {"on_down": Mock(), "on_up": Mock(), "held": False},
+            self.BACKLIGHT_DOWN_CID: {"on_down": Mock(), "on_up": Mock(), "held": False},
+        }
+
+        with patch.object(listener, "_set_cid_reporting", return_value=b"ok") as divert_mock:
+            listener._divert_extras()
+
+        self.assertEqual(divert_mock.call_count, 2)
+        divert_mock.assert_any_call(self.BACKLIGHT_UP_CID, 0x03)
+        divert_mock.assert_any_call(self.BACKLIGHT_DOWN_CID, 0x03)
+
+    def test_divert_extras_skips_when_no_backlight_cids_configured(self):
+        listener = hid_gesture.HidGestureListener()
+        listener._feat_idx = 0x0A
+        listener._extra_diverts = {}
+
+        with patch.object(listener, "_set_cid_reporting", return_value=b"ok") as divert_mock:
+            listener._divert_extras()
+
+        divert_mock.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

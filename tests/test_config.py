@@ -555,5 +555,30 @@ class AppCatalogTests(unittest.TestCase):
         self.assertIn("/usr/lib64/firefox/firefox", resolved["aliases"])
 
 
+class KeyboardMiddlePathConfigTests(unittest.TestCase):
+    def test_apply_kvm_preset_sets_keyboard_middle_path_defaults(self):
+        cfg = json.loads(json.dumps(config.DEFAULT_CONFIG))
+        cfg.setdefault("devices", {})["B367"] = {
+            "keyboard_middle_path": {
+                "allow_host_backlight": False,
+                "allow_fn_inversion": False,
+                "allow_diversion_backlight": True,
+            }
+        }
+
+        with patch.object(config, "save_config") as save_mock:
+            self.assertTrue(config.apply_kvm_preset(cfg, "B367"))
+
+        kmp = cfg["devices"]["B367"]["keyboard_middle_path"]
+        self.assertTrue(kmp["allow_host_backlight"])
+        self.assertTrue(kmp["allow_fn_inversion"])
+        self.assertFalse(kmp["allow_diversion_backlight"])
+        save_mock.assert_called_once_with(cfg)
+
+    def test_apply_kvm_preset_rejects_empty_device_key(self):
+        cfg = json.loads(json.dumps(config.DEFAULT_CONFIG))
+        self.assertFalse(config.apply_kvm_preset(cfg, ""))
+
+
 if __name__ == "__main__":
     unittest.main()

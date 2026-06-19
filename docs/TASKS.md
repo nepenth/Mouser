@@ -72,7 +72,7 @@ Expose thin, Python-callable (QML-friendly) slots in `ui/backend.py` for *all* t
 
 **C — Per-Device Middle-Path Settings**: **Done** (config + enforcement + UI toggles; TASK-006 micro-chunks 006.1–006.4)
 
-**D — Safe Selective Key Diversion**: **Mostly Done** (opt-in toggle, gated CIDs, mappable events; TASK-007 micro-chunks 007.1–007.5). Remaining: Linux evdev end-to-end validation (EXPANSION 6.2).
+**D — Safe Selective Key Diversion**: **Done** (opt-in toggle, gated CIDs, mappable events; TASK-007 micro-chunks 007.1–007.5; Linux evdev diversion validation EXPANSION 6.2).
 
 **E — Litra Beam Integration**: **Done** (classification, illumination API, Backend slots, LitraPage; TASK-008 micro-chunks 008.1–008.7)
 
@@ -227,6 +227,12 @@ Made the four diverted backlight key events first-class mappable buttons. Regist
 
 **Implementation Note (TASK-007 micro-chunk 007.5)**  
 Light polish pass to make the diversion feature feel first-class. Introduced cleaner canonical names (`backlight_up` / `backlight_down`) with friendly “(diverted)” labels in the button/action lists. Added dual-name mapping support in the Engine (friendly names work even if the hook dispatches internal strings). Improved debug logging for diverted backlight key events. Small, high-value usability improvement. Passed Code Review + AC validation. Commit: 63faeb0.
+
+**Implementation Note (EXPANSION 5.5 — Per-Device KVM Preset)**  
+Added `apply_kvm_preset(cfg, device_key)` in `core/config.py` (kvm_mode defaults: `allow_host_backlight` + `allow_fn_inversion` true, `allow_diversion_backlight` false). Added `Backend.applyKvmPreset()` slot targeting `selectedDeviceKey` or the connected device. Added "KVM mode" button on `KeyboardPage.qml` that applies the preset and refreshes permission toggles. Documented kvm_mode in config schema comments.
+
+**Implementation Note (EXPANSION 6.2 — Linux evdev Diversion Validation)**  
+Added integration tests in `tests/test_hid_gesture.py` covering the gated diversion path: `_build_extra_diverts` registers MX Mechanical Mini backlight CIDs (0x00C5/0x00C6) only when `allow_diversion_backlight` is true, and `_divert_extras` issues HID++ divert requests for configured CIDs. Added config/backend tests for `apply_kvm_preset`. TASK-007 marked Done.
 
 **Implementation Note (TASK-008 micro-chunk 008.1)**  
 Official start of Litra Beam support. Added early “litra” name heuristic in `classify_device_kind` so Litra Beam devices are reliably classified as “other” (non-mouse, non-keyboard). Added clear, specific logging at all three classification sites when a Litra Beam is detected. Establishes the safe discovery/classification foundation with zero impact on existing mouse or keyboard paths. Passed Code Review + AC validation. Commit: 17163d8.
@@ -507,7 +513,7 @@ Allow users to configure per-device behavior for keyboard middle-path features (
 ## Phase 2 – Safe Diversion & Next Devices
 
 ### TASK-007: Implement Safe Selective Key Diversion for Backlight Keys
-**Status**: Backlog  
+**Status**: Done  
 **Priority**: P1
 
 **Description**  
@@ -551,8 +557,21 @@ Add initial support for the Litra Beam lightbar, primarily focused on basic illu
 ## Architecture & Long-Term
 
 ### TASK-009: Start LogitechDevice / FeatureHandler Architecture Extraction
-**Status**: Backlog  
+**Status**: Done  
 **Priority**: P2
+
+**Implementation Note (EXPANSION 6.5 — closure)**  
+Final architecture push closure. Grep audit of `core/devices/*_handler.py` confirms **21 handlers** (≥19 requirement), each inheriting an appropriate `FeatureHandler` hierarchy base:
+
+| Base | Handlers (count) |
+|------|------------------|
+| `DefaultThinHandler` | Backlight, Battery, DPI, FnInversion, ReportRate, SmartShift (6) |
+| `ThinDelegationHandler` | DeviceIdentity, DeviceName, LitraIllumination, WirelessStatus (4) |
+| `RecommendedThinHandler` | OnboardProfiles (1) |
+| `UltraThinHandler` | DeviceType (1) |
+| `FeatureHandler` (direct) | DeviceMode, ForceSensingButton, LED, LEDEffects, PowerManagement, RemainingPairing, SleepTimeout, WirelessChannel, WirelessPower (9) |
+
+All handlers use consistent lazy-attach + delegate-or-fallback via Engine; `RecommendedThinHandler` docstring documents current best-practice pattern. Added `tests/test_handler_inheritance_audit.py` (static module scan + `issubclass` checks). Full suite green.
 
 **Description**  
 Begin the incremental extraction of the current ad-hoc feature handling into the cleaner `LogitechDevice` + `FeatureHandler` model described in the design document.
