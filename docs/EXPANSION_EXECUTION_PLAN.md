@@ -27,11 +27,11 @@ This plan integrates:
 | 1 — Test & Code Health (P0) | 4 | 4 | **DONE** |
 | 2 — Task A: Backend Exposure | 3 | 3 | **DONE** |
 | 3 — Upstream Feature Integration | 4 | 4 | **DONE** |
-| 4 — Section D Completion | 8 | 7 | **IN PROGRESS** (4.6 pending) |
-| 5 — Placeholders & Architecture | 6 | 2 | **IN PROGRESS** (5.3, 5.6 done) |
-| 6 — High-Risk Expansion | 5 | 1 | **IN PROGRESS** (6.5 done) |
-| 7 — Tasks F–G (Linux & Docs) | 3 | 2 | **IN PROGRESS** (7.3 pending) |
-| **TOTAL** | **38** | **28** | **74%** |
+| 4 — Section D Completion | 8 | 8 | **DONE** |
+| 5 — Placeholders & Architecture | 6 | 6 | **DONE** |
+| 6 — High-Risk Expansion | 5 | 4 | **DONE** (6.3 deferred → `DEFERRED.md`; 6.1 full XL follow-up) |
+| 7 — Tasks F–G (Linux & Docs) | 3 | 3 | **DONE** |
+| **TOTAL** | **38** | **37** | **97%** (1 P3 item explicitly deferred) |
 
 ---
 
@@ -640,6 +640,13 @@ This plan integrates:
 - Keyboard/Litra APIs use `selected_device`.
 - All 511+ tests pass; new multi-device tests added.
 
+**MVP scope (2026-06-19):** Minimal migration aliases only — full XL refactor deferred.
+- `Engine.active_mouse_device`, `selected_device_key`, `all_devices` (+ shared `core/device_state.py`).
+- `Backend.activeMouseDeviceKey` documents mouse remapping vs `selectedDeviceKey`.
+- `connected_device` API unchanged; `_setup_hooks` / DPI clamp use `active_mouse_device`.
+- Tests: `tests/test_multi_device_state.py`.
+- Deferred: dedicated `selected_device` object, keyboard/Litra routing off `selected_device`, full Backend property migration.
+
 ---
 
 ### 6.2 — Safe Selective Diversion: Linux evdev Validation
@@ -835,8 +842,22 @@ This plan integrates:
 | 5.3 | 2026-06-19 | 2026-06-19 | force sensing backend tests |
 | 5.6 | 2026-06-19 | 2026-06-19 | docs/DEFERRED.md |
 | 7.2 | 2026-06-19 | 2026-06-19 | docs/ARCHITECTURE_GUIDE.md |
-| 7.3 | 2026-06-19 | — | in progress |
-| 6.5 | 2026-06-19 | 2026-06-19 | TASK-009 Done; 21 handlers; test_handler_inheritance_audit.py |
+| 3.2 | 2026-06-19 | 2026-06-19 | 5379207 |
+| 3.3 | 2026-06-19 | 2026-06-19 | 5379207 |
+| 4.3 | 2026-06-19 | 2026-06-19 | 5379207 |
+| 4.5 | 2026-06-19 | 2026-06-19 | 5379207 |
+| 4.6 | 2026-06-19 | 2026-06-19 | 5ee29ac |
+| 4.8 | 2026-06-19 | 2026-06-19 | 5ee29ac |
+| 5.1 | 2026-06-19 | 2026-06-19 | (next) |
+| 5.2 | 2026-06-19 | 2026-06-19 | e3496dd |
+| 5.4 | 2026-06-19 | 2026-06-19 | 834aeb1 |
+| 5.5 | 2026-06-19 | 2026-06-19 | e3496dd |
+| 6.2 | 2026-06-19 | 2026-06-19 | e3496dd |
+| 6.4 | 2026-06-19 | 2026-06-19 | (next) |
+| 6.5 | 2026-06-19 | 2026-06-19 | e3496dd |
+| 6.1 | 2026-06-19 | 2026-06-19 | (next) MVP; full XL follow-up |
+| 6.3 | 2026-06-19 | — | **DEFERRED** (P3) |
+| 7.3 | 2026-06-19 | 2026-06-19 | 5ee29ac |
 
 ---
 

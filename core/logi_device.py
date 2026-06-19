@@ -10,7 +10,9 @@ Only one feature (Litra illumination) is extracted in this initial micro-chunk.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type
+
+from core.hid_discovery import classify_device_kind
 
 
 class FeatureHandler:
@@ -408,11 +410,15 @@ class LogitechDevice:
     per-device state, etc. For now it is deliberately minimal.
     """
 
+    kind: str = "unknown"
+
     def __init__(self, product_id: int, name: str = "", key: Optional[str] = None):
         self.product_id = product_id
         self.name = name
         self.key = key or str(product_id)
         self._handlers: Dict[str, FeatureHandler] = {}
+        self._listener: Any = None
+        self._cfg: Optional[dict] = None
 
     def add_handler(self, name: str, handler: FeatureHandler) -> None:
         self._handlers[name] = handler
@@ -422,6 +428,143 @@ class LogitechDevice:
 
     def has_handler(self, name: str) -> bool:
         return name in self._handlers
+
+
+class MouseDevice(LogitechDevice):
+    """Logitech mouse (DPI, SmartShift, gestures, etc.)."""
+
+    kind = "mouse"
+
+
+class KeyboardDevice(LogitechDevice):
+    """Logitech keyboard (backlight, FN inversion, etc.)."""
+
+    kind = "keyboard"
+
+
+class OtherDevice(LogitechDevice):
+    """Non-mouse, non-keyboard Logitech devices (Litra Beam, webcams, etc.)."""
+
+    kind = "other"
+
+
+_DEVICE_KIND_CLASSES: Dict[str, Type[LogitechDevice]] = {
+    "mouse": MouseDevice,
+    "keyboard": KeyboardDevice,
+    "other": OtherDevice,
+}
+
+
+def _normalize_product_id(value: Any, default: int = 0) -> Any:
+    """Coerce product_id to int when possible; preserve legacy non-numeric values."""
+    if value in (None, ""):
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return value
+
+
+def _device_kind_from_identity(identity: Any) -> Optional[str]:
+    """Read a pre-classified device_kind from a dict or tuple identity block."""
+    if not identity:
+        return None
+    if isinstance(identity, dict):
+        kind = identity.get("device_kind")
+        return str(kind) if kind else None
+    try:
+        kind = dict(identity).get("device_kind")
+        return str(kind) if kind else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _discovered_feature_ids_from_listener(listener: Any) -> set[int]:
+    """Best-effort feature-id set from a HID++ listener for classify_device_kind."""
+    if listener is None:
+        return set()
+    if hasattr(listener, "_discovered_feature_ids"):
+        try:
+            return {int(fid) for fid in listener._discovered_feature_ids()}
+        except Exception:
+            pass
+    if hasattr(listener, "_discovered_feature_inventory"):
+        try:
+            inv = listener._discovered_feature_inventory()
+            return {
+                int(entry["feature_id"])
+                for entry in inv
+                if entry.get("feature_id") is not None
+            }
+        except Exception:
+            pass
+    return set()
+
+
+def _resolve_device_kind(
+    kind: Optional[str],
+    listener: Any,
+    *,
+    product_id: int = 0,
+    name: str = "",
+    product_name: Optional[str] = None,
+) -> str:
+    """Resolve device kind from an explicit string or listener/capability signals."""
+    if kind:
+        return kind
+
+    dev = getattr(listener, "connected_device", None) if listener is not None else None
+    if dev is not None:
+        inventory = getattr(dev, "capability_inventory", None)
+        if inventory is not None:
+            cached = _device_kind_from_identity(getattr(inventory, "device_identity", None))
+            if cached and cached != "unknown":
+                return cached
+
+    pid = _normalize_product_id(product_id, 0)
+    if not pid and dev is not None:
+        pid = _normalize_product_id(getattr(dev, "product_id", 0), 0)
+
+    pname = product_name or name
+    if not pname and dev is not None:
+        pname = (
+            getattr(dev, "product_name", None)
+            or getattr(dev, "display_name", None)
+            or ""
+        )
+
+    feats = _discovered_feature_ids_from_listener(listener)
+    return classify_device_kind(pid, pname, None, feats)
+
+
+def create_logitech_device(
+    kind: Optional[str],
+    listener: Any,
+    cfg: Optional[dict],
+    **kwargs: Any,
+) -> LogitechDevice:
+    """Create the appropriate LogitechDevice subclass for the device kind.
+
+    When ``kind`` is omitted, classification uses ``classify_device_kind`` with
+    identity and capability signals from ``listener`` (and optional kwargs).
+    """
+    product_id = _normalize_product_id(kwargs.get("product_id", 0), 0)
+    resolved_kind = _resolve_device_kind(
+        kind,
+        listener,
+        product_id=product_id,
+        name=str(kwargs.get("name", "") or ""),
+        product_name=kwargs.get("product_name"),
+    )
+    cls = _DEVICE_KIND_CLASSES.get(resolved_kind, LogitechDevice)
+    name = str(kwargs.get("name", "") or "")
+    key = kwargs.get("key")
+    device = cls(product_id, name, key)
+    device._listener = listener
+    device._cfg = cfg
+    if cls is LogitechDevice:
+        device.kind = resolved_kind
+    return device
 
 
 def maybe_attach_handler(
@@ -454,7 +597,14 @@ def maybe_attach_handler(
 
     # Create or reuse a device object on the listener for attachment bookkeeping
     # (Engine will cache the device; here we just create a transient one for the handler)
-    device = LogitechDevice(pid, name, key)
+    device = create_logitech_device(
+        kind=None,
+        listener=listener,
+        cfg=cfg,
+        product_id=pid,
+        name=name,
+        key=key,
+    )
 
     try:
         handler = handler_cls(device, listener)

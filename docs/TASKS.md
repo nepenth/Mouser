@@ -76,14 +76,15 @@ Expose thin, Python-callable (QML-friendly) slots in `ui/backend.py` for *all* t
 
 **E — Litra Beam Integration**: **Done** (classification, illumination API, Backend slots, LitraPage; TASK-008 micro-chunks 008.1–008.7)
 
-**F — Linux Workstation Validation Harness**: **Partial** (7.1 Done)
+**F — Linux Workstation Validation Harness**: **Done**
 - `tools/linux_smoke_test.py` — permissions, imports, offscreen Backend, representative slots.
 - `docs/LINUX_TESTING.md` — no-hardware + hardware checklists.
-- Remaining: broader hardware validation notes as new handlers land.
+- 691-test suite + CI-equivalent commands documented.
 
-**G — Architecture User Guide**: **Partial** (7.2 Done)
+**G — Architecture User Guide**: **Done**
 - `docs/ARCHITECTURE_GUIDE.md` — FeatureHandler → Engine → Backend → test patterns; `ReportRateHandler` reference.
-- Remaining: keep guide synced as decomposition (Phase 5.2) proceeds.
+- `docs/PROJECT_PLAN.md` and `docs/EXPANSION_EXECUTION_PLAN.md` synced (7.3).
+- `docs/DEFERRED.md` records out-of-scope items (webcam, media-key diversion 6.3).
 
 ---
 

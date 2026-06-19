@@ -27,6 +27,10 @@ from core.linux_permissions import (
     linux_permission_status_message,
 )
 from core.logi_devices import clamp_dpi
+from core.device_state import (
+    active_mouse_device_from_connected,
+    build_all_devices_list,
+)
 
 # 009.1/009.6: minimal LogitechDevice / FeatureHandler imports (only used when a handler is attached)
 try:
@@ -156,6 +160,157 @@ try:
 except Exception:
     PowerManagementHandler = None
 
+# 6.4: declarative registry for lazy FeatureHandler attachment (replaces 21 _maybe_attach_* methods)
+HANDLER_ATTACHMENTS = {
+    "litra": {
+        "device_attr": "_litra_device",
+        "handler_cls": LitraIlluminationHandler,
+        "feature_attr": "_litra_illumination_idx",
+        "handler_name": "litra_illumination",
+        "device_name_fallback": "Litra",
+    },
+    "battery": {
+        "device_attr": "_battery_device",
+        "handler_cls": BatteryHandler,
+        "feature_attr": "_battery_idx",
+        "handler_name": "battery",
+        "device_name_fallback": "Device",
+    },
+    "smart_shift": {
+        "device_attr": "_smart_shift_device",
+        "handler_cls": SmartShiftHandler,
+        "feature_attr": "_smart_shift_idx",
+        "handler_name": "smart_shift",
+        "device_name_fallback": "Device",
+    },
+    "dpi": {
+        "device_attr": "_dpi_device",
+        "handler_cls": DPIHandler,
+        "feature_attr": "_dpi_idx",
+        "handler_name": "dpi",
+        "device_name_fallback": "Device",
+    },
+    "backlight": {
+        "device_attr": "_backlight_device",
+        "handler_cls": BacklightHandler,
+        "feature_attr": "_backlight2_idx",
+        "handler_name": "backlight",
+        "device_name_fallback": "Device",
+    },
+    "fn_inversion": {
+        "device_attr": "_fn_inversion_device",
+        "handler_cls": FnInversionHandler,
+        "feature_attr": "_fn_inversion_idx",
+        "handler_name": "fn_inversion",
+        "device_name_fallback": "Device",
+    },
+    "report_rate": {
+        "device_attr": "_report_rate_device",
+        "handler_cls": ReportRateHandler,
+        "feature_attr": "_report_rate_idx",
+        "handler_name": "report_rate",
+        "device_name_fallback": "Device",
+    },
+    "onboard_profiles": {
+        "device_attr": "_onboard_profiles_device",
+        "handler_cls": OnboardProfilesHandler,
+        "feature_attr": "_onboard_profiles_idx",
+        "handler_name": "onboard_profiles",
+        "device_name_fallback": "Device",
+    },
+    "device_name": {
+        "device_attr": "_device_name_device",
+        "handler_cls": DeviceNameHandler,
+        "feature_attr": "_device_name_idx",
+        "handler_name": "device_name",
+        "device_name_fallback": "Device",
+    },
+    "led": {
+        "device_attr": "_led_device",
+        "handler_cls": LEDHandler,
+        "feature_attr": "_led_control_idx",
+        "handler_name": "led",
+        "device_name_fallback": "Device",
+    },
+    "device_mode": {
+        "device_attr": "_device_mode_device",
+        "handler_cls": DeviceModeHandler,
+        "feature_attr": "_device_mode_idx",
+        "handler_name": "device_mode",
+        "device_name_fallback": "Device",
+    },
+    "wireless_power": {
+        "device_attr": "_wireless_power_device",
+        "handler_cls": WirelessPowerHandler,
+        "feature_attr": "_wireless_power_idx",
+        "handler_name": "wireless_power",
+        "device_name_fallback": "Device",
+    },
+    "led_effects": {
+        "device_attr": "_led_effects_device",
+        "handler_cls": LEDEffectsHandler,
+        "feature_attr": "_led_effects_idx",
+        "handler_name": "led_effects",
+        "device_name_fallback": "Device",
+    },
+    "wireless_channel": {
+        "device_attr": "_wireless_channel_device",
+        "handler_cls": WirelessChannelHandler,
+        "feature_attr": "_wireless_channel_idx",
+        "handler_name": "wireless_channel",
+        "device_name_fallback": "Device",
+    },
+    "sleep_timeout": {
+        "device_attr": "_sleep_timeout_device",
+        "handler_cls": SleepTimeoutHandler,
+        "feature_attr": "_sleep_timeout_idx",
+        "handler_name": "sleep_timeout",
+        "device_name_fallback": "Device",
+    },
+    "wireless_status": {
+        "device_attr": "_wireless_status_device",
+        "handler_cls": WirelessStatusHandler,
+        "feature_attr": "_wireless_status_idx",
+        "handler_name": "wireless_status",
+        "device_name_fallback": "Device",
+    },
+    "device_identity": {
+        "device_attr": "_device_identity_device",
+        "handler_cls": DeviceIdentityHandler,
+        "feature_attr": "_device_identity_idx",
+        "handler_name": "device_identity",
+        "device_name_fallback": "Device",
+    },
+    "device_type": {
+        "device_attr": "_device_type_device",
+        "handler_cls": DeviceTypeHandler,
+        "feature_attr": "_device_type_idx",
+        "handler_name": "device_type",
+        "device_name_fallback": "Device",
+    },
+    "remaining_pairing": {
+        "device_attr": "_remaining_pairing_device",
+        "handler_cls": RemainingPairingHandler,
+        "feature_attr": "_remaining_pairing_idx",
+        "handler_name": "remaining_pairing",
+        "device_name_fallback": "Device",
+    },
+    "force_sensing_button": {
+        "device_attr": "_force_sensing_button_device",
+        "handler_cls": ForceSensingButtonHandler,
+        "feature_attr": "_force_sensing_button_idx",
+        "handler_name": "force_sensing_button",
+        "device_name_fallback": "Device",
+    },
+    "power_management": {
+        "device_attr": "_power_management_device",
+        "handler_cls": PowerManagementHandler,
+        "feature_attr": "_power_management_idx",
+        "handler_name": "power_management",
+        "device_name_fallback": "Device",
+    },
+}
+
 HSCROLL_ACTION_COOLDOWN_S = 0.35
 HSCROLL_VOLUME_COOLDOWN_S = 0.06
 _VOLUME_ACTIONS = {"volume_up", "volume_down"}
@@ -199,6 +354,9 @@ class Engine:
         self._replay_lock = threading.Lock()
         self._mouse_release_timers = {}   # action_id → Timer for safety auto-release
         self._lock = threading.Lock()
+        self._selected_device_key = str(
+            self.cfg.get("settings", {}).get("selected_device_key", "") or ""
+        )
         self.hook.set_debug_callback(self._emit_debug)
         self.hook.set_gesture_callback(self._emit_gesture_event)
         self.hook.set_status_callback(self._emit_status)
@@ -250,7 +408,7 @@ class Engine:
         # at least one profile maps it to an action.  When no device is
         # connected yet, assume the button exists (safe: if the device
         # turns out not to have it, the divert simply has no effect).
-        device = getattr(self, "connected_device", None)
+        device = self.active_mouse_device
         device_buttons = getattr(device, "supported_buttons", None)
         has_mode_shift = device_buttons is None or "mode_shift" in device_buttons
         self.hook.divert_mode_shift = (
@@ -450,7 +608,7 @@ class Engine:
             next_idx = (idx + 1) % len(presets)
         except ValueError:
             next_idx = 0
-        new_dpi = clamp_dpi(presets[next_idx], self.connected_device)
+        new_dpi = clamp_dpi(presets[next_idx], self.active_mouse_device)
         print(f"[Engine] cycle_dpi {current_dpi} -> {new_dpi} (preset {next_idx + 1}/{len(presets)})")
         settings["dpi"] = new_dpi
         save_config(self.cfg)
@@ -810,7 +968,7 @@ class Engine:
                 if now - _last_battery >= _battery_poll_interval:
                     _last_battery = now
                     # 009.2: lazy attachment + optional delegation to BatteryHandler
-                    self._maybe_attach_battery_handler()
+                    self._maybe_attach_handler("battery")
                     level = None
                     if BatteryHandler is not None and hasattr(self, "_battery_device") and self._battery_device:
                         handler = self._battery_device.get_handler("battery")
@@ -871,6 +1029,34 @@ class Engine:
     def connected_device(self):
         return self._hid_runtime_state().connected_device
 
+    @property
+    def active_mouse_device(self):
+        """Mouse used for button remapping and DPI. MVP alias of connected_device when kind is mouse."""
+        return active_mouse_device_from_connected(self.connected_device)
+
+    @property
+    def selected_device_key(self) -> str:
+        """UI-selected device key (keyboard/Litra context). Synced from Backend.selectedDeviceKey."""
+        return self._selected_device_key
+
+    @selected_device_key.setter
+    def selected_device_key(self, value: str) -> None:
+        normalized = str(value or "")
+        if normalized == self._selected_device_key:
+            return
+        self._selected_device_key = normalized
+        self.cfg.setdefault("settings", {})["selected_device_key"] = normalized
+        save_config(self.cfg)
+
+    @property
+    def all_devices(self) -> list[dict]:
+        """All known devices: config entries plus the currently connected device."""
+        return build_all_devices_list(
+            self.cfg,
+            self.connected_device,
+            mouse_connected=self.device_connected,
+        )
+
     def dump_device_info(self):
         return getattr(self.hook, "dump_device_info", lambda: None)()
 
@@ -887,12 +1073,12 @@ class Engine:
     # ------------------------------------------------------------------
     def set_dpi(self, dpi_value):
         """Send DPI change to the mouse via HID++."""
-        dpi = clamp_dpi(dpi_value, self.connected_device)
+        dpi = clamp_dpi(dpi_value, self.active_mouse_device)
         self.cfg.setdefault("settings", {})["dpi"] = dpi
         save_config(self.cfg)
 
         # 009.4: optional delegation to DPIHandler (full backward compatibility fallback)
-        self._maybe_attach_dpi_handler()
+        self._maybe_attach_handler("dpi")
         if DPIHandler is not None and hasattr(self, "_dpi_device") and self._dpi_device:
             handler = self._dpi_device.get_handler("dpi")
             if handler:
@@ -926,7 +1112,7 @@ class Engine:
             print("[Engine] set_smart_shift: No HID++ connection — not applied")
             return False
 
-        self._maybe_attach_smart_shift_handler()
+        self._maybe_attach_handler("smart_shift")
         return self._delegate_or_fallback(
             "_smart_shift_device", "smart_shift", "handle_write",
             _fallback, mode, smart_shift_enabled, threshold
@@ -945,7 +1131,7 @@ class Engine:
                 return hg.read_smart_shift()
             return None
 
-        self._maybe_attach_smart_shift_handler()
+        self._maybe_attach_handler("smart_shift")
         return self._delegate_or_fallback(
             "_smart_shift_device", "smart_shift", "handle_read",
             _fallback
@@ -963,7 +1149,7 @@ class Engine:
                 return hg.read_backlight()
             return [None, None]
 
-        self._maybe_attach_backlight_handler()
+        self._maybe_attach_handler("backlight")
         return self._delegate_or_fallback(
             "_backlight_device", "backlight", "handle_read",
             _fallback
@@ -991,7 +1177,7 @@ class Engine:
             print("[Engine] set_backlight: No HID++ connection — not applied")
             return False
 
-        self._maybe_attach_backlight_handler()
+        self._maybe_attach_handler("backlight")
         ok = self._delegate_or_fallback(
             "_backlight_device", "backlight", "handle_write",
             _fallback, bool(enabled), lvl
@@ -1009,7 +1195,7 @@ class Engine:
                 return val if val is not None else False
             return False
 
-        self._maybe_attach_fn_inversion_handler()
+        self._maybe_attach_handler("fn_inversion")
         val = self._delegate_or_fallback(
             "_fn_inversion_device", "fn_inversion", "handle_read",
             _fallback
@@ -1036,7 +1222,7 @@ class Engine:
             print("[Engine] set_fn_inversion: No HID++ connection — not applied")
             return False
 
-        self._maybe_attach_fn_inversion_handler()
+        self._maybe_attach_handler("fn_inversion")
         ok = self._delegate_or_fallback(
             "_fn_inversion_device", "fn_inversion", "handle_write",
             _fallback, bool(swap)
@@ -1124,7 +1310,7 @@ class Engine:
             print("[Engine] set_report_rate: No HID++ connection — not applied")
             return False
 
-        self._maybe_attach_report_rate_handler()
+        self._maybe_attach_handler("report_rate")
         return self._delegate_or_fallback(
             "_report_rate_device", "report_rate", "handle_write",
             _fallback, rate
@@ -1138,7 +1324,7 @@ class Engine:
                 return hg.read_report_rate() if hasattr(hg, "read_report_rate") else None
             return None
 
-        self._maybe_attach_report_rate_handler()
+        self._maybe_attach_handler("report_rate")
         return self._delegate_or_fallback(
             "_report_rate_device", "report_rate", "handle_read",
             _fallback
@@ -1153,7 +1339,7 @@ class Engine:
                 return hg.read_onboard_profile()
             return None
 
-        self._maybe_attach_onboard_profiles_handler()
+        self._maybe_attach_handler("onboard_profiles")
         return self._delegate_or_fallback(
             "_onboard_profiles_device", "onboard_profiles", "handle_read",
             _fallback
@@ -1167,7 +1353,7 @@ class Engine:
                 return hg.switch_onboard_profile(profile_index)
             return False
 
-        self._maybe_attach_onboard_profiles_handler()
+        self._maybe_attach_handler("onboard_profiles")
         return self._delegate_or_fallback(
             "_onboard_profiles_device", "onboard_profiles", "handle_write",
             _fallback, profile_index
@@ -1182,7 +1368,7 @@ class Engine:
                 return hg.read_device_name()
             return None
 
-        self._maybe_attach_device_name_handler()
+        self._maybe_attach_handler("device_name")
         return self._delegate_or_fallback(
             "_device_name_device", "device_name", "handle_read",
             _fallback
@@ -1198,7 +1384,7 @@ class Engine:
             print("[Engine] set_device_name: No HID++ connection — not applied")
             return False
 
-        self._maybe_attach_device_name_handler()
+        self._maybe_attach_handler("device_name")
         return self._delegate_or_fallback(
             "_device_name_device", "device_name", "handle_write",
             _fallback, name
@@ -1213,7 +1399,7 @@ class Engine:
                 return hg.read_device_friendly_name()
             return None
 
-        self._maybe_attach_device_name_handler()
+        self._maybe_attach_handler("device_name")
         return self._delegate_or_fallback(
             "_device_name_device", "device_name", "handle_read_friendly_name",
             _fallback
@@ -1228,7 +1414,7 @@ class Engine:
             print("[Engine] set_device_friendly_name: No HID++ connection — not applied")
             return False
 
-        self._maybe_attach_device_name_handler()
+        self._maybe_attach_handler("device_name")
         return self._delegate_or_fallback(
             "_device_name_device", "device_name", "handle_write_friendly_name",
             _fallback, name
@@ -1245,7 +1431,7 @@ class Engine:
             print("[Engine] set_led_state: No HID++ connection — not applied")
             return False
 
-        self._maybe_attach_led_handler()
+        self._maybe_attach_handler("led")
         return self._delegate_or_fallback(
             "_led_device", "led", "handle_write",
             _fallback, bool(enabled), None if brightness < 0 else brightness
@@ -1259,7 +1445,7 @@ class Engine:
                 return hg.read_led_state()
             return None, None
 
-        self._maybe_attach_led_handler()
+        self._maybe_attach_handler("led")
         return self._delegate_or_fallback(
             "_led_device", "led", "handle_read",
             _fallback
@@ -1274,7 +1460,7 @@ class Engine:
                 return hg.read_device_mode()
             return None
 
-        self._maybe_attach_device_mode_handler()
+        self._maybe_attach_handler("device_mode")
         return self._delegate_or_fallback(
             "_device_mode_device", "device_mode", "handle_read",
             _fallback
@@ -1289,7 +1475,7 @@ class Engine:
             print("[Engine] set_device_mode: No HID++ connection — not applied")
             return False
 
-        self._maybe_attach_device_mode_handler()
+        self._maybe_attach_handler("device_mode")
         return self._delegate_or_fallback(
             "_device_mode_device", "device_mode", "handle_write",
             _fallback, mode_value
@@ -1304,7 +1490,7 @@ class Engine:
                 return hg.read_wireless_power()
             return None
 
-        self._maybe_attach_wireless_power_handler()
+        self._maybe_attach_handler("wireless_power")
         return self._delegate_or_fallback(
             "_wireless_power_device", "wireless_power", "handle_read",
             _fallback
@@ -1319,7 +1505,7 @@ class Engine:
             print("[Engine] set_wireless_power: No HID++ connection — not applied")
             return False
 
-        self._maybe_attach_wireless_power_handler()
+        self._maybe_attach_handler("wireless_power")
         return self._delegate_or_fallback(
             "_wireless_power_device", "wireless_power", "handle_write",
             _fallback, power_value
@@ -1334,7 +1520,7 @@ class Engine:
                 return hg.read_led_effect()
             return None
 
-        self._maybe_attach_led_effects_handler()
+        self._maybe_attach_handler("led_effects")
         return self._delegate_or_fallback(
             "_led_effects_device", "led_effects", "handle_read",
             _fallback
@@ -1349,7 +1535,7 @@ class Engine:
             print("[Engine] set_led_effect: No HID++ connection — not applied")
             return False
 
-        self._maybe_attach_led_effects_handler()
+        self._maybe_attach_handler("led_effects")
         return self._delegate_or_fallback(
             "_led_effects_device", "led_effects", "handle_write",
             _fallback, effect, params
@@ -1364,7 +1550,7 @@ class Engine:
                 return hg.read_wireless_channel()
             return None
 
-        self._maybe_attach_wireless_channel_handler()
+        self._maybe_attach_handler("wireless_channel")
         return self._delegate_or_fallback(
             "_wireless_channel_device", "wireless_channel", "handle_read",
             _fallback
@@ -1379,7 +1565,7 @@ class Engine:
             print("[Engine] set_wireless_channel: No HID++ connection — not applied")
             return False
 
-        self._maybe_attach_wireless_channel_handler()
+        self._maybe_attach_handler("wireless_channel")
         return self._delegate_or_fallback(
             "_wireless_channel_device", "wireless_channel", "handle_write",
             _fallback, channel_value
@@ -1394,7 +1580,7 @@ class Engine:
                 return hg.read_sleep_timeout()
             return None
 
-        self._maybe_attach_sleep_timeout_handler()
+        self._maybe_attach_handler("sleep_timeout")
         return self._delegate_or_fallback(
             "_sleep_timeout_device", "sleep_timeout", "handle_read",
             _fallback
@@ -1409,7 +1595,7 @@ class Engine:
             print("[Engine] set_sleep_timeout: No HID++ connection — not applied")
             return False
 
-        self._maybe_attach_sleep_timeout_handler()
+        self._maybe_attach_handler("sleep_timeout")
         return self._delegate_or_fallback(
             "_sleep_timeout_device", "sleep_timeout", "handle_write",
             _fallback, timeout_value
@@ -1424,7 +1610,7 @@ class Engine:
                 return hg.read_wireless_status()
             return None
 
-        self._maybe_attach_wireless_status_handler()
+        self._maybe_attach_handler("wireless_status")
         return self._delegate_or_fallback(
             "_wireless_status_device", "wireless_status", "handle_read",
             _fallback
@@ -1439,7 +1625,7 @@ class Engine:
                 return hg.read_device_identity()
             return None
 
-        self._maybe_attach_device_identity_handler()
+        self._maybe_attach_handler("device_identity")
         return self._delegate_or_fallback(
             "_device_identity_device", "device_identity", "handle_read",
             _fallback
@@ -1454,7 +1640,7 @@ class Engine:
                 return hg.read_device_type()
             return None
 
-        self._maybe_attach_device_type_handler()
+        self._maybe_attach_handler("device_type")
         return self._delegate_or_fallback(
             "_device_type_device", "device_type", "handle_read",
             _fallback
@@ -1469,7 +1655,7 @@ class Engine:
                 return hg.get_remaining_pairing_slots()
             return None
 
-        self._maybe_attach_remaining_pairing_handler()
+        self._maybe_attach_handler("remaining_pairing")
         return self._delegate_or_fallback(
             "_remaining_pairing_device", "remaining_pairing", "handle_read",
             _fallback
@@ -1484,7 +1670,7 @@ class Engine:
                 return hg.get_force_sensing_buttons()
             return None
 
-        self._maybe_attach_force_sensing_button_handler()
+        self._maybe_attach_handler("force_sensing_button")
         return self._delegate_or_fallback(
             "_force_sensing_button_device", "force_sensing_button", "handle_read",
             _fallback
@@ -1499,7 +1685,7 @@ class Engine:
                 return hg.read_power_management()
             return None
 
-        self._maybe_attach_power_management_handler()
+        self._maybe_attach_handler("power_management")
         return self._delegate_or_fallback(
             "_power_management_device", "power_management", "handle_read",
             _fallback
@@ -1514,7 +1700,7 @@ class Engine:
             print("[Engine] set_power_management: No HID++ connection — not applied")
             return False
 
-        self._maybe_attach_power_management_handler()
+        self._maybe_attach_handler("power_management")
         return self._delegate_or_fallback(
             "_power_management_device", "power_management", "handle_write",
             _fallback, settings
@@ -1527,7 +1713,7 @@ class Engine:
     def set_litra_illumination(self, enabled, brightness=-1):
         """Host-side Litra Beam illumination control (on/off + brightness 0-100).
         Temporary (lost on reconnect/host switch)."""
-        self._maybe_attach_litra_handler()
+        self._maybe_attach_handler("litra")
 
         def _fallback():
             hg = self.hook._hid_gesture
@@ -1545,7 +1731,7 @@ class Engine:
     def read_litra_illumination(self):
         """Returns (enabled, brightness) or (None, None). Host-side only, temporary."""
         # 009.1: lazy attachment of FeatureHandler (only for Litra devices, zero impact otherwise)
-        self._maybe_attach_litra_handler()
+        self._maybe_attach_handler("litra")
 
         if LitraIlluminationHandler is not None and hasattr(self, "_litra_device") and self._litra_device:
             handler = self._litra_device.get_handler("litra_illumination")
@@ -1557,467 +1743,35 @@ class Engine:
             return hg.read_litra_illumination()
         return None, None
 
-    def _maybe_attach_litra_handler(self):
-        """009.1/009.6: use the common helper for lazy attachment."""
-        if not (LitraIlluminationHandler and hasattr(self, "hook")):
+    def _maybe_attach_handler(self, name: str):
+        """6.4: declarative lazy attachment via HANDLER_ATTACHMENTS registry."""
+        entry = HANDLER_ATTACHMENTS.get(name)
+        if not entry:
+            return
+        handler_cls = entry["handler_cls"]
+        if not (handler_cls and hasattr(self, "hook")):
             return
         hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_litra_illumination_idx", None) is None:
+        feature_attr = entry["feature_attr"]
+        if not hg or getattr(hg, feature_attr, None) is None:
             return
-
-        if not hasattr(self, "_litra_device") or self._litra_device is None:
+        device_attr = entry["device_attr"]
+        if not hasattr(self, device_attr) or getattr(self, device_attr) is None:
+            connected = getattr(hg, "connected_device", None)
+            product_id = getattr(connected, "product_id", 0)
+            device_key_fallback = entry.get("device_key_fallback", str(product_id))
             dev = maybe_attach_handler(
                 listener=hg,
-                handler_cls=LitraIlluminationHandler,
+                handler_cls=handler_cls,
                 cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Litra",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_litra_illumination_idx",
-                handler_name="litra_illumination",
+                device_key_fallback=device_key_fallback,
+                device_name_fallback=entry["device_name_fallback"],
+                product_id_fallback=product_id,
+                feature_attr=feature_attr,
+                handler_name=entry["handler_name"],
             )
             if dev:
-                self._litra_device = dev
-
-    # 009.2: minimal lazy attachment for BatteryHandler (same pattern as Litra)
-    def _maybe_attach_battery_handler(self):
-        if not (BatteryHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_battery_idx", None) is None:
-            return
-
-        if not hasattr(self, "_battery_device") or self._battery_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=BatteryHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_battery_idx",
-                handler_name="battery",
-            )
-            if dev:
-                self._battery_device = dev
-
-    # 009.3: minimal lazy attachment for SmartShiftHandler (same pattern)
-    def _maybe_attach_smart_shift_handler(self):
-        if not (SmartShiftHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_smart_shift_idx", None) is None:
-            return
-
-        if not hasattr(self, "_smart_shift_device") or self._smart_shift_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=SmartShiftHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_smart_shift_idx",
-                handler_name="smart_shift",
-            )
-            if dev:
-                self._smart_shift_device = dev
-
-    # 009.4: minimal lazy attachment for DPIHandler (same pattern)
-    def _maybe_attach_dpi_handler(self):
-        if not (DPIHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_dpi_idx", None) is None:
-            return
-
-        if not hasattr(self, "_dpi_device") or self._dpi_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=DPIHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_dpi_idx",
-                handler_name="dpi",
-            )
-            if dev:
-                self._dpi_device = dev
-
-    # 004.5: minimal lazy attachment for BacklightHandler (same pattern)
-    def _maybe_attach_backlight_handler(self):
-        if not (BacklightHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_backlight2_idx", None) is None:
-            return
-
-        if not hasattr(self, "_backlight_device") or self._backlight_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=BacklightHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_backlight2_idx",
-                handler_name="backlight",
-            )
-            if dev:
-                self._backlight_device = dev
-
-    # 004.5: minimal lazy attachment for FnInversionHandler (same pattern)
-    def _maybe_attach_fn_inversion_handler(self):
-        if not (FnInversionHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_fn_inversion_idx", None) is None:
-            return
-
-        if not hasattr(self, "_fn_inversion_device") or self._fn_inversion_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=FnInversionHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_fn_inversion_idx",
-                handler_name="fn_inversion",
-            )
-            if dev:
-                self._fn_inversion_device = dev
-
-    # 009.5: minimal lazy attachment for ReportRateHandler (same pattern)
-    def _maybe_attach_report_rate_handler(self):
-        if not (ReportRateHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_report_rate_idx", None) is None:
-            return
-
-        if not hasattr(self, "_report_rate_device") or self._report_rate_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=ReportRateHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_report_rate_idx",
-                handler_name="report_rate",
-            )
-            if dev:
-                self._report_rate_device = dev
-
-    # 009.9: minimal lazy attachment for OnboardProfilesHandler (same pattern)
-    def _maybe_attach_onboard_profiles_handler(self):
-        if not (OnboardProfilesHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_onboard_profiles_idx", None) is None:
-            return
-
-        if not hasattr(self, "_onboard_profiles_device") or self._onboard_profiles_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=OnboardProfilesHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_onboard_profiles_idx",
-                handler_name="onboard_profiles",
-            )
-            if dev:
-                self._onboard_profiles_device = dev
-
-    # 009.15: minimal lazy attachment for DeviceNameHandler (same pattern)
-    def _maybe_attach_device_name_handler(self):
-        if not (DeviceNameHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_device_name_idx", None) is None:
-            return
-
-        if not hasattr(self, "_device_name_device") or self._device_name_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=DeviceNameHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_device_name_idx",
-                handler_name="device_name",
-            )
-            if dev:
-                self._device_name_device = dev
-
-    # 009.16: minimal lazy attachment for LEDHandler (same pattern)
-    def _maybe_attach_led_handler(self):
-        if not (LEDHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_led_control_idx", None) is None:
-            return
-
-        if not hasattr(self, "_led_device") or self._led_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=LEDHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_led_control_idx",
-                handler_name="led",
-            )
-            if dev:
-                self._led_device = dev
-
-    # 009.17: minimal lazy attachment for DeviceModeHandler (same pattern)
-    def _maybe_attach_device_mode_handler(self):
-        if not (DeviceModeHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_device_mode_idx", None) is None:
-            return
-
-        if not hasattr(self, "_device_mode_device") or self._device_mode_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=DeviceModeHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_device_mode_idx",
-                handler_name="device_mode",
-            )
-            if dev:
-                self._device_mode_device = dev
-
-    # 009.18: minimal lazy attachment for WirelessPowerHandler (same pattern)
-    def _maybe_attach_wireless_power_handler(self):
-        if not (WirelessPowerHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_wireless_power_idx", None) is None:
-            return
-
-        if not hasattr(self, "_wireless_power_device") or self._wireless_power_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=WirelessPowerHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_wireless_power_idx",
-                handler_name="wireless_power",
-            )
-            if dev:
-                self._wireless_power_device = dev
-
-    # 009.19: minimal lazy attachment for LEDEffectsHandler (same pattern)
-    def _maybe_attach_led_effects_handler(self):
-        if not (LEDEffectsHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_led_effects_idx", None) is None:
-            return
-
-        if not hasattr(self, "_led_effects_device") or self._led_effects_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=LEDEffectsHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_led_effects_idx",
-                handler_name="led_effects",
-            )
-            if dev:
-                self._led_effects_device = dev
-
-    # 009.20: minimal lazy attachment for WirelessChannelHandler (same pattern)
-    def _maybe_attach_wireless_channel_handler(self):
-        if not (WirelessChannelHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_wireless_channel_idx", None) is None:
-            return
-
-        if not hasattr(self, "_wireless_channel_device") or self._wireless_channel_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=WirelessChannelHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_wireless_channel_idx",
-                handler_name="wireless_channel",
-            )
-            if dev:
-                self._wireless_channel_device = dev
-
-    # 009.21: minimal lazy attachment for SleepTimeoutHandler (same pattern)
-    def _maybe_attach_sleep_timeout_handler(self):
-        if not (SleepTimeoutHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_sleep_timeout_idx", None) is None:
-            return
-
-        if not hasattr(self, "_sleep_timeout_device") or self._sleep_timeout_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=SleepTimeoutHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_sleep_timeout_idx",
-                handler_name="sleep_timeout",
-            )
-            if dev:
-                self._sleep_timeout_device = dev
-
-    # 009.22: minimal lazy attachment for WirelessStatusHandler (same pattern)
-    def _maybe_attach_wireless_status_handler(self):
-        if not (WirelessStatusHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_wireless_status_idx", None) is None:
-            return
-
-        if not hasattr(self, "_wireless_status_device") or self._wireless_status_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=WirelessStatusHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_wireless_status_idx",
-                handler_name="wireless_status",
-            )
-            if dev:
-                self._wireless_status_device = dev
-
-    # 009.24: minimal lazy attachment for DeviceIdentityHandler (same pattern)
-    def _maybe_attach_device_identity_handler(self):
-        if not (DeviceIdentityHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_device_identity_idx", None) is None:
-            return
-
-        if not hasattr(self, "_device_identity_device") or self._device_identity_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=DeviceIdentityHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_device_identity_idx",
-                handler_name="device_identity",
-            )
-            if dev:
-                self._device_identity_device = dev
-
-    # 009.35: minimal lazy attachment for DeviceTypeHandler (same pattern)
-    def _maybe_attach_device_type_handler(self):
-        if not (DeviceTypeHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_device_type_idx", None) is None:
-            return
-
-        if not hasattr(self, "_device_type_device") or self._device_type_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=DeviceTypeHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_device_type_idx",
-                handler_name="device_type",
-            )
-            if dev:
-                self._device_type_device = dev
-
-    # 009.49 (fresh): minimal lazy attachment for RemainingPairingHandler
-    def _maybe_attach_remaining_pairing_handler(self):
-        if not (RemainingPairingHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_remaining_pairing_idx", None) is None:
-            return
-
-        if not hasattr(self, "_remaining_pairing_device") or self._remaining_pairing_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=RemainingPairingHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_remaining_pairing_idx",
-                handler_name="remaining_pairing",
-            )
-            if dev:
-                self._remaining_pairing_device = dev
-
-    # 009.51 (fresh): minimal lazy attachment for ForceSensingButtonHandler
-    def _maybe_attach_force_sensing_button_handler(self):
-        if not (ForceSensingButtonHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_force_sensing_button_idx", None) is None:
-            return
-
-        if not hasattr(self, "_force_sensing_button_device") or self._force_sensing_button_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=ForceSensingButtonHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_force_sensing_button_idx",
-                handler_name="force_sensing_button",
-            )
-            if dev:
-                self._force_sensing_button_device = dev
-
-    # 009.37: minimal lazy attachment for PowerManagementHandler (same pattern)
-    def _maybe_attach_power_management_handler(self):
-        if not (PowerManagementHandler and hasattr(self, "hook")):
-            return
-        hg = getattr(self.hook, "_hid_gesture", None)
-        if not hg or getattr(hg, "_power_management_idx", None) is None:
-            return
-
-        if not hasattr(self, "_power_management_device") or self._power_management_device is None:
-            dev = maybe_attach_handler(
-                listener=hg,
-                handler_cls=PowerManagementHandler,
-                cfg=self.cfg,
-                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
-                device_name_fallback="Device",
-                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
-                feature_attr="_power_management_idx",
-                handler_name="power_management",
-            )
-            if dev:
-                self._power_management_device = dev
+                setattr(self, device_attr, dev)
 
     # 009.7: tiny reusable helper for the common “delegate or fallback” pattern
     def _delegate_or_fallback(self, device_attr: str, handler_name: str, handler_method: str, fallback_callable, *args, **kwargs):

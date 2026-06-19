@@ -32,14 +32,18 @@ from core.key_registry import (
     is_reserved_risky_shortcut,
     pretty_key_name,
 )
+from core.device_state import (
+    build_all_devices_list,
+    connected_device_key,
+    device_kind_from_connected,
+    display_name_for_device_key,
+)
 from core.logi_devices import (
     DEFAULT_DPI_MAX,
     DEFAULT_DPI_MIN,
     build_evdev_connected_device_info,
     clamp_dpi,
     get_buttons_for_layout,
-    iter_known_devices,
-    resolve_device,
 )
 from core.key_simulator import (
     ACTIONS,
@@ -281,7 +285,11 @@ class Backend(QObject):
         self._connected_device_refresh_pending = False
         self._connected_device_refresh_attempts = 0
         self._connected_devices = []
-        self._selected_device_key = ""
+        self._selected_device_key = str(
+            self._cfg.get("settings", {}).get("selected_device_key", "") or ""
+        )
+        if self._engine is not None:
+            self._engine.selected_device_key = self._selected_device_key
         self._latest_update_url = ""
         self._latest_update_version = ""
         self._update_check_in_progress = False
@@ -866,6 +874,22 @@ class Backend(QObject):
     @Property(str, notify=deviceInfoChanged)
     def connectedDeviceKey(self):
         return self._connected_device_key
+
+    @Property(str, notify=deviceInfoChanged)
+    def activeMouseDeviceKey(self):
+        """Key of the mouse used for button remapping and DPI.
+
+        Mouse mappings and scroll/DPI controls use the active mouse device,
+        not ``selectedDeviceKey`` (which targets keyboard/Litra per-device settings).
+        """
+        if self._engine is not None:
+            device = getattr(self._engine, "active_mouse_device", None)
+            if device is not None:
+                return connected_device_key(device)
+        device = self._resolved_connected_device()
+        if device_kind_from_connected(device) == "mouse":
+            return connected_device_key(device)
+        return ""
 
     @Property(str, notify=deviceInfoChanged)
     def connectionType(self):
@@ -2119,6 +2143,8 @@ class Backend(QObject):
             return
         self._selected_device_key = normalized
         self.selectedDeviceKeyChanged.emit()
+        if self._engine is not None:
+            self._engine.selected_device_key = normalized
 
     def _keyboard_settings_device_key(self):
         if self._selected_device_key:
@@ -2133,73 +2159,18 @@ class Backend(QObject):
 
     @staticmethod
     def _display_name_for_device_key(key):
-        for spec in iter_known_devices():
-            if spec.key == key:
-                return spec.display_name
-        try:
-            pid = int(key, 16)
-        except (TypeError, ValueError):
-            return str(key).replace("_", " ").title()
-        spec = resolve_device(product_id=pid)
-        if spec:
-            return spec.display_name
-        return f"Logitech PID 0x{pid:04X}"
+        return display_name_for_device_key(key)
 
     @staticmethod
     def _device_kind_from_connected(device):
-        if device is None:
-            return "other"
-        inventory = getattr(device, "capability_inventory", None)
-        if inventory is not None:
-            identity = dict(getattr(inventory, "device_identity", ()) or ())
-            kind = identity.get("device_kind", "")
-            if kind == "unknown":
-                kind = "other"
-            if kind in ("mouse", "keyboard", "other"):
-                return kind
-            if getattr(inventory, "keyboard_device", False):
-                return "keyboard"
-        name = (getattr(device, "display_name", "") or "").lower()
-        if any(token in name for token in ("g502", "mx master", "mx anywhere", "mx vertical", "mouse")):
-            return "mouse"
-        if any(token in name for token in ("mechanical", "keyboard", "mx keys")):
-            return "keyboard"
-        if "litra" in name:
-            return "other"
-        return "other"
+        return device_kind_from_connected(device)
 
     def _sync_connected_devices_list(self):
-        entries_by_key = {}
-        for key in self._cfg.get("devices", {}):
-            if not key:
-                continue
-            entries_by_key[key] = {
-                "key": key,
-                "displayName": self._display_name_for_device_key(key),
-                "deviceKind": "other",
-                "batteryLevel": -1,
-                "connected": False,
-            }
-
-        device = self._resolved_connected_device()
-        if device is not None:
-            device_key = getattr(device, "key", "") or ""
-            if not device_key:
-                product_id = getattr(device, "product_id", None)
-                if product_id not in (None, ""):
-                    device_key = str(product_id)
-            if device_key:
-                entries_by_key[device_key] = {
-                    "key": device_key,
-                    "displayName": getattr(device, "display_name", "") or device_key,
-                    "deviceKind": self._device_kind_from_connected(device),
-                    "batteryLevel": self._battery_level,
-                    "connected": bool(self._mouse_connected),
-                }
-
-        new_list = sorted(
-            entries_by_key.values(),
-            key=lambda entry: (not entry["connected"], entry["displayName"].lower()),
+        new_list = build_all_devices_list(
+            self._cfg,
+            self._resolved_connected_device(),
+            mouse_connected=self._mouse_connected,
+            battery_level=self._battery_level,
         )
         if new_list != self._connected_devices:
             self._connected_devices = new_list
