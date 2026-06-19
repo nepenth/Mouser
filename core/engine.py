@@ -61,6 +61,17 @@ try:
 except Exception:
     ReportRateHandler = None
 
+# 004.5: BacklightHandler / FnInversionHandler imports (guarded)
+try:
+    from core.devices.backlight_handler import BacklightHandler
+except Exception:
+    BacklightHandler = None
+
+try:
+    from core.devices.fn_inversion_handler import FnInversionHandler
+except Exception:
+    FnInversionHandler = None
+
 # 009.9: OnboardProfilesHandler import (guarded)
 try:
     from core.devices.onboard_profiles_handler import OnboardProfilesHandler
@@ -946,10 +957,17 @@ class Engine:
 
     def read_backlight(self):
         """Returns [enabled, level] or [None, None]. Host-side only, temporary (lost on reconnect/host switch)."""
-        hg = self.hook._hid_gesture
-        if hg:
-            return hg.read_backlight()
-        return [None, None]
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg:
+                return hg.read_backlight()
+            return [None, None]
+
+        self._maybe_attach_backlight_handler()
+        return self._delegate_or_fallback(
+            "_backlight_device", "backlight", "handle_read",
+            _fallback
+        )
 
     def set_backlight(self, enabled, level=-1):
         """Host-side backlight control. Temporary (lost on reconnect/host switch)."""
@@ -964,23 +982,39 @@ class Engine:
                 print(f"[Engine] set_backlight blocked by per-device setting (device={device_key})")
                 return False
 
-        hg = self.hook._hid_gesture
-        if hg:
-            lvl = None if level < 0 else level
-            ok = hg.set_backlight(bool(enabled), lvl)
-            if ok and device_key:
-                save_keyboard_host_backlight_state(self.cfg, device_key, bool(enabled), lvl)
-            return ok
-        print("[Engine] set_backlight: No HID++ connection — not applied")
-        return False
+        lvl = None if level < 0 else level
+
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg:
+                return hg.set_backlight(bool(enabled), lvl)
+            print("[Engine] set_backlight: No HID++ connection — not applied")
+            return False
+
+        self._maybe_attach_backlight_handler()
+        ok = self._delegate_or_fallback(
+            "_backlight_device", "backlight", "handle_write",
+            _fallback, bool(enabled), lvl
+        )
+        if ok and device_key:
+            save_keyboard_host_backlight_state(self.cfg, device_key, bool(enabled), lvl)
+        return ok
 
     def read_fn_inversion(self):
         """Returns current Fn/Fx swap state or False/None. Host-side only, temporary."""
-        hg = self.hook._hid_gesture
-        if hg:
-            val = hg.read_fn_inversion()
-            return val if val is not None else False
-        return False
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg:
+                val = hg.read_fn_inversion()
+                return val if val is not None else False
+            return False
+
+        self._maybe_attach_fn_inversion_handler()
+        val = self._delegate_or_fallback(
+            "_fn_inversion_device", "fn_inversion", "handle_read",
+            _fallback
+        )
+        return val if val is not None else False
 
     def set_fn_inversion(self, swap):
         """Host-side FN inversion toggle. Temporary (lost on reconnect/host switch)."""
@@ -995,14 +1029,21 @@ class Engine:
                 print(f"[Engine] set_fn_inversion blocked by per-device setting (device={device_key})")
                 return False
 
-        hg = self.hook._hid_gesture
-        if hg:
-            ok = hg.set_fn_inversion(bool(swap))
-            if ok and device_key:
-                save_keyboard_host_fn_inversion_state(self.cfg, device_key, bool(swap))
-            return ok
-        print("[Engine] set_fn_inversion: No HID++ connection — not applied")
-        return False
+        def _fallback():
+            hg = self.hook._hid_gesture
+            if hg:
+                return hg.set_fn_inversion(bool(swap))
+            print("[Engine] set_fn_inversion: No HID++ connection — not applied")
+            return False
+
+        self._maybe_attach_fn_inversion_handler()
+        ok = self._delegate_or_fallback(
+            "_fn_inversion_device", "fn_inversion", "handle_write",
+            _fallback, bool(swap)
+        )
+        if ok and device_key:
+            save_keyboard_host_fn_inversion_state(self.cfg, device_key, bool(swap))
+        return ok
 
     def has_backlight_control(self):
         """Returns True if the connected device supports host-side BACKLIGHT2 control via this API (MX Mechanical Mini etc.)."""
@@ -1596,6 +1637,50 @@ class Engine:
             )
             if dev:
                 self._dpi_device = dev
+
+    # 004.5: minimal lazy attachment for BacklightHandler (same pattern)
+    def _maybe_attach_backlight_handler(self):
+        if not (BacklightHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_backlight2_idx", None) is None:
+            return
+
+        if not hasattr(self, "_backlight_device") or self._backlight_device is None:
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=BacklightHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_backlight2_idx",
+                handler_name="backlight",
+            )
+            if dev:
+                self._backlight_device = dev
+
+    # 004.5: minimal lazy attachment for FnInversionHandler (same pattern)
+    def _maybe_attach_fn_inversion_handler(self):
+        if not (FnInversionHandler and hasattr(self, "hook")):
+            return
+        hg = getattr(self.hook, "_hid_gesture", None)
+        if not hg or getattr(hg, "_fn_inversion_idx", None) is None:
+            return
+
+        if not hasattr(self, "_fn_inversion_device") or self._fn_inversion_device is None:
+            dev = maybe_attach_handler(
+                listener=hg,
+                handler_cls=FnInversionHandler,
+                cfg=self.cfg,
+                device_key_fallback=str(getattr(getattr(hg, "connected_device", None), "product_id", 0)),
+                device_name_fallback="Device",
+                product_id_fallback=getattr(getattr(hg, "connected_device", None), "product_id", 0),
+                feature_attr="_fn_inversion_idx",
+                handler_name="fn_inversion",
+            )
+            if dev:
+                self._fn_inversion_device = dev
 
     # 009.5: minimal lazy attachment for ReportRateHandler (same pattern)
     def _maybe_attach_report_rate_handler(self):

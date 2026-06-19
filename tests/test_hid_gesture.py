@@ -1130,5 +1130,111 @@ class KeyboardHostReplayTests(unittest.TestCase):
         hg.set_fn_inversion.assert_not_called()
 
 
+class KeyboardHandlerDelegationTests(unittest.TestCase):
+    """Engine delegates keyboard middle-path APIs through FeatureHandlers (004.5)."""
+
+    def _make_engine(self, device_key="B367", kmp_overrides=None):
+        import copy
+        from core.engine import Engine
+        from tests.test_smart_shift import _FakeAppDetector, _FakeMouseHook
+
+        cfg = copy.deepcopy(DEFAULT_CONFIG)
+        kmp = {
+            "allow_host_backlight": True,
+            "allow_fn_inversion": True,
+        }
+        if kmp_overrides:
+            kmp.update(kmp_overrides)
+        cfg.setdefault("devices", {})[device_key] = {"keyboard_middle_path": kmp}
+        device = SimpleNamespace(key=device_key, product_id=0xB367)
+        with (
+            patch("core.engine.MouseHook", _FakeMouseHook),
+            patch("core.engine.AppDetector", _FakeAppDetector),
+            patch("core.engine.load_config", return_value=cfg),
+            patch("core.engine.save_config"),
+        ):
+            engine = Engine()
+            engine.hook.connected_device = device
+        return engine
+
+    def test_read_backlight_attaches_handler_and_delegates(self):
+        engine = self._make_engine()
+        hg = Mock()
+        hg.connected_device = SimpleNamespace(key="B367", product_id=0xB367)
+        hg._backlight2_idx = 0x0A
+        hg.read_backlight.return_value = (True, 50)
+        engine.hook._hid_gesture = hg
+
+        result = engine.read_backlight()
+
+        self.assertEqual(result, (True, 50))
+        self.assertIsNotNone(engine._backlight_device)
+        hg.read_backlight.assert_called_once_with()
+
+    def test_set_backlight_blocked_by_per_device_setting(self):
+        engine = self._make_engine(kmp_overrides={"allow_host_backlight": False})
+        hg = Mock()
+        hg.connected_device = SimpleNamespace(key="B367", product_id=0xB367)
+        hg._backlight2_idx = 0x0A
+        engine.hook._hid_gesture = hg
+
+        with patch("core.engine.save_keyboard_host_backlight_state") as save_bl:
+            self.assertFalse(engine.set_backlight(True, 40))
+            hg.set_backlight.assert_not_called()
+            save_bl.assert_not_called()
+
+    def test_set_backlight_delegates_and_persists_host_state(self):
+        engine = self._make_engine()
+        hg = Mock()
+        hg.connected_device = SimpleNamespace(key="B367", product_id=0xB367)
+        hg._backlight2_idx = 0x0A
+        hg.set_backlight.return_value = True
+        engine.hook._hid_gesture = hg
+
+        with patch("core.engine.save_keyboard_host_backlight_state") as save_bl:
+            self.assertTrue(engine.set_backlight(True, 40))
+            self.assertIsNotNone(engine._backlight_device)
+            hg.set_backlight.assert_called_once_with(True, 40)
+            save_bl.assert_called_once_with(engine.cfg, "B367", True, 40)
+
+    def test_read_fn_inversion_attaches_handler_and_delegates(self):
+        engine = self._make_engine()
+        hg = Mock()
+        hg.connected_device = SimpleNamespace(key="B367", product_id=0xB367)
+        hg._fn_inversion_idx = 0x0B
+        hg.read_fn_inversion.return_value = True
+        engine.hook._hid_gesture = hg
+
+        self.assertTrue(engine.read_fn_inversion())
+        self.assertIsNotNone(engine._fn_inversion_device)
+        hg.read_fn_inversion.assert_called_once_with()
+
+    def test_set_fn_inversion_blocked_by_per_device_setting(self):
+        engine = self._make_engine(kmp_overrides={"allow_fn_inversion": False})
+        hg = Mock()
+        hg.connected_device = SimpleNamespace(key="B367", product_id=0xB367)
+        hg._fn_inversion_idx = 0x0B
+        engine.hook._hid_gesture = hg
+
+        with patch("core.engine.save_keyboard_host_fn_inversion_state") as save_fn:
+            self.assertFalse(engine.set_fn_inversion(True))
+            hg.set_fn_inversion.assert_not_called()
+            save_fn.assert_not_called()
+
+    def test_set_fn_inversion_delegates_and_persists_host_state(self):
+        engine = self._make_engine()
+        hg = Mock()
+        hg.connected_device = SimpleNamespace(key="B367", product_id=0xB367)
+        hg._fn_inversion_idx = 0x0B
+        hg.set_fn_inversion.return_value = True
+        engine.hook._hid_gesture = hg
+
+        with patch("core.engine.save_keyboard_host_fn_inversion_state") as save_fn:
+            self.assertTrue(engine.set_fn_inversion(False))
+            self.assertIsNotNone(engine._fn_inversion_device)
+            hg.set_fn_inversion.assert_called_once_with(False)
+            save_fn.assert_called_once_with(engine.cfg, "B367", False)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -108,7 +108,8 @@ ApplicationWindow {
                         model: [
                             { icon: "mouse-simple", tipKey: "nav.mouse_profiles", page: 0 },
                             { icon: "sliders-horizontal", tipKey: "nav.point_scroll", page: 1 },
-                            { icon: "keyboard-simple", tipKey: "nav.keyboard", page: 2 }
+                            { icon: "keyboard-simple", tipKey: "nav.keyboard", page: 2 },
+                            { icon: "sliders-horizontal", tipKey: "nav.litra", page: 3 }
                         ]
 
                         delegate: FocusScope {
@@ -278,6 +279,7 @@ ApplicationWindow {
                     source: "ScrollPage.qml"
                 }
                 KeyboardPage {}
+                LitraPage {}
             }
 
             // First real exposure of keyboard middle-path controls (TASK-005 005.1)
@@ -288,7 +290,10 @@ ApplicationWindow {
             }
 
             // First minimal UI surface for Litra Beam (TASK-008 008.5)
-            LitraControls {}
+            // Hidden on the dedicated Litra page (008.7) to avoid duplication
+            LitraControls {
+                visible: backend.hasLitraIlluminationSupported && root.currentPage !== 3
+            }
         }
     }
 

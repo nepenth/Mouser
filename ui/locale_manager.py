@@ -11,6 +11,7 @@ _TRANSLATIONS = {
         # Navigation sidebar
         "nav.mouse_profiles": "Mouse & Profiles",
         "nav.point_scroll": "General",
+        "nav.litra": "Lights",
         "nav.about": "About",
 
         # Mouse page — profile list
@@ -244,6 +245,7 @@ _TRANSLATIONS = {
     "zh_CN": {
         "nav.mouse_profiles": "\u9f20\u6807\u4e0e\u914d\u7f6e\u6587\u4ef6",
         "nav.point_scroll": "\u901a\u7528",
+        "nav.litra": "\u706f\u5149",
         "nav.about": "\u5173\u4e8e",
 
         "mouse.profiles": "\u914d\u7f6e\u6587\u4ef6",
@@ -460,6 +462,7 @@ _TRANSLATIONS = {
     "zh_TW": {
         "nav.mouse_profiles": "\u6ed1\u9f20\u8207\u8a2d\u5b9a\u6a94",
         "nav.point_scroll": "\u901a\u7528",
+        "nav.litra": "\u71c8\u5149",
         "nav.about": "\u95dc\u65bc",
 
         "mouse.profiles": "\u8a2d\u5b9a\u6a94",

@@ -61,6 +61,19 @@ if HIDAPI_OK:
 
 _LOG_ONCE_KEYS = set()
 
+# Listener-thread pending ops are polled from caller threads (set_*/read_*).
+# 30 attempts × 0.1 s = 3 s total — same budget as DPI control.
+_HIDPP_PENDING_POLL_ATTEMPTS = 30
+_HIDPP_PENDING_POLL_INTERVAL_S = 0.1
+
+
+def _hidpp_response_params(resp):
+    """Return HID++ response params from a _request() tuple (DPI-style unpacking)."""
+    if resp:
+        _, _, _, _, params = resp
+        return params or b""
+    return None
+
 
 def _log_once(key, message):
     if key in _LOG_ONCE_KEYS:
@@ -621,24 +634,35 @@ FEAT_REPORT_RATE    = 0x8060      # Report rate control (gaming mice)
 FEAT_BACKLIGHT2           = 0x1982   # Backlight control (V2 on MX Mechanical Mini)
 FEAT_K375S_FN_INVERSION   = 0x40A3   # FN / Fx swap (common on MX Mechanical family)
 FEAT_DEVICE_NAME    = 0x0005      # Device Name & Type
-FEAT_DEVICE_IDENTITY = 0x0003     # Device Serial Number / Hardware Version / Identity (placeholder)
-FEAT_DEVICE_TYPE        = 0x0002     # Device Type / Product Type (placeholder; replace with real ID from device dumps)
+# SOURCE: unverified — _find_feature probe only; is_supported False when absent
+FEAT_DEVICE_IDENTITY = 0x0003     # Device Serial Number / Hardware Version / Identity (probe candidate)
+# SOURCE: unverified — _find_feature probe only; is_supported False when absent
+FEAT_DEVICE_TYPE        = 0x0002     # Device Type / Product Type (probe candidate)
 FEAT_BATTERY_STATUS = 0x1000      # Battery Status (fallback)
 
 # Litra Beam (and similar Logitech lights) illumination control
 # HID++ ILLUMINATION (Solaar SupportedFeature.ILLUMINATION); not PRESENTER_CONTROL 0x1A00.
 FEAT_LITRA_ILLUMINATION = 0x1990
 FEAT_LITRA_ILLUMINATION_LEGACY = 0x1A00  # runtime fallback only (was incorrect placeholder)
-FEAT_LED_CONTROL        = 0x1A01  # Placeholder for common mouse LED control (on/off + brightness); replace with real ID from device dumps
-FEAT_LED_EFFECTS        = 0x1A02  # Placeholder for LED Effects (patterns/modes beyond basic on/off + brightness); replace with real ID from device dumps
-FEAT_DEVICE_MODE        = 0x1B00  # Placeholder for Device Mode / Wireless Mode; replace with real ID from device dumps
-FEAT_WIRELESS_POWER     = 0x1C00  # Placeholder for Wireless Power / RF Power Management; replace with real ID from device dumps
-FEAT_POWER_MANAGEMENT   = 0x1C01  # Placeholder for Power Management (beyond Sleep Timeout / Wireless Power); replace with real ID from device dumps
+# SOURCE: Solaar SupportedFeature.LED_CONTROL — https://github.com/pwr-Solaar/Solaar/blob/master/lib/logitech_receiver/hidpp20_constants.py
+FEAT_LED_CONTROL        = 0x1300  # LED control (on/off + brightness)
+# SOURCE: Solaar SupportedFeature.COLOR_LED_EFFECTS — https://github.com/pwr-Solaar/Solaar/blob/master/lib/logitech_receiver/hidpp20_constants.py
+FEAT_LED_EFFECTS        = 0x8070  # LED effects (patterns/modes beyond basic on/off + brightness)
+# SOURCE: Solaar SupportedFeature.DEVICE_MODE — https://github.com/pwr-Solaar/Solaar/blob/master/lib/logitech_receiver/hidpp20_constants.py
+FEAT_DEVICE_MODE        = 0x1B30  # Device Mode / Wireless Mode
+# SOURCE: Solaar SupportedFeature.WIRELESS_SIGNAL_STRENGTH (closest RF/link match) — https://github.com/pwr-Solaar/Solaar/blob/master/lib/logitech_receiver/hidpp20_constants.py
+FEAT_WIRELESS_POWER     = 0x0080  # Wireless Power / RF Power Management (signal strength proxy)
+# SOURCE: unverified — _find_feature probe only; is_supported False when absent
+FEAT_POWER_MANAGEMENT   = 0x1C01  # Power Management (beyond Sleep Timeout / Wireless Power; probe candidate)
 FEAT_REMAINING_PAIRING  = 0x1DF0  # Remaining Pairing slots (standard HID++ feature)
-FEAT_FORCE_SENSING_BUTTON = 0x1B30  # Force Sensing Button (pressure-sensitive buttons)
-FEAT_WIRELESS_CHANNEL   = 0x1D00  # Placeholder for Wireless Channel / RF Channel; replace with real ID from device dumps
-FEAT_WIRELESS_STATUS    = 0x1F00  # Placeholder for Wireless Status (link quality / RSSI); replace with real ID from device dumps
-FEAT_SLEEP_TIMEOUT      = 0x1E00  # Placeholder for Sleep Timeout / Power Save Timeout; replace with real ID from device dumps
+# SOURCE: Solaar SupportedFeature.FORCE_SENSING_BUTTON — https://github.com/pwr-Solaar/Solaar/blob/master/lib/logitech_receiver/hidpp20_constants.py
+FEAT_FORCE_SENSING_BUTTON = 0x19C0  # Force Sensing Button (pressure-sensitive buttons)
+# SOURCE: unverified — _find_feature probe only; is_supported False when absent
+FEAT_WIRELESS_CHANNEL   = 0x1D00  # Wireless Channel / RF Channel (probe candidate)
+# SOURCE: Solaar SupportedFeature.WIRELESS_DEVICE_STATUS — https://github.com/pwr-Solaar/Solaar/blob/master/lib/logitech_receiver/hidpp20_constants.py
+FEAT_WIRELESS_STATUS    = 0x1D4B  # Wireless Status (link quality / RSSI)
+# SOURCE: unverified — _find_feature probe only; is_supported False when absent
+FEAT_SLEEP_TIMEOUT      = 0x1E00  # Sleep Timeout / Power Save Timeout (probe candidate)
 DEFAULT_GESTURE_CID = DEFAULT_GESTURE_CIDS[0]
 
 MY_SW          = 0x0A        # arbitrary software-id used in our requests
@@ -815,18 +839,18 @@ class HidGestureListener:
         self._fn_inversion_idx = None       # 0x40A3 - K375S FN inversion
         self._litra_illumination_idx = None  # 0x1990 - HID++ ILLUMINATION (Litra Beam)
         self._device_name_idx = None        # 0x0005 - Device Name / Friendly Name
-        self._device_identity_idx = None    # 0x0003 - Device Serial / Hardware Version / Identity (placeholder)
-        self._device_type_idx = None        # 0x0002 - Device Type / Product Type (placeholder)
-        self._led_control_idx = None        # 0x1A01 - Common mouse LED control (placeholder)
-        self._led_effects_idx = None        # 0x1A02 - LED Effects (placeholder)
-        self._device_mode_idx = None        # 0x1B00 - Device Mode / Wireless Mode (placeholder)
-        self._wireless_power_idx = None     # 0x1C00 - Wireless Power / RF Power (placeholder)
-        self._power_management_idx = None   # 0x1C01 - Power Management (beyond Sleep Timeout) (placeholder)
+        self._device_identity_idx = None    # 0x0003 - Device Serial / Hardware Version / Identity (unverified probe)
+        self._device_type_idx = None        # 0x0002 - Device Type / Product Type (unverified probe)
+        self._led_control_idx = None        # 0x1300 - LED_CONTROL (Solaar)
+        self._led_effects_idx = None        # 0x8070 - COLOR_LED_EFFECTS (Solaar)
+        self._device_mode_idx = None        # 0x1B30 - DEVICE_MODE (Solaar)
+        self._wireless_power_idx = None     # 0x0080 - WIRELESS_SIGNAL_STRENGTH proxy (Solaar)
+        self._power_management_idx = None   # 0x1C01 - Power Management (unverified probe)
         self._remaining_pairing_idx = None  # Remaining Pairing slots
-        self._force_sensing_button_idx = None  # Force Sensing Button (0x1B30)
-        self._wireless_channel_idx = None   # 0x1D00 - Wireless Channel / RF Channel (placeholder)
-        self._sleep_timeout_idx = None      # 0x1E00 - Sleep Timeout / Power Save Timeout (placeholder)
-        self._wireless_status_idx = None    # 0x1F00 - Wireless Status (placeholder)
+        self._force_sensing_button_idx = None  # Force Sensing Button (0x19C0)
+        self._wireless_channel_idx = None   # 0x1D00 - Wireless Channel / RF Channel (unverified probe)
+        self._sleep_timeout_idx = None      # 0x1E00 - Sleep Timeout / Power Save Timeout (unverified probe)
+        self._wireless_status_idx = None    # 0x1D4B - WIRELESS_DEVICE_STATUS (Solaar)
         self._pending_smart_shift = None
         self._smart_shift_result = None
         self._smart_shift_call_lock = threading.Lock()
@@ -1003,25 +1027,25 @@ class HidGestureListener:
         if self._device_type_idx is not None:
             features["DEVICE_TYPE (0x0002)"] = f"index 0x{self._device_type_idx:02X}"
         if self._led_control_idx is not None:
-            features["LED_CONTROL (0x1A01)"] = f"index 0x{self._led_control_idx:02X}"
+            features[f"LED_CONTROL (0x{FEAT_LED_CONTROL:04X})"] = f"index 0x{self._led_control_idx:02X}"
         if self._device_mode_idx is not None:
-            features["DEVICE_MODE (0x1B00)"] = f"index 0x{self._device_mode_idx:02X}"
+            features[f"DEVICE_MODE (0x{FEAT_DEVICE_MODE:04X})"] = f"index 0x{self._device_mode_idx:02X}"
         if self._led_effects_idx is not None:
-            features["LED_EFFECTS (0x1A02)"] = f"index 0x{self._led_effects_idx:02X}"
+            features[f"LED_EFFECTS (0x{FEAT_LED_EFFECTS:04X})"] = f"index 0x{self._led_effects_idx:02X}"
         if self._wireless_power_idx is not None:
-            features["WIRELESS_POWER (0x1C00)"] = f"index 0x{self._wireless_power_idx:02X}"
+            features[f"WIRELESS_POWER (0x{FEAT_WIRELESS_POWER:04X})"] = f"index 0x{self._wireless_power_idx:02X}"
         if self._power_management_idx is not None:
-            features["POWER_MANAGEMENT (0x1C01)"] = f"index 0x{self._power_management_idx:02X}"
+            features[f"POWER_MANAGEMENT (0x{FEAT_POWER_MANAGEMENT:04X})"] = f"index 0x{self._power_management_idx:02X}"
         if self._remaining_pairing_idx is not None:
             features["REMAINING_PAIRING"] = f"index 0x{self._remaining_pairing_idx:02X}"
         if self._force_sensing_button_idx is not None:
-            features["FORCE_SENSING_BUTTON (0x1B30)"] = f"index 0x{self._force_sensing_button_idx:02X}"
+            features[f"FORCE_SENSING_BUTTON (0x{FEAT_FORCE_SENSING_BUTTON:04X})"] = f"index 0x{self._force_sensing_button_idx:02X}"
         if self._wireless_channel_idx is not None:
-            features["WIRELESS_CHANNEL (0x1D00)"] = f"index 0x{self._wireless_channel_idx:02X}"
+            features[f"WIRELESS_CHANNEL (0x{FEAT_WIRELESS_CHANNEL:04X})"] = f"index 0x{self._wireless_channel_idx:02X}"
         if self._sleep_timeout_idx is not None:
-            features["SLEEP_TIMEOUT (0x1E00)"] = f"index 0x{self._sleep_timeout_idx:02X}"
+            features[f"SLEEP_TIMEOUT (0x{FEAT_SLEEP_TIMEOUT:04X})"] = f"index 0x{self._sleep_timeout_idx:02X}"
         if self._wireless_status_idx is not None:
-            features["WIRELESS_STATUS (0x1F00)"] = f"index 0x{self._wireless_status_idx:02X}"
+            features[f"WIRELESS_STATUS (0x{FEAT_WIRELESS_STATUS:04X})"] = f"index 0x{self._wireless_status_idx:02X}"
 
         controls = []
         for c in self._last_controls:
@@ -1935,6 +1959,20 @@ class HidGestureListener:
             pass
         self._rawxy_enabled = False
 
+    def _wait_for_pending(self, pending_attr, label, *, clear_on_timeout=True):
+        """Wait for the listener thread to clear *pending_attr* (3 s max).
+
+        set_* callers may pass clear_on_timeout=False to mirror DPI set behavior.
+        """
+        for _ in range(_HIDPP_PENDING_POLL_ATTEMPTS):
+            if getattr(self, pending_attr) is None:
+                return True
+            time.sleep(_HIDPP_PENDING_POLL_INTERVAL_S)
+        print(f"[HidGesture] {label} timed out")
+        if clear_on_timeout:
+            setattr(self, pending_attr, None)
+        return False
+
     # ── DPI control ───────────────────────────────────────────────
 
     def set_dpi(self, dpi_value):
@@ -1943,12 +1981,8 @@ class HidGestureListener:
         dpi = clamp_dpi(dpi_value, self._connected_device_info)
         self._dpi_result = None
         self._pending_dpi = dpi
-        # Wait up to 3s for the listener thread to apply it
-        for _ in range(30):
-            if self._pending_dpi is None:
-                return self._dpi_result is True
-            time.sleep(0.1)
-        print("[HidGesture] DPI set timed out")
+        if self._wait_for_pending("_pending_dpi", "DPI set", clear_on_timeout=False):
+            return self._dpi_result is True
         return False
 
     def _apply_pending_dpi(self):
@@ -1981,12 +2015,8 @@ class HidGestureListener:
         Can be called from any thread.  Returns the DPI value or None."""
         self._dpi_result = None
         self._pending_dpi = "read"  # special sentinel
-        for _ in range(30):
-            if self._pending_dpi is None:
-                return self._dpi_result
-            time.sleep(0.1)
-        print("[HidGesture] DPI read timed out")
-        self._pending_dpi = None
+        if self._wait_for_pending("_pending_dpi", "DPI read"):
+            return self._dpi_result
         return None
 
     def _apply_pending_read_dpi(self):
@@ -2211,6 +2241,11 @@ class HidGestureListener:
 
         self._pending_battery = None
 
+    # ── Keyboard middle-path (BACKLIGHT2 + FN inversion) ─────────────
+    # set_* / read_* queue work on the listener thread and poll for up to
+    # _HIDPP_PENDING_POLL_ATTEMPTS × _HIDPP_PENDING_POLL_INTERVAL_S (3 s),
+    # matching the DPI control timeout symmetry above.
+
     # ── Backlight (BACKLIGHT2) ──────────────────────────────────────
 
     def read_backlight(self):
@@ -2221,12 +2256,8 @@ class HidGestureListener:
         self._backlight_result = None
         self._pending_backlight = "read"
 
-        for _ in range(30):
-            if self._pending_backlight is None:
-                return self._backlight_result
-            time.sleep(0.1)
-        print("[HidGesture] Backlight read timed out")
-        self._pending_backlight = None
+        if self._wait_for_pending("_pending_backlight", "Backlight read"):
+            return self._backlight_result
         return None, None
 
     def set_backlight(self, enabled: bool, level: int | None = None):
@@ -2237,12 +2268,8 @@ class HidGestureListener:
         self._pending_backlight = ("set", bool(enabled), level)
         self._backlight_result = None
 
-        for _ in range(30):
-            if self._pending_backlight is None:
-                return self._backlight_result is True
-            time.sleep(0.1)
-        print("[HidGesture] Backlight set timed out")
-        self._pending_backlight = None
+        if self._wait_for_pending("_pending_backlight", "Backlight set"):
+            return self._backlight_result is True
         return False
 
     def _apply_pending_read_backlight(self):
@@ -2252,8 +2279,8 @@ class HidGestureListener:
             return
 
         resp = self._request(self._backlight2_idx, 0x00, [])
-        if resp:
-            params = resp[4] if resp[4] else b""
+        params = _hidpp_response_params(resp)
+        if params is not None:
             enabled = bool(params[0]) if params else None
             level = params[3] if len(params) > 3 else None
             self._backlight_result = (enabled, level)
@@ -2290,12 +2317,8 @@ class HidGestureListener:
         self._fn_result = None
         self._pending_fn = "read"
 
-        for _ in range(30):
-            if self._pending_fn is None:
-                return self._fn_result
-            time.sleep(0.1)
-        print("[HidGesture] FN inversion read timed out")
-        self._pending_fn = None
+        if self._wait_for_pending("_pending_fn", "FN inversion read"):
+            return self._fn_result
         return None
 
     def set_fn_inversion(self, swap_fx: bool) -> bool:
@@ -2306,12 +2329,8 @@ class HidGestureListener:
         self._pending_fn = ("set", bool(swap_fx))
         self._fn_result = None
 
-        for _ in range(30):
-            if self._pending_fn is None:
-                return self._fn_result is True
-            time.sleep(0.1)
-        print("[HidGesture] FN inversion set timed out")
-        self._pending_fn = None
+        if self._wait_for_pending("_pending_fn", "FN inversion set"):
+            return self._fn_result is True
         return False
 
     def _apply_pending_read_fn_inversion(self):
@@ -2321,8 +2340,8 @@ class HidGestureListener:
             return
 
         resp = self._request(self._fn_inversion_idx, 0x00, [])
-        if resp:
-            params = resp[4] if resp[4] else b""
+        params = _hidpp_response_params(resp)
+        if params is not None:
             swap = bool(params[0]) if params else None
             self._fn_result = swap
             print(f"[HidGesture] FN inversion (host): {swap}")
