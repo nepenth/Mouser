@@ -31,10 +31,13 @@ Finish the core architecture work (full thin Backend exposure for all extracted 
 **Status**: In Progress (micro-chunks under A started)
 
 ### Task A: Complete Backend Exposure for New Architecture Handlers
-**Status**: In Progress (A.1 complete; A.2 accepted+committed)
+**Status**: Done
 
 **Implementation Note (A.2)**  
 First coding micro-chunk of the final phase. Added 10 thin @Slot methods in `ui/backend.py` (setReportRate/readReportRate, readOnboardProfile/switchOnboardProfile, read/setDeviceName, read/setDeviceFriendlyName, setLedState/readLedState) immediately after the prior 3 newest exposures. All follow the exact established thin-delegate pattern (hasattr guard + safe defaults, explicit "Host-side only, temporary" docstrings in the style of setLitraIllumination / getRemainingPairingSlots). Added NewArchitectureHandlersBackendTestsA2 test class (safe-defaults + delegation cases for the batch; 2/2 green via unittest). Confirmed directly callable for Linux Python testing. Gated process: coding + parallel review/AC validation (tests as objective evidence) passed. Local commit + push executed. README Completed Work Log and this file updated. This slice makes the majority of the 19+ FeatureHandler-backed capabilities (report rate, onboard profiles, names, LED) immediately exercisable from Python on the target workstation without QML.
+
+**Implementation Note (A.3 — closure)**  
+Completed Backend batches B+C (device mode, wireless power/channel, sleep timeout, wireless status, LED effects, device identity, power management) plus `readSmartShift`. Added `tests/test_backend_engine_parity.py` with static `ENGINE_TO_BACKEND` mapping — 100% coverage of Engine HID++ public API surfaces. Full suite 642 tests OK; `tools/linux_smoke_test.py` validates representative slots offscreen.
 
 **Description** (summary)  
 Expose thin, Python-callable (QML-friendly) slots in `ui/backend.py` for *all* the new public Engine methods backed by the extracted RecommendedThinHandler / UltraThinHandler architecture. This is the highest-leverage step for Linux testing readiness.

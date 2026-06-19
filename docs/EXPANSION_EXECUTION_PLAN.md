@@ -23,15 +23,15 @@ This plan integrates:
 
 | Phase | Items | Done | Status |
 |-------|-------|------|--------|
-| 0 — Foundation & Sync | 5 | 2 | **IN PROGRESS** |
-| 1 — Test & Code Health (P0) | 4 | 3 | **IN PROGRESS** |
-| 2 — Task A: Backend Exposure | 3 | 0 | Pending |
+| 0 — Foundation & Sync | 5 | 4 | **IN PROGRESS** |
+| 1 — Test & Code Health (P0) | 4 | 4 | **DONE** |
+| 2 — Task A: Backend Exposure | 3 | 3 | **DONE** |
 | 3 — Upstream Feature Integration | 4 | 0 | Pending |
 | 4 — Section D Completion | 8 | 0 | Pending |
 | 5 — Placeholders & Architecture | 6 | 0 | Pending |
 | 6 — High-Risk Expansion | 5 | 0 | Pending |
-| 7 — Tasks F–G (Linux & Docs) | 3 | 0 | Pending |
-| **TOTAL** | **38** | **5** | **13%** |
+| 7 — Tasks F–G (Linux & Docs) | 3 | 1 | **IN PROGRESS** |
+| **TOTAL** | **38** | **12** | **32%** |
 
 ---
 
@@ -809,10 +809,17 @@ This plan integrates:
 | Task | Started | Completed | Commit |
 |------|---------|-----------|--------|
 | 0.1 | 2026-06-19 | 2026-06-19 | 0be7c69 |
-| 0.2 | 2026-06-19 | 2026-06-19 | (next) |
+| 0.2 | 2026-06-19 | 2026-06-19 | 88b51d2 |
+| 0.3 | 2026-06-19 | 2026-06-19 | babb6dd |
+| 0.4 | 2026-06-19 | 2026-06-19 | babb6dd |
 | 1.1 | 2026-06-19 | 2026-06-19 | 0be7c69 |
 | 1.2 | 2026-06-19 | 2026-06-19 | 0be7c69 |
-| 1.4 | 2026-06-19 | 2026-06-19 | 0be7c69 (634 tests OK) |
+| 1.3 | 2026-06-19 | 2026-06-19 | (this commit) |
+| 1.4 | 2026-06-19 | 2026-06-19 | 0be7c69 → 642 tests OK |
+| 2.1 | 2026-06-19 | 2026-06-19 | babb6dd |
+| 2.2 | 2026-06-19 | 2026-06-19 | babb6dd |
+| 2.3 | 2026-06-19 | 2026-06-19 | (this commit) |
+| 7.1 | 2026-06-19 | 2026-06-19 | (this commit) |
 
 ---
 

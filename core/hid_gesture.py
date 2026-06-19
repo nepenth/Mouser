@@ -2683,6 +2683,32 @@ class HidGestureListener:
                     if kind == "keyboard":
                         print(f"[HidGesture] Treating device as KeyboardDevice ({hidpp_name or product}) "
                               f"— skipping mouse gesture paths.")
+                        self._discover_common_features()
+                        if idx == BT_DEV_IDX:
+                            actual_transport = "Bluetooth"
+                        elif pid == BOLT_RECEIVER_PID:
+                            actual_transport = "Logi Bolt"
+                        else:
+                            actual_transport = "USB Receiver"
+                        self._connected_device_info = build_connected_device_info(
+                            product_id=pid,
+                            product_name=hidpp_name or product,
+                            transport=actual_transport,
+                            source=source,
+                            gesture_cids=(),
+                            reprog_controls=(),
+                            discovered_features=self._discovered_feature_inventory(),
+                            device_identity={
+                                "device_index": self._dev_idx,
+                                "usage_page": opened_up,
+                                "usage": opened_usage,
+                                "backend": transport,
+                                "hid_module": _HID_MODULE_NAME or "",
+                                "device_path": opened_path,
+                                "device_kind": kind,
+                            },
+                        )
+                        return True
                     if kind == "other" and "litra" in (product or "").lower():
                         print(f"[HidGesture] Litra Beam detected and classified as other/light device "
                               f"(PID=0x{int(pid or 0):04X}) — skipping mouse/keyboard paths.")

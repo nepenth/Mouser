@@ -824,7 +824,9 @@ def build_connected_device_info(
         diagnostics=diagnostics,
     )
     if spec:
-        resolved_gesture_cids = tuple(gesture_cids or spec.gesture_cids)
+        resolved_gesture_cids = tuple(
+            spec.gesture_cids if gesture_cids is None else gesture_cids
+        )
         return ConnectedDeviceInfo(
             key=spec.key,
             display_name=spec.display_name,
@@ -858,7 +860,9 @@ def build_connected_device_info(
         ui_layout="generic_mouse",
         image_asset="icons/mouse-simple.svg",
         supported_buttons=GENERIC_BUTTONS,
-        gesture_cids=tuple(gesture_cids or DEFAULT_GESTURE_CIDS),
+        gesture_cids=tuple(
+            DEFAULT_GESTURE_CIDS if gesture_cids is None else gesture_cids
+        ),
         capability_inventory=inventory,
     )
 

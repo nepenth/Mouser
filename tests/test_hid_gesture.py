@@ -955,12 +955,58 @@ class MXMechanicalMiniMiddlePathTests(unittest.TestCase):
             self.assertTrue(self.listener._fn_result)
             self.assertIsNone(self.listener._pending_fn)
 
-    # TODO (next micro-chunk after this batch): Add a proper integration test that exercises
-    # the full `if kind == "keyboard":` early-return path inside `_try_connect` (mocking at the
-    # correct level: _vendor_hid_infos + the light _find_feature peek, then assert early return,
-    # no expensive REPROG work, and correct device_kind in the resulting ConnectedDeviceInfo).
-    # The previous version of this test was a broken placeholder and has been removed from this batch
-    # to keep it reviewable and green.
+    def test_try_connect_keyboard_short_circuits_reprog_and_divert(self):
+        """Keyboard with REPROG must still skip reprog walk + gesture diversion."""
+        listener = hid_gesture.HidGestureListener()
+        mock_dev = Mock()
+        mock_dev.close = Mock()
+
+        candidate = {
+            "product_id": 0xB367,
+            "usage_page": 0xFF00,
+            "usage": 0x0001,
+            "transport": "USB",
+            "source": "hidapi",
+            "product_string": "MX Mechanical Mini",
+            "path": b"/dev/hidraw-test",
+        }
+
+        fake_hid_device = Mock()
+        fake_hid_device.set_nonblocking = Mock()
+
+        def _find_feature_side_effect(feat_id):
+            if feat_id == hid_gesture.FEAT_REPROG_V4:
+                return 0x0A
+            if feat_id == hid_gesture.FEAT_BACKLIGHT2:
+                return 0x0B
+            if feat_id == hid_gesture.FEAT_K375S_FN_INVERSION:
+                return 0x0C
+            return None
+
+        with (
+            patch.object(listener, "_vendor_hid_infos", return_value=[candidate]),
+            patch.object(hid_gesture, "HIDAPI_OK", True),
+            patch.object(hid_gesture, "_HID_API_STYLE", "hidapi"),
+            patch.object(hid_gesture, "_BACKEND_PREFERENCE", "hidapi"),
+            patch.object(hid_gesture._hid, "device", return_value=fake_hid_device),
+            patch.object(fake_hid_device, "open_path"),
+            patch.object(listener, "_find_feature", side_effect=_find_feature_side_effect),
+            patch.object(listener, "_query_device_name", return_value="MX Mechanical Mini"),
+            patch.object(listener, "_discover_reprog_controls") as reprog_mock,
+            patch.object(listener, "_divert") as divert_mock,
+        ):
+            result = listener._try_connect()
+
+        self.assertTrue(result)
+        reprog_mock.assert_not_called()
+        divert_mock.assert_not_called()
+        info = listener.connected_device
+        self.assertIsNotNone(info)
+        identity = dict(info.capability_inventory.device_identity)
+        self.assertEqual(identity.get("device_kind"), "keyboard")
+        self.assertTrue(info.capability_inventory.keyboard_device)
+        self.assertEqual(info.gesture_cids, ())
+        self.assertFalse(info.capability_inventory.has_reprog_controls)
 
 
 if __name__ == "__main__":

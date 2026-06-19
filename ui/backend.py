@@ -1563,6 +1563,14 @@ class Backend(QObject):
             )
         self.smartShiftChanged.emit()
 
+    @Slot(result="QVariant")
+    def readSmartShift(self):
+        """Read current SmartShift state from device. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "read_smart_shift"):
+            val = self._engine.read_smart_shift()
+            return val if val is not None else None
+        return None
+
     @Slot(str)
     def setSmartShift(self, mode):
         self._applySmartShift(mode=mode)
