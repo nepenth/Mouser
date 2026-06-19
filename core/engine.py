@@ -900,7 +900,7 @@ class Engine:
         settings["smart_shift_threshold"] = threshold
         save_config(self.cfg)
 
-        def _fallback(*_args, **_kwargs):
+        def _fallback():
             hg = self.hook._hid_gesture
             if hg:
                 result = hg.set_smart_shift(mode, smart_shift_enabled, threshold)
@@ -1881,7 +1881,8 @@ class Engine:
             handler = device.get_handler(handler_name)
             if handler and hasattr(handler, handler_method):
                 return getattr(handler, handler_method)(*args, **kwargs)
-        return fallback_callable(*args, **kwargs) if fallback_callable else None
+        # Fallbacks close over listener args; only handler methods receive *args.
+        return fallback_callable() if fallback_callable else None
 
     def reload_mappings(self):
         """

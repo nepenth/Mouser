@@ -23,15 +23,15 @@ This plan integrates:
 
 | Phase | Items | Done | Status |
 |-------|-------|------|--------|
-| 0 — Foundation & Sync | 5 | 0 | **IN PROGRESS** |
-| 1 — Test & Code Health (P0) | 4 | 0 | Pending |
+| 0 — Foundation & Sync | 5 | 2 | **IN PROGRESS** |
+| 1 — Test & Code Health (P0) | 4 | 3 | **IN PROGRESS** |
 | 2 — Task A: Backend Exposure | 3 | 0 | Pending |
 | 3 — Upstream Feature Integration | 4 | 0 | Pending |
 | 4 — Section D Completion | 8 | 0 | Pending |
 | 5 — Placeholders & Architecture | 6 | 0 | Pending |
 | 6 — High-Risk Expansion | 5 | 0 | Pending |
 | 7 — Tasks F–G (Linux & Docs) | 3 | 0 | Pending |
-| **TOTAL** | **38** | **0** | **0%** |
+| **TOTAL** | **38** | **5** | **13%** |
 
 ---
 
@@ -808,7 +808,11 @@ This plan integrates:
 
 | Task | Started | Completed | Commit |
 |------|---------|-----------|--------|
-| 0.1 | 2026-06-19 | | |
+| 0.1 | 2026-06-19 | 2026-06-19 | 0be7c69 |
+| 0.2 | 2026-06-19 | 2026-06-19 | (next) |
+| 1.1 | 2026-06-19 | 2026-06-19 | 0be7c69 |
+| 1.2 | 2026-06-19 | 2026-06-19 | 0be7c69 |
+| 1.4 | 2026-06-19 | 2026-06-19 | 0be7c69 (634 tests OK) |
 
 ---
 

@@ -1462,5 +1462,81 @@ class NewArchitectureHandlersBackendTestsA2(unittest.TestCase):
         self.assertEqual(backend.readLedState(), [True, 75])
 
 
+class NewArchitectureHandlersBackendTestsB(unittest.TestCase):
+    """Task A batch B: device mode, wireless power/channel, sleep timeout, wireless status."""
+
+    def _make_backend(self, engine=None):
+        _ensure_qapp()
+        with patch("ui.backend.load_config", return_value=copy.deepcopy(DEFAULT_CONFIG)):
+            return Backend(engine=engine)
+
+    def test_no_engine_returns_safe_defaults(self):
+        backend = self._make_backend(engine=None)
+        self.assertIsNone(backend.readDeviceMode())
+        self.assertFalse(backend.setDeviceMode(1))
+        self.assertIsNone(backend.readWirelessPower())
+        self.assertFalse(backend.setWirelessPower(2))
+        self.assertIsNone(backend.readWirelessChannel())
+        self.assertFalse(backend.setWirelessChannel(3))
+        self.assertIsNone(backend.readSleepTimeout())
+        self.assertFalse(backend.setSleepTimeout(300))
+        self.assertIsNone(backend.readWirelessStatus())
+
+    def test_delegates_to_engine(self):
+        fake_engine = _FakeEngine()
+        fake_engine.read_device_mode = lambda: 2
+        fake_engine.set_device_mode = lambda v: v == 2
+        fake_engine.read_wireless_power = lambda: 50
+        fake_engine.set_wireless_power = lambda v: v == 50
+        fake_engine.read_wireless_channel = lambda: 11
+        fake_engine.set_wireless_channel = lambda v: v == 11
+        fake_engine.read_sleep_timeout = lambda: 600
+        fake_engine.set_sleep_timeout = lambda v: v == 600
+        fake_engine.read_wireless_status = lambda: {"rssi": -42}
+
+        backend = self._make_backend(engine=fake_engine)
+        self.assertEqual(backend.readDeviceMode(), 2)
+        self.assertTrue(backend.setDeviceMode(2))
+        self.assertEqual(backend.readWirelessPower(), 50)
+        self.assertTrue(backend.setWirelessPower(50))
+        self.assertEqual(backend.readWirelessChannel(), 11)
+        self.assertTrue(backend.setWirelessChannel(11))
+        self.assertEqual(backend.readSleepTimeout(), 600)
+        self.assertTrue(backend.setSleepTimeout(600))
+        self.assertEqual(backend.readWirelessStatus(), {"rssi": -42})
+
+
+class NewArchitectureHandlersBackendTestsC(unittest.TestCase):
+    """Task A batch C: LED effects, device identity, power management."""
+
+    def _make_backend(self, engine=None):
+        _ensure_qapp()
+        with patch("ui.backend.load_config", return_value=copy.deepcopy(DEFAULT_CONFIG)):
+            return Backend(engine=engine)
+
+    def test_no_engine_returns_safe_defaults(self):
+        backend = self._make_backend(engine=None)
+        self.assertIsNone(backend.readLedEffect())
+        self.assertFalse(backend.setLedEffect(1, [0, 1]))
+        self.assertIsNone(backend.readDeviceIdentity())
+        self.assertIsNone(backend.readPowerManagement())
+        self.assertFalse(backend.setPowerManagement({"profile": 1}))
+
+    def test_delegates_to_engine(self):
+        fake_engine = _FakeEngine()
+        fake_engine.read_led_effect = lambda: {"effect": 3}
+        fake_engine.set_led_effect = lambda effect, params=None: effect == 3
+        fake_engine.read_device_identity = lambda: {"serial": "ABC"}
+        fake_engine.read_power_management = lambda: {"profile": 2}
+        fake_engine.set_power_management = lambda settings: settings.get("profile") == 2
+
+        backend = self._make_backend(engine=fake_engine)
+        self.assertEqual(backend.readLedEffect(), {"effect": 3})
+        self.assertTrue(backend.setLedEffect(3, [1]))
+        self.assertEqual(backend.readDeviceIdentity(), {"serial": "ABC"})
+        self.assertEqual(backend.readPowerManagement(), {"profile": 2})
+        self.assertTrue(backend.setPowerManagement({"profile": 2}))
+
+
 if __name__ == "__main__":
     unittest.main()

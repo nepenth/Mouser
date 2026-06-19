@@ -3,7 +3,7 @@ DeviceNameHandler — extracts basic Device Name / Friendly Name support behind 
 
 This is the seventh feature extraction. Device Name (feature 0x0005) is a common, relatively isolated identity feature.
 
-For this micro-chunk the handler is read-only (write is only implemented if the listener already supports it cleanly; currently it does not, so write will be a no-op stub).
+Supports read and write for device name / friendly name via the listener's 0x0005 path.
 """
 
 from __future__ import annotations

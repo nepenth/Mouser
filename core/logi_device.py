@@ -132,66 +132,6 @@ class FeatureHandler:
         op = operation.strip().capitalize() if operation else "Operation"
         return f"{op} {friendly}"
 
-    # 009.48: small helper for standardized friendly labels for successful operations / debug
-    def _get_success_label(self, operation: str) -> str:
-        """Return a human-readable label for a successful operation on this handler (for logging/debug/future UI).
-
-        Examples:
-            handler._get_success_label("read") → "Battery read succeeded"
-            handler._get_success_label("set")  → "LED effect set"
-        Uses the already-declared friendly name (from 009.43) and operation label (from 009.46) when available.
-        """
-        op_label = self._get_operation_label(operation) if hasattr(self, "_get_operation_label") else f"{operation} {self._get_friendly_name()}"
-        return f"{op_label} succeeded"
-
-    # 009.48: small helper for standardized friendly labels for successful operations / debug
-    def _get_success_label(self, operation: str) -> str:
-        """Return a human-readable label for a successful operation on this handler (for logging/debug/future UI).
-
-        Examples:
-            handler._get_success_label("read") → "Battery read succeeded"
-            handler._get_success_label("set")  → "LED effect set"
-        Uses the already-declared friendly name (from 009.43) and operation label (from 009.46) when available.
-        """
-        op_label = self._get_operation_label(operation) if hasattr(self, "_get_operation_label") else f"{operation} {self._get_friendly_name()}"
-        return f"{op_label} succeeded"
-
-    # 009.48: small helper for standardized friendly labels for successful operations / debug
-    def _get_success_label(self, operation: str) -> str:
-        """Return a human-readable label for a successful operation on this handler (for logging/debug/future UI).
-
-        Examples:
-            handler._get_success_label("read") → "Battery read succeeded"
-            handler._get_success_label("set")  → "LED effect set"
-        Uses the already-declared friendly name (from 009.43) and operation label (from 009.46) when available.
-        """
-        op_label = self._get_operation_label(operation) if hasattr(self, "_get_operation_label") else f"{operation} {self._get_friendly_name()}"
-        return f"{op_label} succeeded"
-
-    # 009.46: small helper for standardized friendly labels for successful operations / debug
-    def _get_success_label(self, operation: str) -> str:
-        """Return a human-readable label for a successful operation on this handler (for logging/debug/future UI).
-
-        Examples:
-            handler._get_success_label("read") → "Battery read succeeded"
-            handler._get_success_label("set")  → "LED effect set"
-        Uses the already-declared friendly name (from 009.43) and operation label (from 009.46) when available.
-        """
-        op_label = self._get_operation_label(operation) if hasattr(self, "_get_operation_label") else f"{operation} {self._get_friendly_name()}"
-        return f"{op_label} succeeded"
-
-    # 009.48: small helper for standardized friendly labels for successful operations / debug
-    def _get_success_label(self, operation: str) -> str:
-        """Return a human-readable label for a successful operation on this handler (for logging/debug/future UI).
-
-        Examples:
-            handler._get_success_label("read") → "Battery read succeeded"
-            handler._get_success_label("set")  → "LED effect set"
-        Uses the already-declared friendly name (from 009.43) and operation label (from 009.46) when available.
-        """
-        op_label = self._get_operation_label(operation) if hasattr(self, "_get_operation_label") else f"{operation} {self._get_friendly_name()}"
-        return f"{op_label} succeeded"
-
     # 009.49: small protected helper for standardized device identifier in logging/debug
     def _get_device_key_for_log(self) -> str:
         """Return a best-effort stable identifier for this handler's device (for logging and debug).

@@ -631,6 +631,114 @@ class Backend(QObject):
             return [None, None]
         return [None, None]
 
+    # ── Additional thin delegates (Task A batch B) ─────────────────
+    @Slot(result="QVariant")
+    def readDeviceMode(self):
+        """Read device mode value. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "read_device_mode"):
+            val = self._engine.read_device_mode()
+            return val if val is not None else None
+        return None
+
+    @Slot(int, result=bool)
+    def setDeviceMode(self, mode_value):
+        """Set device mode. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "set_device_mode"):
+            return bool(self._engine.set_device_mode(int(mode_value)))
+        return False
+
+    @Slot(result="QVariant")
+    def readWirelessPower(self):
+        """Read wireless power level/mode. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "read_wireless_power"):
+            val = self._engine.read_wireless_power()
+            return val if val is not None else None
+        return None
+
+    @Slot(int, result=bool)
+    def setWirelessPower(self, power_value):
+        """Set wireless power level/mode. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "set_wireless_power"):
+            return bool(self._engine.set_wireless_power(int(power_value)))
+        return False
+
+    @Slot(result="QVariant")
+    def readWirelessChannel(self):
+        """Read wireless RF channel. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "read_wireless_channel"):
+            val = self._engine.read_wireless_channel()
+            return val if val is not None else None
+        return None
+
+    @Slot(int, result=bool)
+    def setWirelessChannel(self, channel_value):
+        """Set wireless RF channel. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "set_wireless_channel"):
+            return bool(self._engine.set_wireless_channel(int(channel_value)))
+        return False
+
+    @Slot(result="QVariant")
+    def readSleepTimeout(self):
+        """Read sleep/power-save timeout. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "read_sleep_timeout"):
+            val = self._engine.read_sleep_timeout()
+            return val if val is not None else None
+        return None
+
+    @Slot(int, result=bool)
+    def setSleepTimeout(self, timeout_value):
+        """Set sleep/power-save timeout. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "set_sleep_timeout"):
+            return bool(self._engine.set_sleep_timeout(int(timeout_value)))
+        return False
+
+    @Slot(result="QVariant")
+    def readWirelessStatus(self):
+        """Read wireless link status. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "read_wireless_status"):
+            val = self._engine.read_wireless_status()
+            return val if val is not None else None
+        return None
+
+    # ── Additional thin delegates (Task A batch C) ─────────────────
+    @Slot(result="QVariant")
+    def readLedEffect(self):
+        """Read LED effect state. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "read_led_effect"):
+            val = self._engine.read_led_effect()
+            return val if val is not None else None
+        return None
+
+    @Slot(int, "QVariant", result=bool)
+    def setLedEffect(self, effect, params=None):
+        """Set LED effect with optional parameters. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "set_led_effect"):
+            return bool(self._engine.set_led_effect(int(effect), params))
+        return False
+
+    @Slot(result="QVariant")
+    def readDeviceIdentity(self):
+        """Read device serial/hardware identity. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "read_device_identity"):
+            val = self._engine.read_device_identity()
+            return val if val is not None else None
+        return None
+
+    @Slot(result="QVariant")
+    def readPowerManagement(self):
+        """Read power management settings. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "read_power_management"):
+            val = self._engine.read_power_management()
+            return val if val is not None else None
+        return None
+
+    @Slot("QVariant", result=bool)
+    def setPowerManagement(self, settings):
+        """Set power management settings. Host-side only, temporary."""
+        if self._engine and hasattr(self._engine, "set_power_management"):
+            return bool(self._engine.set_power_management(settings))
+        return False
+
     @Property(bool, notify=settingsChanged)
     def invertHScroll(self):
         return self._cfg.get("settings", {}).get("invert_hscroll", False)
@@ -1763,7 +1871,7 @@ class Backend(QObject):
         self._dpiReadRequest.emit(dpi)
 
     # ── Keyboard middle-path (MX Mechanical Mini etc.) ──────────
-    # These are intentionally thin delegates. Real UI will live in a future KeyboardPage.
+    # Thin delegates for keyboard middle-path controls (KeyboardPage / KeyboardControls).
 
     @Slot(result=list)
     def readBacklight(self):
