@@ -16,6 +16,7 @@ ENGINE_TO_BACKEND = {
     "set_fn_inversion": "setFnInversion",
     "has_backlight_control": "keyboardBacklightSupported",
     "has_fn_inversion_control": "keyboardFnInversionSupported",
+    "has_onboard_profile_control": "onboardProfileSupported",
     "set_report_rate": "setReportRate",
     "read_report_rate": "readReportRate",
     "read_onboard_profile": "readOnboardProfile",

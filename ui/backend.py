@@ -37,6 +37,8 @@ from core.logi_devices import (
     build_evdev_connected_device_info,
     clamp_dpi,
     get_buttons_for_layout,
+    iter_known_devices,
+    resolve_device,
 )
 from core.key_simulator import (
     ACTIONS,
@@ -224,6 +226,8 @@ class Backend(QObject):
     gestureRecordsChanged = Signal()
     deviceInfoChanged = Signal()
     deviceLayoutChanged = Signal()
+    connectedDevicesChanged = Signal()
+    selectedDeviceKeyChanged = Signal()
     knownAppsChanged = Signal()
     updateAvailable = Signal(str, str)
     updateInstallChanged = Signal()
@@ -275,6 +279,8 @@ class Backend(QObject):
         self._effective_supported_buttons = None  # set by _apply_device_layout
         self._connected_device_refresh_pending = False
         self._connected_device_refresh_attempts = 0
+        self._connected_devices = []
+        self._selected_device_key = ""
         self._latest_update_url = ""
         self._latest_update_version = ""
         self._update_check_in_progress = False
@@ -362,6 +368,7 @@ class Backend(QObject):
         else:
             self._cfg.setdefault("settings", {})["start_at_login"] = False
         self._sync_connected_device_info()
+        self._sync_connected_devices_list()
         self._configureUpdateChecks()
         self._consumeUpdateResultMarker()
         self._cleanupStaleUpdatePreparation()
@@ -930,6 +937,14 @@ class Backend(QObject):
     @Property(int, notify=batteryLevelChanged)
     def batteryLevel(self):
         return self._battery_level
+
+    @Property(list, notify=connectedDevicesChanged)
+    def connectedDevices(self):
+        return list(self._connected_devices)
+
+    @Property(str, notify=selectedDeviceKeyChanged)
+    def selectedDeviceKey(self):
+        return self._selected_device_key
 
     @Property(str, notify=debugLogChanged)
     def debugLog(self):
@@ -1918,12 +1933,7 @@ class Backend(QObject):
     @Slot(str, result=bool)
     def getDeviceKeyboardMiddlePathSetting(self, settingName):
         """Returns the current per-device value for the named setting, or True if unavailable."""
-        if not self._engine:
-            return True
-        device = getattr(self._engine, "connected_device", None)
-        device_key = getattr(device, "key", None) if device else None
-        if not device_key and device:
-            device_key = str(getattr(device, "product_id", "unknown"))
+        device_key = self._keyboard_settings_device_key()
         if not device_key:
             return True
         settings = get_keyboard_middle_path_settings(self._cfg, device_key)
@@ -1936,12 +1946,7 @@ class Backend(QObject):
     @Slot(str, bool, result=bool)
     def setDeviceKeyboardMiddlePathSetting(self, settingName, value):
         """Sets and persists the per-device middle-path setting. Returns success."""
-        if not self._engine:
-            return False
-        device = getattr(self._engine, "connected_device", None)
-        device_key = getattr(device, "key", None) if device else None
-        if not device_key and device:
-            device_key = str(getattr(device, "product_id", "unknown"))
+        device_key = self._keyboard_settings_device_key()
         if not device_key:
             return False
         key_map = {
@@ -1964,6 +1969,13 @@ class Backend(QObject):
     def keyboardFnInversionSupported(self):
         """True when the connected device exposes K375S FN inversion (host-side, temporary)."""
         return self._engine.has_fn_inversion_control() if self._engine else False
+
+    @Property(bool, notify=hidFeaturesReadyChanged)
+    def onboardProfileSupported(self):
+        """True when the connected device exposes ONBOARD_PROFILES (0x8100) switching."""
+        if self._engine and hasattr(self._engine, "has_onboard_profile_control"):
+            return bool(self._engine.has_onboard_profile_control())
+        return False
 
     # Thin delegation for Litra Beam illumination (008.3)
     @Slot(bool, int, result=bool)
@@ -2088,6 +2100,106 @@ class Backend(QObject):
                 f"Mouse {'connected' if connected else 'disconnected'}"
             )
 
+    @Slot(str)
+    def setSelectedDeviceKey(self, key):
+        """Select which device context keyboard per-device settings use."""
+        normalized = str(key or "")
+        if normalized == self._selected_device_key:
+            return
+        self._selected_device_key = normalized
+        self.selectedDeviceKeyChanged.emit()
+
+    def _keyboard_settings_device_key(self):
+        if self._selected_device_key:
+            return self._selected_device_key
+        device = getattr(self._engine, "connected_device", None) if self._engine else None
+        if device is None and self._engine:
+            device = self._resolved_connected_device()
+        device_key = getattr(device, "key", None) if device else None
+        if not device_key and device:
+            device_key = str(getattr(device, "product_id", "unknown"))
+        return device_key or ""
+
+    @staticmethod
+    def _display_name_for_device_key(key):
+        for spec in iter_known_devices():
+            if spec.key == key:
+                return spec.display_name
+        try:
+            pid = int(key, 16)
+        except (TypeError, ValueError):
+            return str(key).replace("_", " ").title()
+        spec = resolve_device(product_id=pid)
+        if spec:
+            return spec.display_name
+        return f"Logitech PID 0x{pid:04X}"
+
+    @staticmethod
+    def _device_kind_from_connected(device):
+        if device is None:
+            return "other"
+        inventory = getattr(device, "capability_inventory", None)
+        if inventory is not None:
+            identity = dict(getattr(inventory, "device_identity", ()) or ())
+            kind = identity.get("device_kind", "")
+            if kind == "unknown":
+                kind = "other"
+            if kind in ("mouse", "keyboard", "other"):
+                return kind
+            if getattr(inventory, "keyboard_device", False):
+                return "keyboard"
+        name = (getattr(device, "display_name", "") or "").lower()
+        if any(token in name for token in ("g502", "mx master", "mx anywhere", "mx vertical", "mouse")):
+            return "mouse"
+        if any(token in name for token in ("mechanical", "keyboard", "mx keys")):
+            return "keyboard"
+        if "litra" in name:
+            return "other"
+        return "other"
+
+    def _sync_connected_devices_list(self):
+        entries_by_key = {}
+        for key in self._cfg.get("devices", {}):
+            if not key:
+                continue
+            entries_by_key[key] = {
+                "key": key,
+                "displayName": self._display_name_for_device_key(key),
+                "deviceKind": "other",
+                "batteryLevel": -1,
+                "connected": False,
+            }
+
+        device = self._resolved_connected_device()
+        if device is not None:
+            device_key = getattr(device, "key", "") or ""
+            if not device_key:
+                product_id = getattr(device, "product_id", None)
+                if product_id not in (None, ""):
+                    device_key = str(product_id)
+            if device_key:
+                entries_by_key[device_key] = {
+                    "key": device_key,
+                    "displayName": getattr(device, "display_name", "") or device_key,
+                    "deviceKind": self._device_kind_from_connected(device),
+                    "batteryLevel": self._battery_level,
+                    "connected": bool(self._mouse_connected),
+                }
+
+        new_list = sorted(
+            entries_by_key.values(),
+            key=lambda entry: (not entry["connected"], entry["displayName"].lower()),
+        )
+        if new_list != self._connected_devices:
+            self._connected_devices = new_list
+            self.connectedDevicesChanged.emit()
+
+    def _maybe_auto_select_connected_device(self, device_key):
+        if device_key and self._mouse_connected:
+            if self._selected_device_key != device_key:
+                self._selected_device_key = device_key
+                self.selectedDeviceKeyChanged.emit()
+
     def _resolved_connected_device(self):
         device = getattr(self._engine, "connected_device", None) if self._engine else None
         if device is not None:
@@ -2185,6 +2297,9 @@ class Backend(QObject):
         if info_changed:
             self.deviceInfoChanged.emit()
 
+        self._sync_connected_devices_list()
+        self._maybe_auto_select_connected_device(device_key)
+
         current_dpi = self._cfg.get("settings", {}).get("dpi", DEFAULT_DPI_MIN)
         if device is not None:
             clamped_dpi = clamp_dpi(current_dpi, device)
@@ -2233,6 +2348,7 @@ class Backend(QObject):
         """Runs on Qt main thread."""
         self._battery_level = level
         self.batteryLevelChanged.emit()
+        self._sync_connected_devices_list()
 
     @Slot(str)
     def _handleDebugMessage(self, message):

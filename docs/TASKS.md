@@ -15,11 +15,11 @@ This document contains the current actionable tasks for the Mouser Logitech Devi
 
 ## Current Focus Areas
 
-- Finish quality & test coverage for the MX Mechanical Mini keyboard middle-path features.
-- Deliver the actual user-facing Keyboard experience (UI + settings).
-- Begin support for the Litra Beam.
+- **Multi-device UI** (EXPANSION 4.6) — sidebar device list, per-device page routing.
+- **High-risk expansion** (Phases 5–6) — `hid_gesture.py` decomposition, multi-device state model, Linux evdev diversion validation.
+- **Documentation closure** (Task 7.3) — keep `PROJECT_PLAN.md` and execution dashboard current.
 
-**NEW (2026-05-19):** Active phase is the "Final Architecture Push + Linux Workstation Testing Readiness" (Tasks A–G). Goal: make the mature FeatureHandler architecture (post TASK-009) fully exposed for Python testing on Linux, complete any UI gaps for keyboard/Litra, deliver practical validation harness + docs so the user can exercise everything on their Linux workstation immediately. See detailed charter in PM session notes. Work proceeds via gated micro-chunks only.
+**Delivered (2026-06-19):** Phases 0–2 complete; Task A Done; keyboard + Litra pages shipped; 20 FeatureHandlers; 658 tests green; Linux smoke harness (`tools/linux_smoke_test.py`) and architecture guide (`docs/ARCHITECTURE_GUIDE.md`) in place.
 
 ---
 
@@ -28,7 +28,7 @@ This document contains the current actionable tasks for the Mouser Logitech Devi
 **Overall Goal**  
 Finish the core architecture work (full thin Backend exposure for all extracted handlers) + remaining middle-path / Litra polish so the app is in a clean, documented, testable state on Linux. The user can run Mouser, exercise keyboard middle-path + new handlers via Python REPL/scripts, and have clear smoke-test paths + docs.
 
-**Status**: In Progress (micro-chunks under A started)
+**Status**: In Progress (A Done; F/G partial; B–E largely delivered via TASK-004–008 micro-chunks)
 
 ### Task A: Complete Backend Exposure for New Architecture Handlers
 **Status**: Done
@@ -67,12 +67,23 @@ Expose thin, Python-callable (QML-friendly) slots in `ui/backend.py` for *all* t
 ---
 
 ### Task B–G (see PM charter for full Definitions / AC / Validation)
-**B**: Basic Keyboard Middle-Path UI (complete any remaining from 005)
-**C**: Per-Device Middle-Path Settings (full coverage + Linux/KVM refinements)
-**D**: Safe Selective Key Diversion for Backlight Keys (end-to-end + Linux evdev validation)
-**E**: Litra Beam Initial Integration & Controls (gaps from 008 closed)
-**F**: Linux Workstation Validation Harness & Smoke Tests (new practical scripts + checklists)
-**G**: Architecture User Guide / "How to Test on Linux" Documentation (targeted, actionable)
+
+**B — Basic Keyboard Middle-Path UI**: **Done** (KeyboardPage, KeyboardControls, capability properties; TASK-005 micro-chunks 005.1–005.5)
+
+**C — Per-Device Middle-Path Settings**: **Done** (config + enforcement + UI toggles; TASK-006 micro-chunks 006.1–006.4)
+
+**D — Safe Selective Key Diversion**: **Mostly Done** (opt-in toggle, gated CIDs, mappable events; TASK-007 micro-chunks 007.1–007.5). Remaining: Linux evdev end-to-end validation (EXPANSION 6.2).
+
+**E — Litra Beam Integration**: **Done** (classification, illumination API, Backend slots, LitraPage; TASK-008 micro-chunks 008.1–008.7)
+
+**F — Linux Workstation Validation Harness**: **Partial** (7.1 Done)
+- `tools/linux_smoke_test.py` — permissions, imports, offscreen Backend, representative slots.
+- `docs/LINUX_TESTING.md` — no-hardware + hardware checklists.
+- Remaining: broader hardware validation notes as new handlers land.
+
+**G — Architecture User Guide**: **Partial** (7.2 Done)
+- `docs/ARCHITECTURE_GUIDE.md` — FeatureHandler → Engine → Backend → test patterns; `ReportRateHandler` reference.
+- Remaining: keep guide synced as decomposition (Phase 5.2) proceeds.
 
 ---
 
@@ -138,8 +149,11 @@ Create a solid, maintainable test suite for the new keyboard features (BACKLIGHT
 ---
 
 ### TASK-003: Address Remaining Reviewer Polish Items (Batch 1)
-**Status**: Backlog  
+**Status**: Done  
 **Priority**: P1
+
+**Implementation Note (EXPANSION 3.3)**  
+Keyboard feature response parsing aligned with the rest of `hid_gesture.py`. `set_*` vs `read_*` timeout asymmetry documented in code comments (intentional: writes use shorter pending windows than reads, consistent with DPI pattern). No new test failures; full suite 658 OK.
 
 **Description**  
 Clean up the remaining non-blocking but important technical debt and consistency items flagged across multiple senior reviewer passes.

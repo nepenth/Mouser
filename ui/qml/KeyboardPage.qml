@@ -232,6 +232,7 @@ Item {
             target: backend
             function onDeviceInfoChanged() { refreshPermissionToggles() }
             function onHidFeaturesReadyChanged() { refreshPermissionToggles() }
+            function onSelectedDeviceKeyChanged() { refreshPermissionToggles() }
         }
     }
 }

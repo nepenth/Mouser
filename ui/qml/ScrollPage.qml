@@ -64,6 +64,57 @@ Item {
         return presets
     }
 
+    // Onboard profile state (G502 X family — 0x8100)
+    readonly property var onboardProfileIndices: [1, 2, 3, 4, 5]
+    property int onboardProfileIndex: -1
+    property bool onboardProfileRefreshing: false
+    property string onboardProfileFeedback: ""
+    property string onboardProfileFeedbackKind: ""
+
+    function refreshOnboardProfile() {
+        if (!backend.onboardProfileSupported || onboardProfileRefreshing)
+            return
+        onboardProfileRefreshing = true
+        onboardProfileFeedback = ""
+        onboardProfileFeedbackKind = ""
+
+        var idx = backend.readOnboardProfile()
+        if (idx === null || idx === undefined) {
+            showOnboardProfileFeedback(s["scroll.onboard_profile_read_error"] || "Could not read onboard profile", "error")
+        } else {
+            onboardProfileIndex = idx
+        }
+        onboardProfileRefreshing = false
+    }
+
+    function switchOnboardProfile(profileIndex) {
+        if (!backend.onboardProfileSupported || onboardProfileRefreshing)
+            return
+        onboardProfileFeedback = ""
+        onboardProfileFeedbackKind = ""
+
+        var ok = backend.switchOnboardProfile(profileIndex)
+        if (ok) {
+            onboardProfileIndex = profileIndex
+            var successMsg = s["scroll.onboard_profile_switch_success"] || "Switched to profile %1"
+            showOnboardProfileFeedback(successMsg.replace("%1", profileIndex), "success")
+        } else {
+            var failMsg = s["scroll.onboard_profile_switch_error"] || "Failed to switch onboard profile"
+            showOnboardProfileFeedback(failMsg.replace("%1", profileIndex), "error")
+        }
+    }
+
+    function showOnboardProfileFeedback(msg, kind) {
+        onboardProfileFeedback = msg
+        onboardProfileFeedbackKind = kind
+        onboardProfileFeedbackTimer.restart()
+    }
+
+    Component.onCompleted: {
+        if (backend.onboardProfileSupported)
+            refreshOnboardProfile()
+    }
+
     ScrollView {
         id: pageScroll
         anchors.fill: parent
@@ -499,6 +550,213 @@ Item {
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+            }
+
+            Item {
+                width: 1
+                height: backend.onboardProfileSupported ? 16 : 0
+            }
+
+            // ── Onboard Profile (G502 X family) ───────────────────
+            Rectangle {
+                visible: backend.onboardProfileSupported && backend.hidFeaturesReady
+                width: parent.width - 72
+                anchors.horizontalCenter: parent.horizontalCenter
+                height: onboardProfileContent.implicitHeight + 40
+                radius: Theme.radius
+                color: scrollPage.theme.bgCard
+                border.width: 1
+                border.color: scrollPage.theme.border
+
+                Column {
+                    id: onboardProfileContent
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        top: parent.top
+                        margins: 20
+                    }
+                    spacing: 12
+
+                    RowLayout {
+                        width: parent.width
+                        spacing: 12
+
+                        Column {
+                            Layout.fillWidth: true
+                            spacing: 4
+
+                            Text {
+                                text: s["scroll.onboard_profile"] || "Onboard Profile"
+                                font {
+                                    family: uiState.fontFamily
+                                    pixelSize: 16
+                                    bold: true
+                                }
+                                color: scrollPage.theme.textPrimary
+                            }
+
+                            Text {
+                                width: parent.width
+                                text: s["scroll.onboard_profile_desc"]
+                                       || "Switch the active profile stored on the mouse. Changes persist on the device."
+                                font {
+                                    family: uiState.fontFamily
+                                    pixelSize: 12
+                                }
+                                color: scrollPage.theme.textSecondary
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+
+                        Text {
+                            visible: scrollPage.onboardProfileRefreshing
+                            text: s["scroll.onboard_profile_refreshing"] || "Refreshing…"
+                            font {
+                                family: uiState.fontFamily
+                                pixelSize: 12
+                                italic: true
+                            }
+                            color: scrollPage.theme.textSecondary
+                        }
+                    }
+
+                    Text {
+                        visible: scrollPage.onboardProfileFeedback !== ""
+                        width: parent.width
+                        text: scrollPage.onboardProfileFeedback
+                        font {
+                            family: uiState.fontFamily
+                            pixelSize: 12
+                            bold: true
+                        }
+                        color: scrollPage.onboardProfileFeedbackKind === "success"
+                               ? scrollPage.theme.accent
+                               : "#D32F2F"
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 52
+                        radius: 10
+                        color: scrollPage.theme.bgSubtle
+
+                        RowLayout {
+                            anchors {
+                                fill: parent
+                                leftMargin: 16
+                                rightMargin: 16
+                            }
+
+                            Text {
+                                text: s["scroll.onboard_profile_current"] || "Current profile"
+                                font {
+                                    family: uiState.fontFamily
+                                    pixelSize: 13
+                                }
+                                color: scrollPage.theme.textPrimary
+                                Layout.fillWidth: true
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: Math.max(88, onboardCurrentLabel.implicitWidth + 24)
+                                Layout.preferredHeight: 34
+                                radius: 8
+                                color: scrollPage.theme.accentDim
+
+                                Text {
+                                    id: onboardCurrentLabel
+                                    anchors.centerIn: parent
+                                    text: scrollPage.onboardProfileIndex >= 0
+                                          ? (s["scroll.onboard_profile_label"] || "Profile %1")
+                                            .replace("%1", scrollPage.onboardProfileIndex)
+                                          : (s["scroll.onboard_profile_unknown"] || "Unknown")
+                                    font {
+                                        family: uiState.fontFamily
+                                        pixelSize: 13
+                                        bold: true
+                                    }
+                                    color: scrollPage.theme.accent
+                                }
+                            }
+                        }
+                    }
+
+                    Flow {
+                        width: parent.width
+                        spacing: 8
+
+                        Text {
+                            text: s["scroll.onboard_profile_switch"] || "Switch to:"
+                            font {
+                                family: uiState.fontFamily
+                                pixelSize: 11
+                            }
+                            color: scrollPage.theme.textDim
+                        }
+
+                        Repeater {
+                            model: scrollPage.onboardProfileIndices
+
+                            delegate: Rectangle {
+                                required property int modelData
+                                width: onboardProfileBtnText.implicitWidth + 20
+                                height: 30
+                                radius: 8
+                                color: scrollPage.onboardProfileIndex === modelData
+                                       ? scrollPage.theme.accent
+                                       : onboardProfileMouse.containsMouse
+                                         ? scrollPage.theme.bgCardHover
+                                         : scrollPage.theme.bgSubtle
+                                border.width: 1
+                                border.color: scrollPage.theme.border
+                                opacity: scrollPage.onboardProfileRefreshing ? 0.55 : 1.0
+
+                                Accessible.role: Accessible.Button
+                                Accessible.name: (s["scroll.onboard_profile_label"] || "Profile %1")
+                                                  .replace("%1", modelData)
+
+                                Behavior on color { ColorAnimation { duration: 120 } }
+
+                                Text {
+                                    id: onboardProfileBtnText
+                                    anchors.centerIn: parent
+                                    text: (s["scroll.onboard_profile_label"] || "Profile %1")
+                                          .replace("%1", modelData)
+                                    font {
+                                        family: uiState.fontFamily
+                                        pixelSize: 12
+                                    }
+                                    color: scrollPage.onboardProfileIndex === modelData
+                                           ? scrollPage.theme.bgSidebar
+                                           : scrollPage.theme.textPrimary
+                                }
+
+                                MouseArea {
+                                    id: onboardProfileMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    enabled: !scrollPage.onboardProfileRefreshing
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: scrollPage.switchOnboardProfile(modelData)
+                                }
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        width: parent.width
+
+                        Item { Layout.fillWidth: true }
+
+                        Button {
+                            text: s["scroll.onboard_profile_refresh"] || "Refresh from device"
+                            font { family: uiState.fontFamily; pixelSize: 12 }
+                            enabled: !scrollPage.onboardProfileRefreshing
+                            onClicked: scrollPage.refreshOnboardProfile()
                         }
                     }
                 }
@@ -1292,8 +1550,22 @@ Item {
         }
     }
 
+    Timer {
+        id: onboardProfileFeedbackTimer
+        interval: 3800
+        repeat: false
+        onTriggered: {
+            scrollPage.onboardProfileFeedback = ""
+            scrollPage.onboardProfileFeedbackKind = ""
+        }
+    }
+
     Connections {
         target: backend
+        function onHidFeaturesReadyChanged() {
+            if (backend.onboardProfileSupported)
+                scrollPage.refreshOnboardProfile()
+        }
         function onDpiFromDevice(dpi) {
             if (!dpiSlider.pressed) {
                 dpiSlider.value = dpi

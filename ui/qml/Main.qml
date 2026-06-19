@@ -190,6 +190,106 @@ ApplicationWindow {
                             }
                         }
                     }
+
+                    Item {
+                        width: 1
+                        height: backend.connectedDevices.length > 0 ? 14 : 0
+                    }
+
+                    Repeater {
+                        model: backend.connectedDevices
+
+                        delegate: FocusScope {
+                            id: deviceItem
+                            width: sidebar.width
+                            height: 48
+                            activeFocusOnTab: true
+
+                            readonly property string deviceKey: modelData.key || ""
+                            readonly property string deviceName: modelData.displayName || deviceKey
+                            readonly property string deviceKind: modelData.deviceKind || "other"
+                            readonly property bool deviceConnected: !!modelData.connected
+                            readonly property bool deviceSelected: backend.selectedDeviceKey
+                                                             ? backend.selectedDeviceKey === deviceKey
+                                                             : deviceConnected
+                            readonly property string deviceIcon: deviceKind === "keyboard"
+                                                               ? "keyboard-simple"
+                                                               : (deviceKind === "mouse"
+                                                                  ? "mouse-simple"
+                                                                  : "circle")
+
+                            Accessible.role: Accessible.Button
+                            Accessible.name: deviceName
+                            Accessible.description: deviceConnected ? "Connected device" : "Saved device"
+
+                            Keys.onReturnPressed: backend.setSelectedDeviceKey(deviceKey)
+                            Keys.onEnterPressed: backend.setSelectedDeviceKey(deviceKey)
+                            Keys.onSpacePressed: backend.setSelectedDeviceKey(deviceKey)
+
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: 42
+                                height: 42
+                                radius: 12
+                                color: deviceSelected
+                                       ? Qt.rgba(0, 0.83, 0.67, root.darkMode ? 0.14 : 0.16)
+                                       : deviceMouse.containsMouse || deviceItem.activeFocus
+                                         ? Qt.rgba(1, 1, 1, root.darkMode ? 0.06 : 0.22)
+                                         : "transparent"
+
+                                border.width: deviceItem.activeFocus ? 1 : 0
+                                border.color: root.theme.accent
+
+                                Behavior on color { ColorAnimation { duration: 150 } }
+
+                                AppIcon {
+                                    anchors.centerIn: parent
+                                    width: 20
+                                    height: 20
+                                    name: deviceIcon
+                                    iconColor: deviceSelected
+                                               ? root.theme.accent
+                                               : deviceMouse.containsMouse || deviceItem.activeFocus
+                                                 ? root.theme.textPrimary
+                                                 : root.theme.textSecondary
+                                }
+                            }
+
+                            Rectangle {
+                                width: 3
+                                height: 18
+                                radius: 2
+                                color: root.theme.accent
+                                anchors {
+                                    left: parent.left
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                visible: deviceSelected
+                            }
+
+                            MouseArea {
+                                id: deviceMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: backend.setSelectedDeviceKey(deviceKey)
+                                onContainsMouseChanged: {
+                                    if (containsMouse) {
+                                        var p = deviceItem.mapToItem(overlayLayer, deviceItem.width, deviceItem.height / 2)
+                                        root.hoveredNavItem = deviceItem
+                                        root.hoveredNavTipKey = ""
+                                        root.hoveredNavText = deviceName
+                                        root.hoveredNavCenterX = p.x
+                                        root.hoveredNavCenterY = p.y
+                                    } else if (root.hoveredNavItem === deviceItem) {
+                                        root.hoveredNavItem = null
+                                        root.hoveredNavTipKey = ""
+                                        root.hoveredNavText = ""
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
                 FocusScope {

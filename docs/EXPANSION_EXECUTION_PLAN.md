@@ -26,12 +26,12 @@ This plan integrates:
 | 0 — Foundation & Sync | 5 | 5 | **DONE** |
 | 1 — Test & Code Health (P0) | 4 | 4 | **DONE** |
 | 2 — Task A: Backend Exposure | 3 | 3 | **DONE** |
-| 3 — Upstream Feature Integration | 4 | 2 | **IN PROGRESS** |
-| 4 — Section D Completion | 8 | 3 | **IN PROGRESS** |
-| 5 — Placeholders & Architecture | 6 | 0 | Pending |
+| 3 — Upstream Feature Integration | 4 | 4 | **DONE** |
+| 4 — Section D Completion | 8 | 7 | **IN PROGRESS** (4.6 pending) |
+| 5 — Placeholders & Architecture | 6 | 2 | **IN PROGRESS** (5.3, 5.6 done) |
 | 6 — High-Risk Expansion | 5 | 0 | Pending |
-| 7 — Tasks F–G (Linux & Docs) | 3 | 1 | **IN PROGRESS** |
-| **TOTAL** | **38** | **18** | **47%** |
+| 7 — Tasks F–G (Linux & Docs) | 3 | 2 | **IN PROGRESS** (7.3 pending) |
+| **TOTAL** | **38** | **27** | **71%** |
 
 ---
 
@@ -826,6 +826,16 @@ This plan integrates:
 | 4.2 | 2026-06-19 | 2026-06-19 | 7eccb17 |
 | 4.4 | 2026-06-19 | 2026-06-19 | 7eccb17 |
 | 7.1 | 2026-06-19 | 2026-06-19 | 534f519 |
+| 3.2 | 2026-06-19 | 2026-06-19 | upstream a11y/tray merge |
+| 3.3 | 2026-06-19 | 2026-06-19 | keyboard polish batch |
+| 4.3 | 2026-06-19 | 2026-06-19 | LitraPage.qml |
+| 4.5 | 2026-06-19 | 2026-06-19 | BacklightHandler + FnInversionHandler |
+| 4.7 | 2026-06-19 | 2026-06-19 | feature ID SOURCE comments |
+| 4.8 | 2026-06-19 | 2026-06-19 | ScrollPage onboard profile |
+| 5.3 | 2026-06-19 | 2026-06-19 | force sensing backend tests |
+| 5.6 | 2026-06-19 | 2026-06-19 | docs/DEFERRED.md |
+| 7.2 | 2026-06-19 | 2026-06-19 | docs/ARCHITECTURE_GUIDE.md |
+| 7.3 | 2026-06-19 | — | in progress |
 
 ---
 

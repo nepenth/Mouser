@@ -1066,6 +1066,13 @@ class Engine:
             return getattr(hg, "_litra_illumination_idx", None) is not None
         return False
 
+    def has_onboard_profile_control(self):
+        """True when the connected device supports ONBOARD_PROFILES (0x8100) via HID++."""
+        hg = self.hook._hid_gesture
+        if hg:
+            return getattr(hg, "_onboard_profiles_idx", None) is not None
+        return False
+
     def _keyboard_replay_device_key(self, hg):
         device = getattr(hg, "connected_device", None)
         if not device:

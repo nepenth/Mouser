@@ -1185,6 +1185,64 @@ class BackendDeviceLayoutTests(unittest.TestCase):
             ["firefox.desktop"],
         )
 
+    def test_connected_devices_no_engine_returns_empty(self):
+        backend = self._make_backend(engine=None)
+        self.assertEqual(backend.connectedDevices, [])
+
+    def test_connected_devices_with_mock_engine_returns_list(self):
+        device = SimpleNamespace(
+            key="mx_mechanical_mini",
+            display_name="MX Mechanical Mini",
+            product_id=0xB367,
+            dpi_min=200,
+            dpi_max=4000,
+            ui_layout="generic_mouse",
+            supported_buttons=(),
+            capability_inventory=SimpleNamespace(
+                device_identity=(("device_kind", "keyboard"),),
+                keyboard_device=True,
+            ),
+        )
+        backend = self._make_backend(
+            engine=_FakeEngine(device_connected=True, connected_device=device)
+        )
+
+        devices = backend.connectedDevices
+        self.assertEqual(len(devices), 1)
+        self.assertEqual(devices[0]["key"], "mx_mechanical_mini")
+        self.assertEqual(devices[0]["displayName"], "MX Mechanical Mini")
+        self.assertEqual(devices[0]["deviceKind"], "keyboard")
+        self.assertTrue(devices[0]["connected"])
+        self.assertEqual(devices[0]["batteryLevel"], -1)
+
+    def test_selected_device_key_drives_keyboard_middle_path_settings(self):
+        device = SimpleNamespace(
+            key="mx_master_3",
+            display_name="MX Master 3S",
+            product_id=0xB023,
+            dpi_min=200,
+            dpi_max=8000,
+            ui_layout="mx_master_3",
+            supported_buttons=("middle",),
+        )
+        cfg = copy.deepcopy(DEFAULT_CONFIG)
+        cfg.setdefault("devices", {})["saved_keyboard"] = {
+            "keyboard_middle_path": {
+                "allow_host_backlight": False,
+                "allow_fn_inversion": False,
+                "allow_diversion_backlight": True,
+            }
+        }
+        backend = self._make_backend(
+            engine=_FakeEngine(device_connected=True, connected_device=device),
+            cfg=cfg,
+        )
+
+        self.assertTrue(backend.getDeviceKeyboardMiddlePathSetting("allow_host_backlight"))
+        backend.setSelectedDeviceKey("saved_keyboard")
+        self.assertFalse(backend.getDeviceKeyboardMiddlePathSetting("allow_host_backlight"))
+        self.assertTrue(backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_backlight"))
+
     def test_add_profile_rejects_linux_duplicate_when_existing_profile_uses_legacy_path(self):
         backend = self._make_backend()
         backend._cfg["profiles"]["firefox"] = {
@@ -1466,6 +1524,33 @@ class NewArchitectureHandlersBackendTestsA2(unittest.TestCase):
 
         self.assertTrue(backend.setLedState(True, 80))
         self.assertEqual(backend.readLedState(), [True, 75])
+
+
+class OnboardProfileBackendTests(unittest.TestCase):
+    """Task 4.8: onboard profile capability flag + slot delegation."""
+
+    def _make_backend(self, engine=None):
+        _ensure_qapp()
+        with patch("ui.backend.load_config", return_value=copy.deepcopy(DEFAULT_CONFIG)):
+            return Backend(engine=engine)
+
+    def test_onboard_profile_unsupported_without_engine(self):
+        backend = self._make_backend(engine=None)
+        self.assertFalse(backend.onboardProfileSupported)
+        self.assertIsNone(backend.readOnboardProfile())
+        self.assertFalse(backend.switchOnboardProfile(1))
+
+    def test_onboard_profile_supported_uses_engine_capability(self):
+        fake_engine = _FakeEngine()
+        fake_engine.has_onboard_profile_control = lambda: True
+        fake_engine.read_onboard_profile = lambda: 2
+        fake_engine.switch_onboard_profile = lambda idx: idx == 3
+
+        backend = self._make_backend(engine=fake_engine)
+        self.assertTrue(backend.onboardProfileSupported)
+        self.assertEqual(backend.readOnboardProfile(), 2)
+        self.assertTrue(backend.switchOnboardProfile(3))
+        self.assertFalse(backend.switchOnboardProfile(1))
 
 
 class NewArchitectureHandlersBackendTestsB(unittest.TestCase):
