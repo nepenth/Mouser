@@ -235,6 +235,9 @@ Added `apply_kvm_preset(cfg, device_key)` in `core/config.py` (kvm_mode defaults
 **Implementation Note (EXPANSION 6.2 — Linux evdev Diversion Validation)**  
 Added integration tests in `tests/test_hid_gesture.py` covering the gated diversion path: `_build_extra_diverts` registers MX Mechanical Mini backlight CIDs (0x00C5/0x00C6) only when `allow_diversion_backlight` is true, and `_divert_extras` issues HID++ divert requests for configured CIDs. Added config/backend tests for `apply_kvm_preset`. TASK-007 marked Done.
 
+**Implementation Note (EXPANSION 6.3 — Broader Keyboard Media-Key Diversion)**  
+Per-key opt-in diversion for Volume Up/Down, Mute, and Search on MX Mechanical Mini. Added `core/keyboard_diversion.py` catalog with REPROG-aware CID resolution (`_peek_reprog_cids` at connect). Config flags `allow_diversion_volume`, `allow_diversion_mute`, `allow_diversion_search` (default false). Extended `KeyboardPage.qml` with per-key toggles and a visible warning when any diversion flag is enabled. Media/search keys registered in `BUTTON_NAMES` / `BUTTON_TO_EVENTS` and routed through `resolve_diverted_keyboard_action` in Engine. KVM preset clears all diversion flags. Tests in `tests/test_keyboard_diversion.py`, extended `test_hid_gesture.py`, `test_config.py`, `test_backend.py`.
+
 **Implementation Note (TASK-008 micro-chunk 008.1)**  
 Official start of Litra Beam support. Added early “litra” name heuristic in `classify_device_kind` so Litra Beam devices are reliably classified as “other” (non-mouse, non-keyboard). Added clear, specific logging at all three classification sites when a Litra Beam is detected. Establishes the safe discovery/classification foundation with zero impact on existing mouse or keyboard paths. Passed Code Review + AC validation. Commit: 17163d8.
 

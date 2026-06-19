@@ -1272,6 +1272,33 @@ class BackendDeviceLayoutTests(unittest.TestCase):
         self.assertTrue(backend.getDeviceKeyboardMiddlePathSetting("allow_fn_inversion"))
         self.assertFalse(backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_backlight"))
 
+    def test_keyboard_middle_path_media_diversion_settings_round_trip(self):
+        device = SimpleNamespace(
+            key="mx_master_3",
+            display_name="MX Master 3S",
+            product_id=0xB023,
+            dpi_min=200,
+            dpi_max=8000,
+            ui_layout="mx_master_3",
+            supported_buttons=("middle",),
+        )
+        cfg = copy.deepcopy(DEFAULT_CONFIG)
+        backend = self._make_backend(
+            engine=_FakeEngine(device_connected=True, connected_device=device),
+            cfg=cfg,
+        )
+        backend.setSelectedDeviceKey("B367")
+
+        self.assertFalse(backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_volume"))
+        self.assertTrue(
+            backend.setDeviceKeyboardMiddlePathSetting("allow_diversion_volume", True)
+        )
+        self.assertTrue(backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_volume"))
+        self.assertTrue(
+            backend.setDeviceKeyboardMiddlePathSetting("allow_diversion_mute", True)
+        )
+        self.assertTrue(backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_mute"))
+
     def test_apply_kvm_preset_returns_false_without_device_context(self):
         backend = self._make_backend(engine=_FakeEngine(device_connected=False))
         self.assertFalse(backend.applyKvmPreset())

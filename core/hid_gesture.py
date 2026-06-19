@@ -567,6 +567,8 @@ class HidGestureListener:
         self._wireless_channel_idx = None   # 0x1D00 - Wireless Channel / RF Channel (unverified probe)
         self._sleep_timeout_idx = None      # 0x1E00 - Sleep Timeout / Power Save Timeout (unverified probe)
         self._wireless_status_idx = None    # 0x1D4B - WIRELESS_DEVICE_STATUS (Solaar)
+        self._reprog_cids_peek: frozenset[int] = frozenset()
+        self._reprog_task_to_cid: dict[int, int] = {}
         self._pending_smart_shift = None
         self._smart_shift_result = None
         self._smart_shift_call_lock = threading.Lock()
@@ -1516,6 +1518,31 @@ class HidGestureListener:
             )
         return controls
 
+    def _peek_reprog_cids(self) -> tuple[frozenset[int], dict[int, int]]:
+        """Lightweight REPROG walk for keyboard diversion (no gesture/divert side effects)."""
+        cids: set[int] = set()
+        task_to_cid: dict[int, int] = {}
+        if self._feat_idx is None:
+            return frozenset(), {}
+        resp = self._request(self._feat_idx, 0, [])
+        if not resp:
+            return frozenset(), {}
+        _, _, _, _, params = resp
+        count = min(int(params[0]) if params else 0, 32)
+        for index in range(count):
+            key_resp = self._request(self._feat_idx, 1, [index], timeout_ms=500)
+            if not key_resp:
+                continue
+            _, _, _, _, key_params = key_resp
+            if len(key_params) < 4:
+                continue
+            cid = (key_params[0] << 8) | key_params[1]
+            task = (key_params[2] << 8) | key_params[3]
+            cids.add(cid)
+            if task and task not in task_to_cid:
+                task_to_cid[task] = cid
+        return frozenset(cids), task_to_cid
+
     def _choose_gesture_candidates(self, controls, device_spec=None):
         present = {c["cid"] for c in controls}
         ordered = []
@@ -2340,6 +2367,7 @@ class HidGestureListener:
                         print(f"[HidGesture] Treating device as KeyboardDevice ({hidpp_name or product}) "
                               f"— skipping mouse gesture paths.")
                         self._discover_common_features()
+                        self._reprog_cids_peek, self._reprog_task_to_cid = self._peek_reprog_cids()
                         if idx == BT_DEV_IDX:
                             actual_transport = "Bluetooth"
                         elif pid == BOLT_RECEIVER_PID:

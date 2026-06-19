@@ -19,6 +19,7 @@ from core.config import (
     save_keyboard_host_backlight_state,
     save_keyboard_host_fn_inversion_state,
 )
+from core.keyboard_diversion import resolve_diverted_keyboard_action
 from core.app_detector import AppDetector
 from core.mouse_hook_types import HidRuntimeState
 from core.linux_permissions import (
@@ -752,23 +753,16 @@ class Engine:
             except Exception:
                 pass
 
-        # 007.4/007.5: Make the diverted MX Mechanical Mini backlight key events mappable
-        # They arrive as strings via the gesture callback when diversion is opted in.
-        if isinstance(event, str) and event.startswith("keyboard_backlight_"):
+        # 007.4/007.5 / 6.3: Diverted MX Mechanical Mini keys (backlight, media, search).
+        if isinstance(event, str) and event.startswith("keyboard_"):
             mappings = get_active_mappings(self.cfg)
-            action_id = mappings.get(event, "none")
-
-            # Also check friendly canonical aliases (backlight_up / backlight_down)
-            if action_id == "none":
-                if event in ("keyboard_backlight_up_down", "keyboard_backlight_up_up"):
-                    action_id = mappings.get("backlight_up", "none")
-                elif event in ("keyboard_backlight_down_down", "keyboard_backlight_down_up"):
-                    action_id = mappings.get("backlight_down", "none")
-
+            action_id = resolve_diverted_keyboard_action(mappings, event)
             if action_id != "none":
                 try:
                     execute_action(action_id)
-                    self._emit_debug(f"Diverted Backlight key triggered mapped action: {action_id} (event: {event})")
+                    self._emit_debug(
+                        f"Diverted keyboard key triggered mapped action: {action_id} (event: {event})"
+                    )
                 except Exception as exc:
                     print(f"[Engine] Exception executing action for diverted {event}: {exc}")
 
@@ -783,11 +777,19 @@ class Engine:
             "gesture_down",
             "xbutton1",
             "xbutton2",
-            # 007.4/007.5: Diverted MX Mechanical Mini backlight keys (opt-in)
+            # 007.4/007.5 / 6.3: Diverted MX Mechanical Mini keys (opt-in)
             "keyboard_backlight_up",
             "keyboard_backlight_down",
+            "keyboard_volume_up",
+            "keyboard_volume_down",
+            "keyboard_mute",
+            "keyboard_search",
             "backlight_up",
             "backlight_down",
+            "volume_up",
+            "volume_down",
+            "mute",
+            "search",
         ]
         summary = ", ".join(f"{key}={mappings.get(key, 'none')}" for key in interesting)
         self._emit_debug(f"{prefix}: {summary}")

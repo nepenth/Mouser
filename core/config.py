@@ -10,6 +10,7 @@ import sys
 import tempfile
 from urllib.parse import quote
 from core import app_catalog
+from core.keyboard_diversion import KEYBOARD_MIDDLE_PATH_DIVERSION_KEYS
 
 if sys.platform == "darwin":
     CONFIG_DIR = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "Mouser")
@@ -33,13 +34,19 @@ BUTTON_NAMES = {
     "hscroll_right": "Horizontal scroll right",
     "mode_shift":    "Mode shift button",
     "dpi_switch":    "DPI switch button",
-    # 007.4/007.5: Diverted MX Mechanical Mini backlight keys (opt-in only)
-    # Internal dispatch names (used by the hook)
+    # 007.4/007.5 / 6.3: Diverted MX Mechanical Mini keys (opt-in only)
     "keyboard_backlight_up":      "Backlight Up (diverted)",
     "keyboard_backlight_down":    "Backlight Down (diverted)",
-    # Cleaner canonical names for the action selector / UI (007.5 polish)
+    "keyboard_volume_up":         "Volume Up (diverted)",
+    "keyboard_volume_down":       "Volume Down (diverted)",
+    "keyboard_mute":              "Mute (diverted)",
+    "keyboard_search":            "Search (diverted)",
     "backlight_up":               "Backlight Up (diverted)",
     "backlight_down":             "Backlight Down (diverted)",
+    "volume_up":                  "Volume Up (diverted)",
+    "volume_down":                "Volume Down (diverted)",
+    "mute":                       "Mute (diverted)",
+    "search":                     "Search (diverted)",
 }
 
 GESTURE_DIRECTION_BUTTONS = (
@@ -55,11 +62,18 @@ PROFILE_BUTTON_NAMES = {
     "gesture_right": "Gesture swipe right",
     "gesture_up":    "Gesture swipe up",
     "gesture_down":  "Gesture swipe down",
-    # 007.4/007.5: Diverted backlight keys also appear in profiles
     "keyboard_backlight_up":   "Backlight Up (diverted)",
     "keyboard_backlight_down": "Backlight Down (diverted)",
+    "keyboard_volume_up":      "Volume Up (diverted)",
+    "keyboard_volume_down":    "Volume Down (diverted)",
+    "keyboard_mute":           "Mute (diverted)",
+    "keyboard_search":         "Search (diverted)",
     "backlight_up":            "Backlight Up (diverted)",
     "backlight_down":          "Backlight Down (diverted)",
+    "volume_up":               "Volume Up (diverted)",
+    "volume_down":             "Volume Down (diverted)",
+    "mute":                    "Mute (diverted)",
+    "search":                  "Search (diverted)",
 }
 
 # Maps config button keys to the MouseEvent types they correspond to
@@ -76,13 +90,18 @@ BUTTON_TO_EVENTS = {
     "hscroll_right": ("hscroll_right",),
     "mode_shift":    ("mode_shift_down", "mode_shift_up"),
     "dpi_switch":    ("dpi_switch_down", "dpi_switch_up"),
-    # 007.4/007.5: Diverted MX Mechanical Mini backlight keys (opt-in only)
-    # Internal dispatch names
     "keyboard_backlight_up":      ("keyboard_backlight_up_down", "keyboard_backlight_up_up"),
     "keyboard_backlight_down":    ("keyboard_backlight_down_down", "keyboard_backlight_down_up"),
-    # Friendly canonical aliases (map to the same internal events)
+    "keyboard_volume_up":         ("keyboard_volume_up_down", "keyboard_volume_up_up"),
+    "keyboard_volume_down":       ("keyboard_volume_down_down", "keyboard_volume_down_up"),
+    "keyboard_mute":              ("keyboard_mute_down", "keyboard_mute_up"),
+    "keyboard_search":            ("keyboard_search_down", "keyboard_search_up"),
     "backlight_up":               ("keyboard_backlight_up_down", "keyboard_backlight_up_up"),
     "backlight_down":             ("keyboard_backlight_down_down", "keyboard_backlight_down_up"),
+    "volume_up":                  ("keyboard_volume_up_down", "keyboard_volume_up_up"),
+    "volume_down":                ("keyboard_volume_down_down", "keyboard_volume_down_up"),
+    "mute":                       ("keyboard_mute_down", "keyboard_mute_up"),
+    "search":                     ("keyboard_search_down", "keyboard_search_up"),
 }
 
 DEFAULT_CONFIG = {
@@ -272,17 +291,19 @@ def get_keyboard_middle_path_settings(cfg, device_key):
     kmp = dev.setdefault("keyboard_middle_path", {})
     kmp.setdefault("allow_host_backlight", True)
     kmp.setdefault("allow_fn_inversion", True)
-    kmp.setdefault("allow_diversion_backlight", False)
+    for flag in KEYBOARD_MIDDLE_PATH_DIVERSION_KEYS:
+        kmp.setdefault(flag, False)
     return {
         "allow_host_backlight": bool(kmp.get("allow_host_backlight", True)),
         "allow_fn_inversion": bool(kmp.get("allow_fn_inversion", True)),
-        "allow_diversion_backlight": bool(kmp.get("allow_diversion_backlight", False)),
+        **{flag: bool(kmp.get(flag, False)) for flag in KEYBOARD_MIDDLE_PATH_DIVERSION_KEYS},
     }
 
 
 def set_keyboard_middle_path_setting(cfg, device_key, key, value):
     """Set a single keyboard middle-path setting for a device and persist."""
-    if key not in ("allow_host_backlight", "allow_fn_inversion", "allow_diversion_backlight"):
+    allowed = ("allow_host_backlight", "allow_fn_inversion", *KEYBOARD_MIDDLE_PATH_DIVERSION_KEYS)
+    if key not in allowed:
         return False
     devices = cfg.setdefault("devices", {})
     dev = devices.setdefault(device_key, {})
@@ -298,7 +319,7 @@ def apply_kvm_preset(cfg, device_key):
     kvm_mode preset values:
     - allow_host_backlight: True  (host may adjust backlight)
     - allow_fn_inversion: True    (host may adjust FN inversion)
-    - allow_diversion_backlight: False  (preserve onboard backlight keys)
+    - all allow_diversion_* flags: False  (preserve onboard key behavior)
     """
     if not device_key:
         return False
@@ -307,7 +328,8 @@ def apply_kvm_preset(cfg, device_key):
     kmp = dev.setdefault("keyboard_middle_path", {})
     kmp["allow_host_backlight"] = True
     kmp["allow_fn_inversion"] = True
-    kmp["allow_diversion_backlight"] = False
+    for flag in KEYBOARD_MIDDLE_PATH_DIVERSION_KEYS:
+        kmp[flag] = False
     save_config(cfg)
     return True
 

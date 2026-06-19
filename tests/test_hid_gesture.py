@@ -1285,12 +1285,15 @@ class KeyboardBacklightDiversionGatingTests(unittest.TestCase):
 
         self.assertIn(self.BACKLIGHT_UP_CID, extra)
         self.assertIn(self.BACKLIGHT_DOWN_CID, extra)
-        self.assertEqual(
-            extra[self.BACKLIGHT_UP_CID]["on_down"].__func__,
-            hook._on_hid_keyboard_backlight_up_down.__func__,
-        )
         self.assertIn("on_up", extra[self.BACKLIGHT_UP_CID])
+        self.assertIn("on_down", extra[self.BACKLIGHT_UP_CID])
         self.assertIn("on_down", extra[self.BACKLIGHT_DOWN_CID])
+        self.assertEqual(extra[self.BACKLIGHT_UP_CID]["label"], "Backlight Up")
+
+        dispatched = []
+        hook._gesture_callback = dispatched.append
+        extra[self.BACKLIGHT_UP_CID]["on_down"]()
+        self.assertEqual(dispatched, ["keyboard_backlight_up_down"])
 
     def test_build_extra_diverts_skips_backlight_cids_when_opt_in_false(self):
         from core.mouse_hook_base import BaseMouseHook
@@ -1303,6 +1306,20 @@ class KeyboardBacklightDiversionGatingTests(unittest.TestCase):
 
         self.assertNotIn(self.BACKLIGHT_UP_CID, extra)
         self.assertNotIn(self.BACKLIGHT_DOWN_CID, extra)
+
+    def test_build_extra_diverts_registers_volume_cids_when_volume_opt_in_true(self):
+        from core.mouse_hook_base import BaseMouseHook
+
+        hook = BaseMouseHook()
+        cfg = self._cfg_with_diversion("B367", False)
+        cfg["devices"]["B367"]["keyboard_middle_path"]["allow_diversion_volume"] = True
+        dev = self._mx_mini_device()
+
+        extra = hook._build_extra_diverts(cfg=cfg, current_device=dev)
+
+        self.assertIn(0x00C9, extra)
+        self.assertIn(0x00C8, extra)
+        self.assertNotIn(self.BACKLIGHT_UP_CID, extra)
 
     def test_divert_extras_requests_hidpp_diversion_for_opt_in_backlight_cids(self):
         listener = hid_gesture.HidGestureListener()

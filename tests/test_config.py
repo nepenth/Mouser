@@ -563,6 +563,9 @@ class KeyboardMiddlePathConfigTests(unittest.TestCase):
                 "allow_host_backlight": False,
                 "allow_fn_inversion": False,
                 "allow_diversion_backlight": True,
+                "allow_diversion_volume": True,
+                "allow_diversion_mute": True,
+                "allow_diversion_search": True,
             }
         }
 
@@ -573,6 +576,25 @@ class KeyboardMiddlePathConfigTests(unittest.TestCase):
         self.assertTrue(kmp["allow_host_backlight"])
         self.assertTrue(kmp["allow_fn_inversion"])
         self.assertFalse(kmp["allow_diversion_backlight"])
+        self.assertFalse(kmp["allow_diversion_volume"])
+        self.assertFalse(kmp["allow_diversion_mute"])
+        self.assertFalse(kmp["allow_diversion_search"])
+        save_mock.assert_called_once_with(cfg)
+
+    def test_get_keyboard_middle_path_settings_defaults_media_diversion_off(self):
+        cfg = json.loads(json.dumps(config.DEFAULT_CONFIG))
+        settings = config.get_keyboard_middle_path_settings(cfg, "B367")
+        self.assertFalse(settings["allow_diversion_volume"])
+        self.assertFalse(settings["allow_diversion_mute"])
+        self.assertFalse(settings["allow_diversion_search"])
+
+    def test_set_keyboard_middle_path_setting_persists_media_diversion_flags(self):
+        cfg = json.loads(json.dumps(config.DEFAULT_CONFIG))
+        with patch.object(config, "save_config") as save_mock:
+            self.assertTrue(
+                config.set_keyboard_middle_path_setting(cfg, "B367", "allow_diversion_volume", True)
+            )
+        self.assertTrue(cfg["devices"]["B367"]["keyboard_middle_path"]["allow_diversion_volume"])
         save_mock.assert_called_once_with(cfg)
 
     def test_apply_kvm_preset_rejects_empty_device_key(self):

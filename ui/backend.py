@@ -1966,8 +1966,14 @@ class Backend(QObject):
             return settings.get("allow_host_backlight", True)
         if settingName == "allow_fn_inversion":
             return settings.get("allow_fn_inversion", True)
-        if settingName == "allow_diversion_backlight":
-            return settings.get("allow_diversion_backlight", False)
+        diversion_flags = (
+            "allow_diversion_backlight",
+            "allow_diversion_volume",
+            "allow_diversion_mute",
+            "allow_diversion_search",
+        )
+        if settingName in diversion_flags:
+            return settings.get(settingName, False)
         return True
 
     @Slot(result=bool)
@@ -1988,6 +1994,9 @@ class Backend(QObject):
             "allow_host_backlight": "allow_host_backlight",
             "allow_fn_inversion": "allow_fn_inversion",
             "allow_diversion_backlight": "allow_diversion_backlight",
+            "allow_diversion_volume": "allow_diversion_volume",
+            "allow_diversion_mute": "allow_diversion_mute",
+            "allow_diversion_search": "allow_diversion_search",
         }
         cfg_key = key_map.get(settingName)
         if not cfg_key:

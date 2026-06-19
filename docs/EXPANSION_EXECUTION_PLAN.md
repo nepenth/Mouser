@@ -29,9 +29,9 @@ This plan integrates:
 | 3 — Upstream Feature Integration | 4 | 4 | **DONE** |
 | 4 — Section D Completion | 8 | 8 | **DONE** |
 | 5 — Placeholders & Architecture | 6 | 6 | **DONE** |
-| 6 — High-Risk Expansion | 5 | 4 | **DONE** (6.3 deferred → `DEFERRED.md`; 6.1 full XL follow-up) |
+| 6 — High-Risk Expansion | 5 | 5 | **DONE** (6.1 full XL follow-up optional) |
 | 7 — Tasks F–G (Linux & Docs) | 3 | 3 | **DONE** |
-| **TOTAL** | **38** | **37** | **97%** (1 P3 item explicitly deferred) |
+| **TOTAL** | **38** | **38** | **100%** |
 
 ---
 
@@ -856,7 +856,7 @@ This plan integrates:
 | 6.4 | 2026-06-19 | 2026-06-19 | (next) |
 | 6.5 | 2026-06-19 | 2026-06-19 | e3496dd |
 | 6.1 | 2026-06-19 | 2026-06-19 | (next) MVP; full XL follow-up |
-| 6.3 | 2026-06-19 | — | **DEFERRED** (P3) |
+| 6.3 | 2026-06-19 | 2026-06-19 | (next) |
 | 7.3 | 2026-06-19 | 2026-06-19 | 5ee29ac |
 
 ---

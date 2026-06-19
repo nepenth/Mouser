@@ -11,7 +11,7 @@ except Exception:
     HidGestureListener = None
 
 from core.mouse_hook_types import HidRuntimeState, MouseEvent, format_debug_details
-from core.config import get_keyboard_middle_path_settings
+from core.keyboard_diversion import build_keyboard_extra_diverts
 
 
 class BaseMouseHook:
@@ -261,77 +261,57 @@ class BaseMouseHook:
                 "on_up": self._on_hid_dpi_switch_up,
             }
 
-        # 007.2: Conditional, opt-in diversion for the two safest MX Mechanical Mini backlight keys
-        # (Backlight Up / Backlight Down). Only active when the user has explicitly enabled
-        # allow_diversion_backlight for this specific device.
+        # 007.2 / 6.3: Per-key opt-in keyboard diversion (backlight, media, search).
         try:
             cfg = cfg or getattr(self, "cfg", None)
             dev = current_device or getattr(self, "_hid_device_info", None) or getattr(getattr(self, "_hid_gesture", None), "connected_device", None)
-
-            if dev and cfg:
-                name = getattr(dev, "name", "") or ""
-                pid = getattr(dev, "product_id", 0) or 0
-                is_mx_mechanical_mini = ("MX Mechanical Mini" in name) or (pid in (0xB369, 0xB36B))
-
-                if is_mx_mechanical_mini:
-                    device_key = getattr(dev, "key", None) or str(pid)
-                    kmp = get_keyboard_middle_path_settings(cfg, device_key)
-                    if kmp.get("allow_diversion_backlight", False):
-                        # The two safest backlight CIDs on MX Mechanical Mini (REPROG controls)
-                        # These are the ones previously identified as the lowest-risk to divert.
-                        BACKLIGHT_UP_CID = 0x00C5
-                        BACKLIGHT_DOWN_CID = 0x00C6
-
-                        extra[BACKLIGHT_UP_CID] = {
-                            "on_down": self._on_hid_keyboard_backlight_up_down,
-                            "on_up": self._on_hid_keyboard_backlight_up_up,
-                        }
-                        extra[BACKLIGHT_DOWN_CID] = {
-                            "on_down": self._on_hid_keyboard_backlight_down_down,
-                            "on_up": self._on_hid_keyboard_backlight_down_up,
-                        }
-                        print(f"[MouseHook] Enabling opt-in backlight key diversion for device {device_key} (flag allow_diversion_backlight=True)")
-                    else:
-                        print(f"[MouseHook] Backlight key diversion skipped for device {device_key} (flag allow_diversion_backlight=False or not set)")
+            hg = getattr(self, "_hid_gesture", None)
+            reprog_cids = getattr(hg, "_reprog_cids_peek", None) if hg else None
+            task_to_cid = getattr(hg, "_reprog_task_to_cid", None) if hg else None
+            keyboard_extra = build_keyboard_extra_diverts(
+                cfg=cfg,
+                device=dev,
+                dispatch_factory=self._make_keyboard_divert_handlers,
+                reprog_cids=reprog_cids,
+                task_to_cid=task_to_cid,
+            )
+            extra.update(keyboard_extra)
         except Exception as e:
-            print(f"[MouseHook] Error building keyboard backlight diversion: {e}")
+            print(f"[MouseHook] Error building keyboard key diversion: {e}")
 
         return extra
 
-    # 007.3: Dispatch the diverted backlight key events so they are visible to the existing
-    # action/mapping system. When diversion is active for the device, these produce
-    # recognizable events (currently surfaced via the gesture callback + debug logging).
-    def _on_hid_keyboard_backlight_up_down(self):
-        print("[MouseHook] Dispatched diverted backlight up key (down)")
+    def _make_keyboard_divert_handlers(self, event_stem: str) -> dict:
+        """Return on_down/on_up callables for a diverted keyboard control."""
+
+        def on_down():
+            self._dispatch_diverted_keyboard_event(f"{event_stem}_down")
+
+        def on_up():
+            self._dispatch_diverted_keyboard_event(f"{event_stem}_up")
+
+        return {"on_down": on_down, "on_up": on_up}
+
+    def _dispatch_diverted_keyboard_event(self, event_name: str):
+        print(f"[MouseHook] Dispatched diverted keyboard key: {event_name}")
         if hasattr(self, "_gesture_callback") and self._gesture_callback:
             try:
-                self._gesture_callback("keyboard_backlight_up_down")
+                self._gesture_callback(event_name)
             except Exception:
                 pass
+
+    # Backward-compatible named handlers (tests / subclasses may reference these).
+    def _on_hid_keyboard_backlight_up_down(self):
+        self._dispatch_diverted_keyboard_event("keyboard_backlight_up_down")
 
     def _on_hid_keyboard_backlight_up_up(self):
-        print("[MouseHook] Dispatched diverted backlight up key (up)")
-        if hasattr(self, "_gesture_callback") and self._gesture_callback:
-            try:
-                self._gesture_callback("keyboard_backlight_up_up")
-            except Exception:
-                pass
+        self._dispatch_diverted_keyboard_event("keyboard_backlight_up_up")
 
     def _on_hid_keyboard_backlight_down_down(self):
-        print("[MouseHook] Dispatched diverted backlight down key (down)")
-        if hasattr(self, "_gesture_callback") and self._gesture_callback:
-            try:
-                self._gesture_callback("keyboard_backlight_down_down")
-            except Exception:
-                pass
+        self._dispatch_diverted_keyboard_event("keyboard_backlight_down_down")
 
     def _on_hid_keyboard_backlight_down_up(self):
-        print("[MouseHook] Dispatched diverted backlight down key (up)")
-        if hasattr(self, "_gesture_callback") and self._gesture_callback:
-            try:
-                self._gesture_callback("keyboard_backlight_down_up")
-            except Exception:
-                pass
+        self._dispatch_diverted_keyboard_event("keyboard_backlight_down_up")
 
     def _start_hid_listener(self):
         platform_module = getattr(self.__class__, "_platform_module", None)
