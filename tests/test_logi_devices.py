@@ -234,8 +234,19 @@ class LogiDeviceRegistryTests(unittest.TestCase):
         self.assertIsNotNone(device)
         self.assertEqual(device.key, "g502_x")
 
+    def test_resolve_g502_x_lightspeed_by_alias_and_receiver_wpid(self):
+        device = resolve_device(product_name="G502 X Lightspeed")
+        self.assertIsNotNone(device)
+        self.assertEqual(device.key, "g502_x")
+        self.assertEqual(device.ui_layout, "g502")
+
+        receiver_device = resolve_device(product_id=0xC547)
+        self.assertIsNotNone(receiver_device)
+        self.assertEqual(receiver_device.key, "g502_x")
+        self.assertEqual(receiver_device.ui_layout, "g502")
+
     def test_resolve_g502_x_plus_by_product_id(self):
-        for product_id in (0xC095, 0x4099):
+        for product_id in (0xC095, 0x4099, 0xC547, 0x409F):
             with self.subTest(product_id=f"0x{product_id:04X}"):
                 device = resolve_device(product_id=product_id)
 
