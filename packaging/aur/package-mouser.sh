@@ -7,6 +7,10 @@ mouser_package() {
 
   install -dm755 "${pkgroot}/usr/lib/mouser"
   cp -r core ui images main_qml.py "${pkgroot}/usr/lib/mouser/"
+  install -dm755 "${pkgroot}/usr/lib/mouser/packaging/linux"
+  install -Dm644 packaging/linux/io.github.tombadash.mouser.desktop.in \
+    "${pkgroot}/usr/lib/mouser/packaging/linux/io.github.tombadash.mouser.desktop.in"
+  cp -r packaging/linux/icons "${pkgroot}/usr/lib/mouser/packaging/linux/icons"
 
   install -Dm644 LICENSE "${pkgroot}/usr/share/licenses/mouser/LICENSE"
   install -Dm644 README.md "${pkgroot}/usr/share/doc/mouser/README.md"

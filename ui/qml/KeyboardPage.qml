@@ -16,6 +16,30 @@ Item {
     id: keyboardPage
     readonly property var theme: Theme.palette(uiState.darkMode)
 
+    readonly property bool anyDiversionEnabled:
+        allowDiversionBacklightSwitch.checked
+        || allowDiversionVolumeSwitch.checked
+        || allowDiversionMuteSwitch.checked
+        || allowDiversionSearchSwitch.checked
+
+    function refreshPermissionToggles() {
+        if (backend.keyboardBacklightSupported || backend.keyboardFnInversionSupported) {
+            allowBacklightSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_host_backlight")
+            allowFnSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_fn_inversion")
+            allowDiversionBacklightSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_backlight")
+            allowDiversionVolumeSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_volume")
+            allowDiversionMuteSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_mute")
+            allowDiversionSearchSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_search")
+        }
+    }
+
+    Connections {
+        target: backend
+        function onDeviceInfoChanged() { keyboardPage.refreshPermissionToggles() }
+        function onHidFeaturesReadyChanged() { keyboardPage.refreshPermissionToggles() }
+        function onSelectedDeviceKeyChanged() { keyboardPage.refreshPermissionToggles() }
+    }
+
     ColumnLayout {
         anchors {
             fill: parent
@@ -339,30 +363,5 @@ Item {
         }
 
         Item { Layout.fillHeight: true }
-
-        readonly property bool anyDiversionEnabled:
-            allowDiversionBacklightSwitch.checked
-            || allowDiversionVolumeSwitch.checked
-            || allowDiversionMuteSwitch.checked
-            || allowDiversionSearchSwitch.checked
-
-        // Make permission toggles reactive to device changes (KVM use case, 006.4)
-        function refreshPermissionToggles() {
-            if (backend.keyboardBacklightSupported || backend.keyboardFnInversionSupported) {
-                allowBacklightSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_host_backlight")
-                allowFnSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_fn_inversion")
-                allowDiversionBacklightSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_backlight")
-                allowDiversionVolumeSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_volume")
-                allowDiversionMuteSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_mute")
-                allowDiversionSearchSwitch.checked = backend.getDeviceKeyboardMiddlePathSetting("allow_diversion_search")
-            }
-        }
-
-        Connections {
-            target: backend
-            function onDeviceInfoChanged() { refreshPermissionToggles() }
-            function onHidFeaturesReadyChanged() { refreshPermissionToggles() }
-            function onSelectedDeviceKeyChanged() { refreshPermissionToggles() }
-        }
     }
 }

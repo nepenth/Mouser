@@ -69,6 +69,12 @@ class ArchPackagingTests(unittest.TestCase):
             text = handle.read()
         self.assertIn("/usr/lib/udev/rules.d/69-mouser-logitech.rules", text)
         self.assertIn("/usr/share/mouser/69-mouser-logitech.rules", text)
+        self.assertIn("packaging/linux/io.github.tombadash.mouser.desktop.in", text)
+        self.assertIn("packaging/linux/icons", text)
+
+    def test_keyboard_nav_icon_exists(self):
+        icon = os.path.join(ROOT, "images", "icons", "keyboard-simple.svg")
+        self.assertTrue(os.path.isfile(icon))
 
     def test_install_permissions_script_handles_packaged_rules(self):
         script = os.path.join(ROOT, "packaging", "linux", "install-linux-permissions.sh")
