@@ -14,7 +14,6 @@ depends=(
   'python-pillow'
   'qt6-declarative'
   'qt6-svg'
-  'qt6-quickcontrols2'
 )
 makedepends=('git')
 optdepends=(

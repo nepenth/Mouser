@@ -14,7 +14,6 @@ pkgbase = mouser-git
 	depends = python-pillow
 	depends = qt6-declarative
 	depends = qt6-svg
-	depends = qt6-quickcontrols2
 	optdepends = kdotool: KDE Plasma Wayland per-app profile switching
 	optdepends = xdotool: X11 and XWayland foreground app detection fallback
 	provides = mouser

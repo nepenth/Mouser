@@ -1,7 +1,7 @@
 # Maintainer: Mouser Contributors <https://github.com/TomBadash/Mouser>
 # Build the current working tree without pushing to a remote (best for CachyOS dev).
 pkgname=mouser-local
-pkgver=3.6.0.r415.f52f15f.local
+pkgver=3.6.0.r416.d5055cb.local
 pkgrel=1
 pkgdesc="Logitech HID++ mouse and keyboard companion (local source tree)"
 arch=('any')
@@ -15,7 +15,6 @@ depends=(
   'python-pillow'
   'qt6-declarative'
   'qt6-svg'
-  'qt6-quickcontrols2'
 )
 makedepends=()
 optdepends=(

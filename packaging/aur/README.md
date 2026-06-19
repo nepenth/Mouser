@@ -16,14 +16,14 @@ From your Mouser git checkout:
 
 ```bash
 # Recommended for local development — packages the tree you have on disk
-paru -P "$(pwd)/packaging/aur/mouser-local"
+paru -P "$(pwd)/packaging/aur/mouser-local"   # mouser-local — not mouse-local
 ```
 
 Install build deps first if paru asks:
 
 ```bash
 sudo pacman -S --needed base-devel git python pyside6 python-hidapi python-evdev \
-  python-pillow qt6-declarative qt6-svg qt6-quickcontrols2
+  python-pillow qt6-declarative qt6-svg
 ```
 
 Optional for KDE Wayland per-app profiles:

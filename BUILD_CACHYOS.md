@@ -14,7 +14,7 @@ This guide is for **CachyOS** with **KDE Plasma on Wayland**. Generic Linux note
 ```bash
 sudo pacman -S --needed \
   git python python-pip \
-  pyside6 qt6-declarative qt6-svg qt6-quickcontrols2 \
+  pyside6 qt6-declarative qt6-svg \
   hidapi python-hidapi python-evdev python-pillow \
   udev
 ```
