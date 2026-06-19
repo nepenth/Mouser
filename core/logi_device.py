@@ -335,7 +335,7 @@ class RecommendedThinHandler(DefaultThinHandler):
     Full Recommended Pattern for a Brand-New Thin Handler (current best practice):
 
         class MyFeatureHandler(RecommendedThinHandler):
-            """Example of the full modern recommended shape (009.33–009.50)."""
+            '''Example of the full modern recommended shape (009.33-009.50).'''
 
             def __init__(self, device, listener):
                 super().__init__(device, listener,

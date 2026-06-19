@@ -23,15 +23,15 @@ This plan integrates:
 
 | Phase | Items | Done | Status |
 |-------|-------|------|--------|
-| 0 — Foundation & Sync | 5 | 4 | **IN PROGRESS** |
+| 0 — Foundation & Sync | 5 | 5 | **DONE** |
 | 1 — Test & Code Health (P0) | 4 | 4 | **DONE** |
 | 2 — Task A: Backend Exposure | 3 | 3 | **DONE** |
-| 3 — Upstream Feature Integration | 4 | 0 | Pending |
-| 4 — Section D Completion | 8 | 0 | Pending |
+| 3 — Upstream Feature Integration | 4 | 2 | **IN PROGRESS** |
+| 4 — Section D Completion | 8 | 3 | **IN PROGRESS** |
 | 5 — Placeholders & Architecture | 6 | 0 | Pending |
 | 6 — High-Risk Expansion | 5 | 0 | Pending |
 | 7 — Tasks F–G (Linux & Docs) | 3 | 1 | **IN PROGRESS** |
-| **TOTAL** | **38** | **12** | **32%** |
+| **TOTAL** | **38** | **18** | **47%** |
 
 ---
 
@@ -814,12 +814,18 @@ This plan integrates:
 | 0.4 | 2026-06-19 | 2026-06-19 | babb6dd |
 | 1.1 | 2026-06-19 | 2026-06-19 | 0be7c69 |
 | 1.2 | 2026-06-19 | 2026-06-19 | 0be7c69 |
-| 1.3 | 2026-06-19 | 2026-06-19 | (this commit) |
-| 1.4 | 2026-06-19 | 2026-06-19 | 0be7c69 → 642 tests OK |
+| 0.5 | 2026-06-19 | 2026-06-19 | (next) |
+| 1.3 | 2026-06-19 | 2026-06-19 | 534f519 |
+| 1.4 | 2026-06-19 | 2026-06-19 | 647 tests OK |
 | 2.1 | 2026-06-19 | 2026-06-19 | babb6dd |
 | 2.2 | 2026-06-19 | 2026-06-19 | babb6dd |
-| 2.3 | 2026-06-19 | 2026-06-19 | (this commit) |
-| 7.1 | 2026-06-19 | 2026-06-19 | (this commit) |
+| 2.3 | 2026-06-19 | 2026-06-19 | 534f519 |
+| 3.1 | 2026-06-19 | 2026-06-19 | upstream merge (verified) |
+| 3.4 | 2026-06-19 | 2026-06-19 | vendor-wide udev (verified) |
+| 4.1 | 2026-06-19 | 2026-06-19 | (next) |
+| 4.2 | 2026-06-19 | 2026-06-19 | (next) |
+| 4.4 | 2026-06-19 | 2026-06-19 | (next) |
+| 7.1 | 2026-06-19 | 2026-06-19 | 534f519 |
 
 ---
 
